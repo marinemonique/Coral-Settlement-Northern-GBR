@@ -1,0 +1,741 @@
+---
+title: "Models_10Sep2025"
+author: "Monique White"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r eval=TRUE, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(car)
+library(emmeans)
+library("FactoMineR")
+library("factoextra")
+library(FactoMineR)
+library(factoextra)
+library(vegan)
+library(PCAmixdata)
+library(ggfortify)
+library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
+library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
+```
+
+```{r echo=FALSE, message=FALSE}
+Coral_settlement_nGBR_CS <- read_csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
+  mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR_CS %>% 
+  filter(`Shelf posn` != "Coral Sea", #remove coral sea data
+        Obs != c(1499, 1621, 1622)) #Remove loose tiles with heavy biofouling
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR %>% 
+  rename("Shelf_Position"= `Shelf posn`,
+         "Year_Collected"= `Year (Jan)`,
+         "Site_#"= `Site #`,
+         "Acroporidae" =Acropora,
+         "Pocilloporidae" = Pocillopora,
+         "Poritid" = Porites) |> 
+  mutate(Year_Collected = factor(Year_Collected),
+         Shelf_Position = factor(Shelf_Position))
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |>
+  filter(Shelf_Position != "Inner" | (Shelf_Position %in% c( "Inner", "Mid") & Tile %in% as.character(1:10)))
+```
+
+```{r echo=FALSE, include=FALSE, eval=FALSE}
+#Coral_settlement_nGBR |> 
+  ggplot(aes(x=Year_Collected, y=total, colour = Site))+
+  geom_boxplot()+
+  facet_wrap(~Shelf_Position, ncol  =1)
+```
+
+```{r echo=FALSE}
+Coral_settlement_nGBR |> 
+  ggplot(aes(x = Year_Collected, y = total, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+               position = position_dodge(width = 0.8),
+               alpha = 0.6) +
+  facet_wrap(~Shelf_Position, ncol = 1, scale = "free_y")
+
+```
+
+# Summary Statistics
+
+```{r echo=FALSE}
+Coral_settlement_nGBR |> 
+  summarise(total_tiles = n(),
+            total_recruits = sum(total),
+            total_acro = sum(Acroporidae),
+            total_poci = sum(Pocilloporidae),
+            total_poritidae = sum(Poritid),
+            total_bottom = sum(`Under Total`),
+            total_side = sum(`Side Total`),
+            total_top = sum(`Top Total`)) |> 
+  knitr::kable()
+```
+Temporal statistics
+
+```{r echo=FALSE}
+Coral_settlement_nGBR |> 
+  group_by(Year_Collected) |> 
+  summarise(total_tiles = n(),
+            total_recruits = sum(total),
+            total_acro = sum(Acroporidae),
+            total_poci = sum(Pocilloporidae),
+            total_poritidae = sum(Poritid),
+            total_bottom = sum(`Under Total`),
+            total_side = sum(`Side Total`),
+            total_top = sum(`Top Total`)) |> 
+  knitr::kable()
+```
+
+
+Run generalised linear models with the Poisson, normal binomail and the zero inflated normal bionomial. Total is the dependent variable (the count of coral recruits at a given sampling unit) Shelf position is a fixed effect predicator, it is used to test if the average coral settlement differs between shelf positions Random effects: a nested random effect, modelling the variations between reefs, and variation between sites nested within reefs
+
+Random effect of year: accounting for temporal variation and adjusting for year to year differences in coral settlement
+
+```{r warning=FALSE}
+pois_total <- glmer(total ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+      family = "poisson", data = Coral_settlement_nGBR)
+
+nbin_Total <- glmmTMB(total ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+zbin_Total <- glmmTMB(total ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected),
+                      ziformula = ~1,
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+AIC(pois_total, nbin_Total, zbin_Total) |>  #nbin has the lowest AIC
+  knitr::kable()
+```
+
+Victor: I recommend including Year as a fixed effect since you are interested in differences in recruitment across years, and the levels are not interchangeable. In contrast, a variable like Site would be more appropriate as a random effect in your analysis.
+
+```{r warning=FALSE, message=FALSE}
+pois_total_yr <- glmer(total ~ Shelf_Position + Year_Collected + (1 | Reef/Site), 
+      family = "poisson", data = Coral_settlement_nGBR)
+
+nbin_total_yr <- glmmTMB(total ~ Shelf_Position +  Year_Collected +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+zbin_total_yr <- glmmTMB(total ~ Shelf_Position + Year_Collected + (1 | Reef/Site),
+                      ziformula = ~1,
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+pois_total_yr2 <- glmer(total ~ Shelf_Position * Year_Collected + (1 | Reef/Site), 
+      family = "poisson", data = Coral_settlement_nGBR)
+
+nbin_total_yr2 <- glmmTMB(total ~ Shelf_Position * Year_Collected +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+zbin_total_yr2 <- glmmTMB(total ~ Shelf_Position* Year_Collected + (1 | Reef/Site),
+                      ziformula = ~1,
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+AIC(pois_total_yr, nbin_total_yr, zbin_total_yr, pois_total_yr2, nbin_total_yr2, zbin_total_yr2) |>  #nbin has the lowest AIC with interaction terms
+  knitr::kable()
+```
+
+negative binomial model has the lowest AIC so I will get the summary of that model.
+
+```{r echo=FALSE}
+summary(nbin_total_yr2)
+```
+2023 and 2024 are significantly different to 2022. 2025 is not significantly different to 2022. Outer shelf is significantly different to inner shelf (p<0.01), Mid shelf is significantly different to inner shelf reefs (p<0.05). Intercept is also significant: not quite sure what that means in a biological framework.
+
+When making a figure should I then be using summary statistics or raw count data? Because the large number of zeros will make it difficult to do a boxplot of the raw data.
+
+```{r echo=FALSE}
+sim1 <- simulateResiduals(nbin_total_yr2)
+testResiduals(sim1)
+```
+
+# Q2 is the composition of the recruits different across the shelf?
+
+Isolating Data for a single Family of coral
+
+```{r echo=FALSE}
+Pocilloporidae <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, 
+         Reef, Site, Tile, 
+         Pocilloporidae, Top_Pocil, 
+         Under_Pocil, Side_Pocil, total)
+
+Pocilloporidae_orientation <- Pocilloporidae %>% 
+  rename(Top = Top_Pocil,
+                   Bottom = Under_Pocil,
+                   Side = Side_Pocil,
+         Recruits_per_tile = total)
+
+Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Acroporidae <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, 
+         Reef, Site, Tile, 
+         Acroporidae, Top_Acr, 
+         Under_Acr, Side_Acr, total)
+
+Acroporidae_orientation <- Acroporidae %>% 
+  rename(Top = Top_Acr,
+                   Bottom = Under_Acr,
+                   Side = Side_Acr,
+         Recruits_per_tile = total)
+
+Acroporidae_orientation <- Acroporidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Poritid <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, 
+         Reef, Site, Tile, 
+         Poritid, Top_Por, Under_Por, 
+         Side_Por, total)
+
+Poritid_orientation <- Poritid %>% 
+  rename(Top = Top_Por,
+                   Bottom = Under_Por,
+                   Side = Side_Por,
+         Recruits_per_tile = total) 
+
+Poritid_orientation <- Poritid_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+```
+
+GLMM with Total Recruits for a given coral family, per tile.
+
+To analyze whether there's a difference in the number of recruits of a given coral family (e.g., Poritids) across shelf positions, while accounting for random effects due to site nested within reef and controlling for year, the model you choose depends on:
+
+Whether the response is aggregated or split by tile facet (side/top/bottom),
+
+The structure of your random effects (nested site within reef),
+
+Whether Year_Collected should be a fixed or random effect.
+
+```{r poisson of total Recruits, message=FALSE}
+pois_Poritid <- glmer(Poritid ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+      family = "poisson", data = Poritid)
+
+pois_Poritid_fixed <- glmer(Poritid ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+      family = "poisson", data = Poritid) 
+pois_Poritid_interaction <- glmer(Poritid ~ Shelf_Position*Year_Collected + (1 | Reef/Site), 
+      family = "poisson", data = Poritid)
+
+pois_Acroporidae <- glmer(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+      family = "poisson", data = Acroporidae)
+
+pois_Acroporidae_fixed <- glmer(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + (Year_Collected), 
+      family = "poisson", data = Acroporidae)
+
+pois_Pocilloporidae <- glmer(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+      family = "poisson", data = Pocilloporidae)
+
+pois_Pocilloporidae_fixed <- glmer(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + (Year_Collected), 
+      family = "poisson", data = Pocilloporidae)
+```
+
+Negative Binomial of Total Recruits (for a family)
+
+```{r}
+nbin_Poritid <- glmmTMB(Poritid ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Poritid)
+
+nbin_Pocilloporidae <- glmmTMB(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Pocilloporidae)
+
+nbin_Acroporidae <- glmmTMB(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Acroporidae)
+
+## Fixed
+nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Poritid)
+
+nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Pocilloporidae)
+
+nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Acroporidae)
+
+## Interaction
+nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf_Position*Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Poritid)
+
+nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf_Position * Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Pocilloporidae)
+
+nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf_Position*Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Acroporidae)
+```
+
+```{r include=FALSE}
+
+## Random slopes
+nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf_Position*Year_Collected + (1 + Year_Collected | Reef/Site), 
+        family = "nbinom2", data = Poritid)
+
+nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf_Position*Year_Collected + (1 + Year_Collected | Reef/Site), 
+        family = "nbinom2", data = Pocilloporidae)
+
+nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf_Position*Year_Collected + (1+Year_Collected | Reef/Site), 
+        family = "nbinom2", data = Acroporidae)
+
+```
+
+Negative Binomial Zero Inflated of Total recruits (per family)
+
+```{r}
+# Fit model with zero-inflated negative binomial distribution 
+
+zbin_Poritid <- glmmTMB(Poritid ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected),
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = Poritid)
+
+zbin_Pocilloporidae <- glmmTMB(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected),
+                               ziformula = ~1,
+                        family = "nbinom2",
+                        data = Pocilloporidae)
+
+zbin_Acroporidae <- glmmTMB(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected),
+                            ziformula = ~1,
+                        family = "nbinom2",
+                        data = Acroporidae)
+
+#Fixed
+# Fit model with zero-inflated negative binomial distribution 
+
+zbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf_Position + (1 | Reef/Site) + Year_Collected,
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = Poritid)
+zbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf_Position * Year_Collected + (1 | Reef/Site),
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = Poritid)
+
+zbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + Year_Collected,
+                               ziformula = ~1,
+                        family = "nbinom2",
+                        data = Pocilloporidae)
+
+zbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + Year_Collected,
+                            ziformula = ~1,
+                        family = "nbinom2",
+                        data = Acroporidae)
+```
+### Acroporidae
+```{r}
+Acroporidae |> 
+  ggplot(aes(x = Year_Collected, y = Acroporidae, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+               position = position_dodge(width = 0.8),
+               alpha = 0.6) +
+  facet_wrap(~Shelf_Position, ncol = 1, scale = "free_y")
+```
+
+Compare AIC of those models
+
+```{r}
+AIC(pois_Acroporidae, nbin_Acroporidae, zbin_Acroporidae, pois_Acroporidae_fixed, nbin_Acroporidae_fixed, zbin_Acroporidae_fixed, nbin_Acroporidae_interaction)
+```
+
+For all Families the negative Binominal had a lower AIC value compared to Poisson and zero inflated negative binomial. Not sure why Pocilloporidae the negative binomial does not work though.
+
+
+
+```{r echo=FALSE}
+sim2 <- simulateResiduals(nbin_Acroporidae_interaction)
+testResiduals(sim2)
+```
+
+```{r echo=FALSE}
+nbin_Acroporidae_interaction %>% 
+  summary()
+```
+
+Acroporidae abundance significantly different in the outer reefs than inshore reefs.
+
+### Pocillopora
+
+```{r}
+Pocilloporidae |> 
+  ggplot(aes(x = Year_Collected, y = Pocilloporidae, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+               position = position_dodge(width = 0.8),
+               alpha = 0.6) +
+  facet_wrap(~Shelf_Position, ncol = 1, scale = "free_y")
+```
+
+
+```{r}
+AIC(pois_Pocilloporidae, nbin_Pocilloporidae, zbin_Pocilloporidae, pois_Pocilloporidae_fixed, nbin_Pocilloporidae_fixed, zbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
+```
+
+
+```{r echo=FALSE}
+nbin_Pocilloporidae_interaction %>% 
+  summary()
+```
+
+```{r echo=FALSE}
+sim3 <- simulateResiduals(nbin_Pocilloporidae_interaction)
+testResiduals(sim3)
+```
+
+Significant difference in Pocilloporidae abundance in mid shore reefs compared to inshore reefs
+
+### Poritid
+
+```{r}
+Poritid |> 
+  ggplot(aes(x = Year_Collected, y = Poritid, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+               position = position_dodge(width = 0.8),
+               alpha = 0.6) +
+  facet_wrap(~Shelf_Position, ncol = 1, scale = "free_y")
+
+Poritid |> 
+  filter(Poritid>60)
+```
+
+
+
+```{r echo=FALSE}
+AIC(pois_Poritid, nbin_Poritid, zbin_Poritid, pois_Poritid_fixed, nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Poritid_interaction, pois_Poritid_interaction)
+```
+
+
+```{r echo=FALSE}
+sim4 <- simulateResiduals(nbin_Poritid_interaction)
+testResiduals(sim4)
+
+sim4.1 <- simulateResiduals(pois_Poritid_interaction)
+testResiduals(sim4.1)
+```
+
+```{r echo=FALSE}
+nbin_Poritid_interaction %>% 
+  summary()
+```
+
+Both nbin_interaction, and zbin_interaction for Portidae have significant dispersion.
+Don't see much of a difference in Poritid across shelf position. Although slightly less in mid shore reefs (p<0.1)
+
+*perhaps I should do a zeroinflated Poisson? Or maybe remove a variable*
+
+
+# Position on tile
+
+## Acroporidae
+
+```{r echo=FALSE}
+Acroporidae_orientation |> 
+  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+               position = position_dodge(width = 0.8),
+               alpha = 0.6) +
+  facet_grid(Shelf_Position~Tile_Surface, scale = "free_y")
+```
+
+```{r}
+nb_Orientation_Acroporidae <- glmmTMB(Recruits ~ 0+Shelf_Position* Tile_Surface + (1 | Reef/Site), 
+        family = "nbinom2", data = Acroporidae_orientation)
+
+pois_Orientation_Acro <- glmmTMB(Recruits ~ 0+Shelf_Position* Tile_Surface + (1 | Reef/Site), 
+        family = "poisson", data = Acroporidae_orientation)
+
+zi_orientation_Acro <- glmmTMB(Recruits ~ 0+Shelf_Position* Tile_Surface + (1 | Reef/Site),
+                               ziformula = ~1,
+        family = "nbinom2", data = Acroporidae_orientation)
+```
+
+AIC to determine model of best fit
+```{r echo=FALSE}
+AIC(nb_Orientation_Acroporidae, pois_Orientation_Acro,zi_orientation_Acro)
+```
+
+
+```{r echo=FALSE}
+nb_Orientation_Acroporidae |> 
+  summary()
+```
+
+```{r echo=FALSE}
+sim5 <- simulateResiduals(nb_Orientation_Acroporidae)
+testResiduals(sim5)
+```
+
+KS test shows that the deviation is significant. But it has the lower AIC value?
+
+```{r}
+sim5.1 <- simulateResiduals(pois_Orientation_Acro)
+testResiduals(sim5.1)
+```
+
+## Pocilloporidae
+
+```{r echo=FALSE}
+Pocilloporidae_orientation |> 
+  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+               position = position_dodge(width = 0.8),
+               alpha = 0.6) +
+  facet_grid(Shelf_Position~Tile_Surface, scale = "free_y")+
+  theme_bw()
+```
+
+
+## Poritidae
+
+```{r}
+Poritid_orientation |> 
+  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+               position = position_dodge(width = 0.8),
+               alpha = 0.6) +
+  facet_grid(Shelf_Position~Tile_Surface, scale = "free_y")+
+  theme_bw()
+```
+
+
+# Brood Stock Analysis
+
+Check whether benthic composition is behaving consistently between Sites in a reef
+```{r}
+PIT_50m <- read_csv("PIT_50m.csv", col_types = cols(Shelf = col_character()))
+
+PIT_50m <- PIT_50m |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site)
+         ) |> 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
+
+PIT_50m <- PIT_50m |> 
+  mutate(
+    Acroporidae = Acroporidae/50,
+    Pocilloporidae = Pocilloporidae/50,
+    Poritidae = Poritidae/50
+  )
+
+
+
+ggplot(PIT_50m, aes(x=Year, y=prop_coral, colour = Reef))+
+  geom_boxplot(aes(group = interaction(Year, Site))) +
+  facet_wrap(~Shelf, ncol = 1, scale = "free_y")
+
+ggplot(PIT_50m, aes(x=Year, y=Prop_macroalgae, colour = Reef))+
+  geom_boxplot(aes(group = interaction(Year, Site))) +
+  facet_wrap(~Shelf, ncol = 1, scale = "free_y")
+
+
+```
+
+### Acroporidae
+
+```{r}
+ggplot(PIT_50m, aes(x=Year, y=Acroporidae, colour = Reef))+
+  geom_boxplot(aes(group = interaction(Year, Site))) +
+  facet_wrap(~Shelf, ncol = 1, scale = "free_y")
+```
+
+### Pocilloporidae
+
+```{r}
+ggplot(PIT_50m, aes(x=Year, y=Pocilloporidae, colour = Reef))+
+  geom_boxplot(aes(group = interaction(Year, Site))) +
+  facet_wrap(~Shelf, ncol = 1, scale = "free_y")
+```
+
+### Poritidae
+
+```{r}
+ggplot(PIT_50m, aes(x=Year, y=Poritidae, colour = Reef))+
+  geom_boxplot(aes(group = interaction(Year, Site))) +
+  facet_wrap(~Shelf, ncol = 1, scale = "free_y")
+```
+
+Why is there not benthic surveys at Turtle S in the past two years?
+
+Victor Email: Regarding the PERMANOVA: you start with a community matrix (sites x coral taxa). A PERMANOVA tests whether community composition differs among groups, using a distance matrix derived from your multivariate raw data. The inputs are a dissimilarity (distance) matrix, and a grouping factor (i.e., a categorical variable you want to test, like “reef”, “shelf.position”, or “year”). In your case, I'd suggest calculating a Bray-Curtis distance matrix and then running a PERMANOVA with the vegan package. Here’s a quick example you can run in R:
+```{r}
+library(vegan)
+abund <- PIT_50m |> 
+  select(Acroporidae, Pocilloporidae, Poritidae)
+
+prop <- PIT_50m |> 
+  select(prop_coral, Prop_macroalgae)
+```
+
+Some of the rows do not have Acropora, Pocillopora or Porites present... should I then remove them? Because the distance matrix won't work otherwise.
+
+```{r}
+metadata <- PIT_50m |> 
+  select(Site, Shelf, Reef, Year) |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site)
+  )
+
+```
+
+
+
+```{r}
+dist.mat <- vegdist(prop, method = "bray")                                                       # Step 1: Calculate dissimilarity matrix (Bray-Curtis)
+```
+
+```{r}
+PERMANOVA_prop <- adonis2(dist.mat ~ Reef:Shelf, data = metadata, permutations = 999, by = "terms")   # Step 2: run PERMANOVA
+
+print(PERMANOVA_prop)
+
+PERMANOVA_prop2 <- adonis2(dist.mat ~ Year+Shelf+Year:Shelf, data = metadata, permutations = 999, by = "terms")
+
+print(PERMANOVA_prop2)
+```
+
+formula – model formula such as Y ~ A + B * C.  See the ‘Complex Models‘ chapter for more details of how to specify a model formula.  For now, the key point is that we are specifying that we want to analyze the response (Y) as a function of (~) one or more explanatory variables (A, B, C).  The class of Y determines what is done:
+If Y is a dissimilarity matrix (i.e., output from dist() or vegdist()), the pseudo-F statistic is calculated directly.
+If Y is a data frame or matrix containing data, vegdist() is applied to calculate the distance matrix first and then the pseudo-F statistic is calculated.
+
+- 60% os total community variation (in dissimilarity matrix) explained by Year, SHelf, and their interaction.
+Shelf contributes 52.2% of total variation in community composition (proportion macroalgae and proportion coral)
+
+###Try to do for abundances, but will need to remove rows where it is 0
+```{r}
+data_for_abundance <- PIT_50m |>
+  mutate(clean = rowSums(across(c(Acroporidae, Pocilloporidae, Poritidae)), na.rm = TRUE))
+
+data_for_abundance <- data_for_abundance |> 
+  filter(clean > 0)
+
+
+abund <- data_for_abundance |> 
+  select(Acroporidae, Pocilloporidae, Poritidae) |> 
+  mutate(
+    Acroporidae = Acroporidae*50,
+    Pocilloporidae = Pocilloporidae*50,
+    Poritidae = Poritidae*50
+  )
+
+abund_std <- abund |> 
+  wisconsin()
+
+
+
+abund_bray <- vegdist(abund_std, method = "bray")
+
+meta_abund <- data_for_abundance |> 
+  select(Shelf, Year, Reef, Site)
+```
+
+
+
+```{r}
+PERMANOVA_abund <- adonis2(abund_bray ~ Year+Shelf+ Year:Shelf, data = meta_abund, permutations = 999, by = "terms")   # Step 2: run PERMANOVA
+```
+
+```{r}
+PERMANOVA_abund
+```
+
+Abundance is the community matrix data, with 237 sample units of 3 species.
+
+```{r}
+
+set.seed(42)
+z <- metaMDS(comm = abund_std,
+             autotransform = FALSE,
+             distance = "bray",
+             engine = "monoMDS",
+             k=3,
+             weakties = TRUE,
+             model = "global",
+             maxit = 300,
+             try = 40,
+             trymax = 100)
+
+print(z)
+# Extract NMDS site scores
+scores_nmds <- as.data.frame(scores(z, display = "sites"))
+
+# Join to metadata (assuming same row order)
+scores_nmds <- scores_nmds |> 
+  bind_cols(meta_abund)
+
+
+ggplot(scores_nmds, aes(x = NMDS1, y = NMDS2, colour = Shelf)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  labs(
+    title = "NMDS (Bray–Curtis)",
+    colour = "Shelf Position"
+  )
+
+```
+Stres <0.05 therefore excellent representation with no prospect of misinterpretation.
+https://uw.pressbooks.pub/appliedmultivariatestatistics/chapter/nmds/
+```{r}
+gof <- goodness(object = z)
+plot(z, display = "sites", type = "none")
+points(z, display = "sites", cex = 2*gof/mean(gof))
+```
+
+Evaluating fit
+plot original dissimilarities (z$diss) against Euclidean ordination distances (z$dist).
+
+```{r}
+plot(z$diss, z$dist)
+```
+```{r}
+z.points <- data.frame(z$points,
+                       Acroporidae = abund_std$Acroporidae,
+                       Pocilloporidae = abund_std$Pocilloporidae,
+                       Poritid = abund_std$Poritidae)
+
+p <- ggplot(data = z.points, aes(x = MDS1, y = MDS2)) +
+theme_bw() +
+theme(axis.title = element_blank(),
+  axis.ticks = element_blank(),
+  axis.text = element_blank())
+
+p + geom_point()
+
+
+```
+
+
+# Correlation between brood stock and corals
+
+### Total hard coral cover and total recruits
+
+```{r}
+PIT_50m |> 
+  group_by(Site, Year, Reef, Shelf) |> 
+  summarise(n = n())
+
+```
+
+Would need to do average or something to have a single value for PIT and single value for tiles for a given combination of site, year, and recruits/brood stock.
+
+### Total Acroporidae cover and total acroproidae recruits
+
+### Total Pocilloporidae cover and total Pocillopordiae recruits
