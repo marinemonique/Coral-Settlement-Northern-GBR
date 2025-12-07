@@ -1,0 +1,491 @@
+---
+title: "Multivariate_Analysis_Thesis"
+author: "Monique White"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r eval=TRUE, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(car)
+library(emmeans)
+library("FactoMineR")
+library("factoextra")
+library(FactoMineR)
+library(factoextra)
+library(vegan) #to do NMDS
+library(PCAmixdata)
+library(ggfortify)
+library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
+library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
+library(ggpubr)
+```
+
+Clean data
+
+```{r message=FALSE}
+Coral_settlement_nGBR_CS <- read_csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
+  mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR_CS %>% 
+  filter(`Shelf posn` != "Coral Sea", #remove coral sea data
+        !Obs %in% c(1499, 1621, 1622)) #Remove loose tiles with heavy biofouling
+
+Coral_settlement_nGBR |> 
+  filter(notes != "NA")
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR %>% 
+  rename("Shelf_Position"= `Shelf posn`,
+         "Year_Collected"= `Year (Jan)`,
+         "Site_#"= `Site #`,
+         "Acroporidae" =Acropora,
+         "Pocilloporidae" = Pocillopora,
+         "Poritid" = Porites) |> 
+  mutate(Year_Collected = factor(Year_Collected))
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |>
+  filter(Shelf_Position == "Outer" | (Shelf_Position %in% c("Inner", "Mid") & Tile %in% as.character(1:10)))
+
+Coral_settlement_nGBR$Year_Collected <- factor(Coral_settlement_nGBR$Year_Collected)
+```
+Notes from Victor email: Regarding the PERMANOVA: you start with a community matrix (sites x coral taxa). A PERMANOVA tests whether community composition differs among groups, using a distance matrix derived from your multivariate raw data. The inputs are a dissimilarity (distance) matrix, and a grouping factor (i.e., a categorical variable you want to test, like “reef”, “shelf.position”, or “year”). In your case, I'd suggest calculating a Bray-Curtis distance matrix and then running a PERMANOVA with the vegan package. 
+
+
+
+```{r}
+library(data.table)
+Recruits <- Coral_settlement_nGBR %>%
+  filter(total >0) |> 
+  select(Acroporidae, Pocilloporidae, Poritid, Other)
+recruit_hellinger <- decostand(Recruits, method = "hellinger")
+
+
+
+environment_data <- Coral_settlement_nGBR %>%
+  filter(total >0) |> 
+  select(Year_Collected, Site, Reef, Shelf_Position) #worried because environment data is nested here.
+```
+
+## PERMANOVA
+```{r}
+
+# Filtered recruit data
+
+Recruits_sqrt <- sqrt(Recruits)
+
+# Bray–Curtis PERMANOVA
+adonis2(Recruits_sqrt ~ Year_Collected * Shelf_Position, data = environment_data, method = "bray")
+
+#Nested PERMANOVA
+adonis2(Recruits_sqrt ~ Year_Collected * Shelf_Position, data = environment_data, method = "bray",  strata = environment_data$Reef )
+```
+
+Example: test effects with full nested structure explicitly:
+
+```{r}
+adonis2(
+  Recruits_sqrt ~ Year_Collected + Shelf_Position + Reef %in% Shelf_Position + Site %in% Reef,
+  data = environment_data,
+  method = "bray"
+)
+
+```
+
+## inspect dispersion (PERMDISP)
+```{r}
+bray <- vegdist(Recruits_sqrt, method = "bray")
+betadisper(bray, environment_data$Shelf_Position)
+anova(betadisper(bray, environment_data$Shelf_Position))
+```
+
+```{r}
+library(vegan)
+bray <- vegdist(Recruits_sqrt, method = "bray")
+
+set.seed(999)     # for reproducibility
+
+nmds <- metaMDS(Recruits_sqrt, distance = "bray", k = 2, trymax = 200)
+
+#Check the Stress Value
+nmds$stress
+
+# Extract NMDS for plot
+site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
+scores <- cbind(site_scores, environment_data[, c("Year_Collected", "Shelf_Position", "Reef", "Site")])
+
+
+```
+
+Your stress = 0.154 sits comfortably in the:
+
+“Acceptable / good for ecological community data”
+“Reliable representation of multivariate structure”
+
+Especially because:
+
+Coral recruit data are sparse, zero-heavy, and nonlinear
+
+Bray–Curtis on square-root transformed data is typical
+
+nMDS often struggles with noisy ecological count data
+
+So 0.15 is strong.
+
+It means:
+
+The 2D ordination is capturing the major differences in assemblages
+
+Patterns you see between groups (Shelf, Year, Reef) are trustworthy
+
+```{r}
+p <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf_Position,
+                         shape = Year_Collected)) +
+     geom_point(size = 3, alpha = 0.9) +
+    stat_ellipse(aes(group = Shelf_Position, colour = Shelf_Position),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         title = "nMDS of Coral Recruit Assemblages (Bray–Curtis)",
+        colour = "Shelf Position",
+        shape = "Year Collected"
+    ) +
+    annotate("text",
+             x = min(scores$MDS1),
+             y = min(scores$MDS2),              label = paste0("Stress = ", round(nmds$stress, 3)),
+              hjust = 0, vjust = 0, size = 5)
+ p
+
+```
+
+
+## NMDS
+
+Asking the question: how does the coral recruitment composition differ in vegetated tiles...
+
+```{r}
+library(vegan)
+
+#Create a site-by-species matrix which includes year and reef as the "site"
+
+
+# Step 1: Create Site column and keep only species data
+site_by_species <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Reef, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  unite("Site", Year_Collected, Reef, sep = "_")
+
+# Step 2: Store species-only matrix separately
+species_matrix <- site_by_species %>%
+  select(Acroporidae, Pocilloporidae, Poritid, Other)
+
+# Remove rows where all species counts are 0
+species_matrix_filtered <- species_matrix[rowSums(species_matrix) > 0, ] #this step removes 43 tiles that have no recruits.
+
+# Step 3: Run NMDS
+NMDS <- metaMDS(species_matrix_filtered, distance = "bray", autotransform = FALSE, k = 2, trymax = 100)
+
+#NMDS_3 <- metaMDS(species_matrix_filtered, distance = "bray", autotransform = FALSE, k = 3, trymax = 100)
+
+
+print(NMDS)
+#print(NMDS_3)
+
+NMDS$stress
+#NMDS_3$stress
+#the stress score is 0.118
+```
+
+## Zero-adjusted Bray-curtis following methids in Harrison and dela crus, 2024
+
+```{r}
+za_recruits <- Coral_settlement_nGBR |> 
+  select(Acroporidae, Pocilloporidae, Poritid, Other) |> 
+  mutate(
+    adj = 1
+  )
+
+za_sqrt <- sqrt(za_recruits)
+
+za_env <- Coral_settlement_nGBR |> 
+  select(Year_Collected, Site, Reef, Shelf_Position)
+
+```
+
+Transformation
+```{r}
+# Bray–Curtis PERMANOVA
+adonis2(za_sqrt ~ Year_Collected * Shelf_Position, data = za_env, method = "bray")
+```
+
+```{r}
+set.seed(999)     # for reproducibility
+
+za_nmds <- metaMDS(za_sqrt, distance = "bray", k = 2, trymax = 100)
+
+```
+
+```{r}
+print(za_nmds)
+
+
+za_nmds$stress
+
+za_site_scores <- as.data.frame(vegan::scores(za_nmds, display = "sites"))
+za_scores <- cbind(za_site_scores, za_env[, c("Year_Collected", "Shelf_Position", "Reef", "Site")])
+```
+
+```{r}
+za_nmds_plot <- ggplot(za_scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf_Position,
+                         shape = Year_Collected)) +
+     geom_point(size = 3, alpha = 0.9) +
+    stat_ellipse(aes(group = Shelf_Position, colour = Shelf_Position),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         title = "nMDS of Coral Recruit Assemblages (Bray–Curtis)",
+        colour = "Shelf Position",
+        shape = "Year Collected"
+    ) +
+    annotate("text",
+             x = min(scores$MDS1),
+             y = min(scores$MDS2),              label = paste0("Stress = ", round(nmds$stress, 3)),
+              hjust = 0, vjust = 0, size = 5)
+ za_nmds_plot
+```
+
+Oh dear oh dear, when I do the zero-adjust and keep in the tiles that had no recruits, the solution did not repeat and the nmds shows more overlap
+
+## Trying to weight by dispersion... 
+So I will need to group by site x reef x year for a given family, calculate the var and mean. (based on https://www.int-res.com/articles/meps2006/320/m320p011.pdf)
+
+```{r}
+dispersion_weighting <- Coral_settlement_nGBR |> 
+  group_by(Year_Collected, Shelf_Position, Reef, Site) |> 
+  summarise(
+    acro_var = var(Acroporidae),
+    acro_mean = mean(Acroporidae),
+    poci_var = var(Pocilloporidae),
+    poci_mean = mean(Pocilloporidae),
+    pori_var = var(Poritid),
+    pori_mean = mean(Poritid),
+    other_var = var(Other),
+    other_mean = mean(Other)
+  )
+
+dispersion_weighting <- dispersion_weighting |> 
+  mutate(
+    "acro_dispersion_index" = acro_var/acro_mean,
+    "poci_dispersion_index" = poci_var/poci_mean,
+    "pori_dispersion_index" = pori_var/pori_mean
+  )
+
+dw_recruits <- left_join(Coral_settlement_nGBR, dispersion_weighting, by = c("Year_Collected", "Shelf_Position" , "Reef", "Site"))
+
+#XiDW = Xij/D actually d with the hat, which is caculated as (x^2/df); and I am not sure what the degrtee of freedom is here
+dw_recruits <- dw_recruits |> 
+  mutate(
+    "acro_value_over_dispersion_index" = Acroporidae/acro_dispersion_index,
+    "poci_value_over_dispersion_index" = Pocilloporidae/poci_dispersion_index,
+    "pori_value_over_dispersion_index" = Poritid/pori_dispersion_index
+  )
+```
+
+
+# Redundancy Analysis
+https://pmassicotte.github.io/stats-denmark-2019/07_rda.html#/a-concrete-example-3
+
+Suggests using the Hellinger-transform method (Borcard, Gillet, and Legendre 2011; Legendre and Gallagher 2001) that is suited to species abundance data, 
+
+- gives low weights to variables with low counts and many zeros.
+Divide each value in a data matrix by its row sum, and taking the square root of the quotient
+
+```{r}
+Recruits <- Coral_settlement_nGBR %>%
+  select(Acroporidae, Pocilloporidae, Poritid, Other)
+recruit_hellinger <- decostand(Recruits, method = "hellinger")
+
+environment_data <- Coral_settlement_nGBR %>%
+  select(Year_Collected, Site, Reef, Shelf_Position) #worried because environment data is nested here.
+```
+
+```{r}
+my_rda <- rda(recruit_hellinger~Year_Collected + Shelf_Position+ (Reef/Site), data = environment_data)
+
+summary(my_rda)
+```
+```{r}
+plot(my_rda)
+```
+Explained variance
+```{r}
+RsquareAdj(my_rda)
+```
+
+Tests of RDA results
+For canonical analysis such as RDA, model significance relies on permutation tests.
+
+The principle of a permutation test is to generate a reference distribution of the chosen statistic under the null hypothesis H0 by randomly permuting appropriate elements of the data a large number of times and recomputing the statistic each time. Then, one compares the true value of the statistic to this reference distribution. The p value is computed as the proportion of the permuted values equal to or larger than the true (unpermuted) value of the statistic for a one-tailed test in the upper tail, like the F test used in RDA (Borcard, Gillet, and Legendre 2011).
+
+H0: Observed results can be produced by random chance.
+
+The null hypothesis is rejected if this p
+value is equal to or smaller than the predefined significance level α (ex.: α=0.05).
+
+Test for 
+1. Global RDA significance
+2. Axis significance
+3. Terms (explanatory variables) significance
+
+### Global significance test
+```{r}
+anova.cca(my_rda, permutations = 999)
+```
+
+Since p = 0.001, reject H0, meaning that the RDA model is significant and not produced by random chance
+
+### Axis significance
+
+```{r}
+anova.cca(my_rda, by = "axis")
+```
+
+### Terms significance
+
+```{r}
+anova.cca(my_rda, by = "terms")
+```
+
+### Check for multicollinearity
+Use the vif.cca function
+```{r}
+sqrt(vif.cca(my_rda))
+```
+
+Not sure what the go is with some being NA. "As a rule of thumb, if sqrt vif >2, collinarity is considered high and some of the explanatory cariables are redundant.
+
+I will remove reef and site.
+```{r}
+my_rda2 <- rda(recruit_hellinger~Year_Collected + Shelf_Position, data = environment_data)
+
+summary(my_rda2)
+```
+
+```{r}
+plot(my_rda2)
+
+RsquareAdj(my_rda2)
+
+anova.cca(my_rda2, permutations = 999)
+```
+
+```{r}
+anova.cca(my_rda2, by = "axis")
+anova.cca(my_rda2, by = "terms")
+
+sqrt(vif.cca(my_rda2))
+```
+
+### Unexplained Variance
+Kaiser Guttman criterion
+
+```{r}
+my_rda2$CA$eig[my_rda2$CA$eig > mean(my_rda2$CA$eig)]
+```
+
+# Partial RDA
+It is possible to run an RDA of a matrix Y, explained by a matrix variables X, in the presence of co-variable(s) W.
+
+This analysis allows to display the patterns of the response data (Y) uniquely explained by a linear model of the explanatory variables (X) when the effect of other covariates (W) is held constant (Borcard, Gillet, and Legendre 2011).
+## Hold Year constant
+Model the effect of shelf position on coral recruit family abundances once the effect of year is removed
+
+```{r}
+partial_rda <- rda(recruit_hellinger~ Shelf_Position + Condition(Year_Collected), data = environment_data)
+```
+
+```{r}
+summary(partial_rda)
+```
+
+Conditioned gives the amount of variance that has been explained by the covariables and removed
+Constrained gives the amount of variance uniquely explained by the explanatory variables
+```{r}
+RsquareAdj(partial_rda)
+```
+
+## Hold Shelf Position Constant
+
+Model the effect of year on coral recruit family abundances once the effect of shelf position is removed
+
+```{r}
+partial_rda2 <- rda(recruit_hellinger~ Year_Collected + Condition(Shelf_Position), data = environment_data)
+```
+
+```{r}
+summary(partial_rda2)
+```
+
+```{r}
+RsquareAdj(partial_rda2)
+```
+Test significance of partial RDA
+```{r}
+anova.cca(partial_rda2)
+```
+
+Since p < =0.05 we reject H0 and can conclude that the result was not produced randomly.
+
+```{r}
+plot(partial_rda2, scaling = 1)
+```
+
+## Variance partitioning
+```{r}
+env_shelf <- environment_data[,"Shelf_Position"]
+
+env_year <- environment_data[,"Year_Collected"]
+vp <- varpart(recruit_hellinger, env_shelf, env_year)
+vp
+
+plot(vp)
+```
+
+### Need to do test of significance of fractions
+
+```{r}
+anova.cca(rda(recruit_hellinger, env_shelf))
+
+anova.cca(rda(recruit_hellinger, env_year))
+
+#[a + b+c]
+anova.cca(rda(recruit_hellinger, environment_data))
+
+# [a]
+anova.cca(rda(recruit_hellinger, env_shelf, env_year))
+
+# [c]
+anova.cca(rda(recruit_hellinger, env_year, env_shelf))
+```

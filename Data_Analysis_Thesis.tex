@@ -1,0 +1,1645 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Data\_Analysis\_Thesis},
+  pdfauthor={Monique White},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Data\_Analysis\_Thesis}
+\author{Monique White}
+\date{2025-12-03}
+
+\begin{document}
+\maketitle
+
+Clean data
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Coral\_settlement\_nGBR\_CS }\OtherTok{\textless{}{-}} \FunctionTok{read\_csv}\NormalTok{(}\StringTok{"\textasciitilde{}/Larval recruitment resources/Data Analysis/Coral{-}Settlement{-}Northern{-}GBR/Coral settlement\_nGBR\_CS.csv"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\FunctionTok{across}\NormalTok{(}\DecValTok{15}\SpecialCharTok{:}\DecValTok{29}\NormalTok{, }\SpecialCharTok{\textasciitilde{}}\FunctionTok{replace\_na}\NormalTok{(.x, }\DecValTok{0}\NormalTok{))) }\CommentTok{\# Read in data}
+
+\NormalTok{Coral\_settlement\_nGBR }\OtherTok{\textless{}{-}}\NormalTok{ Coral\_settlement\_nGBR\_CS }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{filter}\NormalTok{(}\StringTok{\textasciigrave{}}\AttributeTok{Shelf posn}\StringTok{\textasciigrave{}} \SpecialCharTok{!=} \StringTok{"Coral Sea"}\NormalTok{, }\CommentTok{\#remove coral sea data}
+        \SpecialCharTok{!}\NormalTok{Obs }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\DecValTok{1499}\NormalTok{, }\DecValTok{1621}\NormalTok{, }\DecValTok{1622}\NormalTok{)) }\CommentTok{\#Remove loose tiles with heavy biofouling}
+
+\NormalTok{Coral\_settlement\_nGBR }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{filter}\NormalTok{(notes }\SpecialCharTok{!=} \StringTok{"NA"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 54 x 30
+##      Obs `Year (Jan)` Region `Shelf posn` Reef     Site   `Site #` Habitat Tile 
+##    <dbl>        <dbl> <chr>  <chr>        <chr>    <chr>  <chr>    <chr>   <chr>
+##  1   625         2022 GBRMP  Inner        Turtle N TN_co~ 1        Crest   10   
+##  2   627         2022 GBRMP  Inner        Turtle N TN_co~ 1        Crest   12   
+##  3   631         2022 GBRMP  Inner        Turtle N TN_Ba~ 2        Crest   2    
+##  4   658         2022 GBRMP  Inner        Turtle S TS_Cr~ 6        Crest   14   
+##  5   661         2022 GBRMP  Inner        Turtle N TN_Cr~ 3        Crest   3    
+##  6   666         2022 GBRMP  Inner        Turtle N TN_Cr~ 3        Crest   8    
+##  7   670         2022 GBRMP  Inner        Turtle N TN_Cr~ 3        Crest   12   
+##  8   671         2022 GBRMP  Inner        Turtle N TN_Cr~ 3        Crest   13   
+##  9   675         2022 GBRMP  Inner        Turtle S TS_Ch~ 5        Crest   3    
+## 10   677         2022 GBRMP  Inner        Turtle S TS_Ch~ 5        Crest   5    
+## # i 44 more rows
+## # i 21 more variables: Acropora <dbl>, Pocillopora <dbl>, Porites <dbl>,
+## #   Other <dbl>, total <dbl>, Top_Acr <dbl>, Top_Pocil <dbl>, Top_Por <dbl>,
+## #   Top_other <dbl>, Under_Acr <dbl>, Under_Pocil <dbl>, Under_Por <dbl>,
+## #   Under_oth <dbl>, Side_Acr <dbl>, Side_Pocil <dbl>, Side_Por <dbl>,
+## #   Side_other <dbl>, `Top Total` <dbl>, `Under Total` <dbl>,
+## #   `Side Total` <dbl>, notes <chr>
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Coral\_settlement\_nGBR }\OtherTok{\textless{}{-}}\NormalTok{ Coral\_settlement\_nGBR }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{rename}\NormalTok{(}\StringTok{"Shelf\_Position"}\OtherTok{=} \StringTok{\textasciigrave{}}\AttributeTok{Shelf posn}\StringTok{\textasciigrave{}}\NormalTok{,}
+         \StringTok{"Year\_Collected"}\OtherTok{=} \StringTok{\textasciigrave{}}\AttributeTok{Year (Jan)}\StringTok{\textasciigrave{}}\NormalTok{,}
+         \StringTok{"Site\_\#"}\OtherTok{=} \StringTok{\textasciigrave{}}\AttributeTok{Site \#}\StringTok{\textasciigrave{}}\NormalTok{,}
+         \StringTok{"Acroporidae"} \OtherTok{=}\NormalTok{Acropora,}
+         \StringTok{"Pocilloporidae"} \OtherTok{=}\NormalTok{ Pocillopora,}
+         \StringTok{"Poritid"} \OtherTok{=}\NormalTok{ Porites) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Year\_Collected =} \FunctionTok{factor}\NormalTok{(Year\_Collected))}
+
+\NormalTok{Coral\_settlement\_nGBR }\OtherTok{\textless{}{-}}\NormalTok{ Coral\_settlement\_nGBR }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{filter}\NormalTok{(Shelf\_Position }\SpecialCharTok{==} \StringTok{"Outer"} \SpecialCharTok{|}\NormalTok{ (Shelf\_Position }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\StringTok{"Inner"}\NormalTok{, }\StringTok{"Mid"}\NormalTok{) }\SpecialCharTok{\&}\NormalTok{ Tile }\SpecialCharTok{\%in\%} \FunctionTok{as.character}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{10}\NormalTok{)))}
+
+\NormalTok{Coral\_settlement\_nGBR}\SpecialCharTok{$}\NormalTok{Year\_Collected }\OtherTok{\textless{}{-}} \FunctionTok{factor}\NormalTok{(Coral\_settlement\_nGBR}\SpecialCharTok{$}\NormalTok{Year\_Collected)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{total\_recruits}\SpecialCharTok{$}\NormalTok{Year\_Collected }\OtherTok{\textless{}{-}} \FunctionTok{as.factor}\NormalTok{(total\_recruits}\SpecialCharTok{$}\NormalTok{Year\_Collected)}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Exploratory analysis}\label{exploratory-analysis}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Fig}\FloatTok{.1}\OtherTok{\textless{}{-}}\NormalTok{  Coral\_settlement\_nGBR }\SpecialCharTok{|\textgreater{}}  
+  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Year\_Collected, }\AttributeTok{y=}\NormalTok{total, }\AttributeTok{colour =}\NormalTok{ Shelf\_Position))}\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{(}\AttributeTok{position =} \StringTok{"dodge"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{theme\_classic}\NormalTok{()}\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}
+  \AttributeTok{y =} \FunctionTok{expression}\NormalTok{(}\StringTok{"Recruits ("} \SpecialCharTok{*}\NormalTok{ tile}\SpecialCharTok{\^{}}\NormalTok{\{}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{\}}\SpecialCharTok{*}\StringTok{")"}\NormalTok{ ),}
+  \AttributeTok{x =} \StringTok{"Year"}\NormalTok{,}
+  \AttributeTok{colour =} \StringTok{"Shelf position"}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{scale\_colour\_manual}\NormalTok{(}\AttributeTok{values =} \FunctionTok{c}\NormalTok{(}\StringTok{"\#99CCFF"}\NormalTok{, }\StringTok{"\#3399FF"}\NormalTok{, }\StringTok{"\#003366"}\NormalTok{))}\SpecialCharTok{+}
+  \FunctionTok{facet\_wrap}\NormalTok{(}\SpecialCharTok{\textasciitilde{}}\NormalTok{Shelf\_Position)}
+\end{Highlighting}
+\end{Shaded}
+
+Fig 1
+
+\pandocbounded{\includegraphics[keepaspectratio]{Data_Analysis_Thesis_files/figure-latex/Detect Outliers-1.pdf}}
+
+\begin{verbatim}
+## # A tibble: 92 x 8
+## # Groups:   Family, Shelf_Position, Year_Collected [48]
+##    Family         Shelf_Position Year_Collected Reef   average    se   max   min
+##    <fct>          <chr>          <fct>          <chr>    <dbl> <dbl> <dbl> <dbl>
+##  1 Acroporidae    Inner          2024           Turtl~  136.   24.2    429     5
+##  2 Acroporidae    Inner          2024           Turtl~   64.9   8.07   165    10
+##  3 Acroporidae    Inner          2022           Turtl~   56.2  11.2    200     0
+##  4 Acroporidae    Mid            2024           Lizard   42.3   9.39   223     0
+##  5 Acroporidae    Inner          2025           Turtl~   37.1   8.53   243     0
+##  6 Acroporidae    Inner          2022           Turtl~   34.3   7.27   139     0
+##  7 Acroporidae    Mid            2024           MacGi~   26.6   4.20    90     1
+##  8 Acroporidae    Inner          2025           Turtl~   24.6   4.08    69     0
+##  9 Pocilloporidae Outer          2024           Hicks    14.2   2.27    45     0
+## 10 Acroporidae    Inner          2023           Turtl~   12.4   2.13    43     0
+## 11 Acroporidae    Mid            2023           MacGi~   11.7   2.17    37     0
+## 12 Acroporidae    Outer          2024           Hicks    11.5   2.28    39     0
+## 13 Other          Inner          2024           Turtl~   11.5   1.71    32     1
+## 14 Acroporidae    Mid            2025           Lizard   11.4   2.81    62     0
+## 15 Acroporidae    Mid            2025           MacGi~    9.86  2.21    47     0
+## 16 Pocilloporidae Outer          2025           Hicks     9.62  1.68    37     0
+## 17 Pocilloporidae Mid            2022           MacGi~    9.21  2.21    48     0
+## 18 Pocilloporidae Mid            2023           MacGi~    8.72  1.45    37     0
+## 19 Acroporidae    Mid            2023           Lizard    8.7   1.80    44     0
+## 20 Acroporidae    Inner          2023           Turtl~    8.47  1.46    35     0
+## # i 72 more rows
+\end{verbatim}
+
+\section{Models}\label{models}
+
+\subsection{Question one. is the total number of recruits different
+across the
+shelf?}\label{question-one.-is-the-total-number-of-recruits-different-across-the-shelf}
+
+\subsubsection{Use GLMM for total
+recruits}\label{use-glmm-for-total-recruits}
+
+Run generalised linear models with the Poisson, normal binomail and the
+zero inflated normal bionomial. Total is the dependent variable (the
+count of coral recruits at a given sampling unit) Shelf position is a
+fixed effect predictor, it is used to test if the average coral
+settlement differs between shelf positions Random effects: a nested
+random effect, modelling the variations between reefs, and variation
+between sites nested within reefs
+
+\textbf{\emph{Check the levels of grouping variables}}
+
+\begin{verbatim}
+## # A tibble: 18 x 3
+##    Reef         Site               n
+##    <chr>        <chr>          <int>
+##  1 Day          Day 1             38
+##  2 Day          Day 2             38
+##  3 Day          Day 3             38
+##  4 Hicks        Hicks 1           38
+##  5 Hicks        Hicks 2           37
+##  6 Hicks        Hicks 3           40
+##  7 Lizard       Lag2-Trimodal     30
+##  8 Lizard       TurtleB-CooksP    30
+##  9 Lizard       Vicky-HS          30
+## 10 MacGillivray Mac 1             37
+## 11 MacGillivray Mac 2             38
+## 12 MacGillivray Mac 3             36
+## 13 Turtle N     TN_Back           40
+## 14 Turtle N     TN_Crest          40
+## 15 Turtle N     TN_coral          40
+## 16 Turtle S     TS_Back           40
+## 17 Turtle S     TS_Channel        40
+## 18 Turtle S     TS_Crest          40
+\end{verbatim}
+
+All reefs have multiple sites, so nesting should work.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pois\_total\_yr }\OtherTok{\textless{}{-}} \FunctionTok{glmer}\NormalTok{(total }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Shelf\_Position }\SpecialCharTok{+}\NormalTok{ Year\_Collected }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{|}\NormalTok{ Reef}\SpecialCharTok{/}\NormalTok{Site), }
+      \AttributeTok{family =} \StringTok{"poisson"}\NormalTok{, }\AttributeTok{data =}\NormalTok{ Coral\_settlement\_nGBR)}
+
+\NormalTok{nbin\_total\_yr }\OtherTok{\textless{}{-}} \FunctionTok{glmmTMB}\NormalTok{(total }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Shelf\_Position }\SpecialCharTok{+}\NormalTok{ Year\_Collected }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{|}\NormalTok{ Reef}\SpecialCharTok{/}\NormalTok{Site), }
+        \AttributeTok{family =} \StringTok{"nbinom2"}\NormalTok{, }\AttributeTok{data =}\NormalTok{ Coral\_settlement\_nGBR)}
+
+\NormalTok{zbin\_total\_yr }\OtherTok{\textless{}{-}} \FunctionTok{glmmTMB}\NormalTok{(total }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Shelf\_Position }\SpecialCharTok{+}\NormalTok{ Year\_Collected }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{|}\NormalTok{ Reef}\SpecialCharTok{/}\NormalTok{Site),}
+                      \AttributeTok{ziformula =} \SpecialCharTok{\textasciitilde{}}\DecValTok{1}\NormalTok{,}
+        \AttributeTok{family =} \StringTok{"nbinom2"}\NormalTok{, }\AttributeTok{data =}\NormalTok{ Coral\_settlement\_nGBR)}
+
+\FunctionTok{AIC}\NormalTok{(pois\_total\_yr, nbin\_total\_yr, zbin\_total\_yr) }\CommentTok{\#nbin has the lowest AIC}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##               df       AIC
+## pois_total_yr  8 14688.641
+## nbin_total_yr  9  5347.038
+## zbin_total_yr 10  5348.632
+\end{verbatim}
+
+normal binomial model has the lowest AIC so I will get the summary of
+that model.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Coral\_settlement\_nGBR }\SpecialCharTok{|\textgreater{}} 
+\FunctionTok{group\_by}\NormalTok{(Reef, Site) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{count =} \FunctionTok{n}\NormalTok{())}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 18 x 3
+## # Groups:   Reef [6]
+##    Reef         Site           count
+##    <chr>        <chr>          <int>
+##  1 Day          Day 1             38
+##  2 Day          Day 2             38
+##  3 Day          Day 3             38
+##  4 Hicks        Hicks 1           38
+##  5 Hicks        Hicks 2           37
+##  6 Hicks        Hicks 3           40
+##  7 Lizard       Lag2-Trimodal     30
+##  8 Lizard       TurtleB-CooksP    30
+##  9 Lizard       Vicky-HS          30
+## 10 MacGillivray Mac 1             37
+## 11 MacGillivray Mac 2             38
+## 12 MacGillivray Mac 3             36
+## 13 Turtle N     TN_Back           40
+## 14 Turtle N     TN_Crest          40
+## 15 Turtle N     TN_coral          40
+## 16 Turtle S     TS_Back           40
+## 17 Turtle S     TS_Channel        40
+## 18 Turtle S     TS_Crest          40
+\end{verbatim}
+
+\begin{verbatim}
+##  Family: nbinom2  ( log )
+## Formula:          total ~ Shelf_Position + Year_Collected + (1 | Reef/Site)
+## Data: Coral_settlement_nGBR
+## 
+##       AIC       BIC    logLik -2*log(L)  df.resid 
+##    5347.0    5387.6   -2664.5    5329.0       661 
+## 
+## Random effects:
+## 
+## Conditional model:
+##  Groups    Name        Variance  Std.Dev. 
+##  Site:Reef (Intercept) 3.436e-01 0.5861576
+##  Reef      (Intercept) 6.318e-08 0.0002514
+## Number of obs: 670, groups:  Site:Reef, 18; Reef, 6
+## 
+## Dispersion parameter for nbinom2 family (): 1.28 
+## 
+## Conditional model:
+##                     Estimate Std. Error z value Pr(>|z|)    
+## (Intercept)          3.60820    0.25551  14.121  < 2e-16 ***
+## Shelf_PositionMid   -0.88736    0.35037  -2.533  0.01132 *  
+## Shelf_PositionOuter -1.64001    0.34955  -4.692 2.71e-06 ***
+## Year_Collected2023  -0.33985    0.11231  -3.026  0.00248 ** 
+## Year_Collected2024   0.85180    0.10809   7.881 3.25e-15 ***
+## Year_Collected2025  -0.06039    0.10993  -0.549  0.58280    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+2023 and 2024 are significantly different to 2022. 2025 is not
+significantly different to 2022. Outer shelf is significantly different
+to inner shelf (p\textless0.01), Mid shelf is significantly different to
+inner shelf reefs (p\textless0.05). Intercept is also significant: not
+quite sure what that means in a biological framework. When making a
+figure should I then be using summary statistics or raw count data?
+Because the large number of zeros will make it difficult to do a boxplot
+of the raw data.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(parameters)}
+\FunctionTok{print}\NormalTok{(}\FunctionTok{model\_parameters}\NormalTok{(nbin\_total\_yr,}
+                       \AttributeTok{exponentiate =} \ConstantTok{TRUE} \CommentTok{\#required for log or logit function}
+\NormalTok{                       ))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # Fixed Effects
+## 
+## Parameter              |   IRR |   SE |         95% CI |     z |      p
+## -----------------------------------------------------------------------
+## (Intercept)            | 36.90 | 9.43 | [22.36, 60.89] | 14.12 | < .001
+## Shelf Position [Mid]   |  0.41 | 0.14 | [ 0.21,  0.82] | -2.53 | 0.011 
+## Shelf Position [Outer] |  0.19 | 0.07 | [ 0.10,  0.38] | -4.69 | < .001
+## Year Collected [2023]  |  0.71 | 0.08 | [ 0.57,  0.89] | -3.03 | 0.002 
+## Year Collected [2024]  |  2.34 | 0.25 | [ 1.90,  2.90] |  7.88 | < .001
+## Year Collected [2025]  |  0.94 | 0.10 | [ 0.76,  1.17] | -0.55 | 0.583 
+## 
+## # Dispersion
+## 
+## Parameter   | Coefficient |       95% CI
+## ----------------------------------------
+## (Intercept) |        1.28 | [1.14, 1.44]
+## 
+## # Random Effects Variances
+## 
+## Parameter                 | Coefficient |           95% CI
+## ----------------------------------------------------------
+## SD (Intercept: Site:Reef) |        0.59 | [0.41,     0.83]
+## SD (Intercept: Reef)      |    2.51e-04 | [0.00,      Inf]
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Specify \textquotesingle{}exponentiate = TRUE\textquotesingle{} to interpret coefficients as ratios}
+\NormalTok{nbin\_total\_yr.results }\OtherTok{\textless{}{-}}\NormalTok{ parameters}\SpecialCharTok{::}\FunctionTok{model\_parameters}\NormalTok{(nbin\_total\_yr, }\AttributeTok{exponentiate =} \ConstantTok{TRUE}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Simulations of the model}\label{simulations-of-the-model}
+
+Simulating model -\textgreater{} need to check the reason people do
+this\ldots{} I think it is to see if the observed values are explained
+by the model or not.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sim1 }\OtherTok{\textless{}{-}} \FunctionTok{simulateResiduals}\NormalTok{(nbin\_total\_yr)}
+\FunctionTok{testResiduals}\NormalTok{(sim1)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Data_Analysis_Thesis_files/figure-latex/unnamed-chunk-14-1.pdf}}
+
+\begin{verbatim}
+## $uniformity
+## 
+##  Asymptotic one-sample Kolmogorov-Smirnov test
+## 
+## data:  simulationOutput$scaledResiduals
+## D = 0.02742, p-value = 0.6949
+## alternative hypothesis: two-sided
+## 
+## 
+## $dispersion
+## 
+##  DHARMa nonparametric dispersion test via sd of residuals fitted vs.
+##  simulated
+## 
+## data:  simulationOutput
+## dispersion = 0.66066, p-value = 0.728
+## alternative hypothesis: two.sided
+## 
+## 
+## $outliers
+## 
+##  DHARMa outlier test based on exact binomial test with approximate
+##  expectations
+## 
+## data:  simulationOutput
+## outliers at both margin(s) = 3, observations = 670, p-value = 0.5079
+## alternative hypothesis: true probability of success is not equal to 0.007968127
+## 95 percent confidence interval:
+##  0.0009243448 0.0130292688
+## sample estimates:
+## frequency of outliers (expected: 0.00796812749003984 ) 
+##                                            0.004477612
+\end{verbatim}
+
+\textbf{Key take aways:} - The uniformity indicates the scaled residuals
+are uniformly distributed. The p value \textgreater{} 0.05 suggests
+there is no evidence the residuals deviate from uniformity. - Dispersion
+is close to 1 and p value is \textgreater0.05, suggesting that there is
+no overdispersion or under dispersion. - Outliers: suggesting that the
+number of outliers is not significantly different to what would be
+expected.
+
+Because the simulation suggests not overdispersed, that means I can
+either do Wald Z or chi squared test (Bolker, Brooks, Clark, Geange,
+Poulsen, Stevens, White; 2008
+\url{http://dx.doi.org/10.1016/j.tree.2008.10.008})
+
+\section{Q2 is the composition of the recruits different across the
+shelf?}\label{q2-is-the-composition-of-the-recruits-different-across-the-shelf}
+
+PERMANOVA - variation within a group can be calculated directly from a
+distance matrix.
+
+Notes from Victor email: Regarding the PERMANOVA: you start with a
+community matrix (sites x coral taxa). A PERMANOVA tests whether
+community composition differs among groups, using a distance matrix
+derived from your multivariate raw data. The inputs are a dissimilarity
+(distance) matrix, and a grouping factor (i.e., a categorical variable
+you want to test, like ``reef'', ``shelf.position'', or ``year''). In
+your case, I'd suggest calculating a Bray-Curtis distance matrix and
+then running a PERMANOVA with the vegan package. Here's a quick example
+you can run in R: library(vegan)
+
+\section{Example data: 6 sites x 4 species (abundance
+table)}\label{example-data-6-sites-x-4-species-abundance-table}
+
+abund \textless- data.frame(
+
+sp1 = c(5, 3, 0, 2, 7, 1),
+
+sp2 = c(0, 1, 2, 3, 0, 4),
+
+sp3 = c(8, 6, 5, 9, 7, 6),
+
+sp4 = c(1, 0, 2, 1, 0, 3))
+
+rownames(abund) \textless- paste0(``site'', 1:6)
+
+\section{Metadata with two grouping
+factors}\label{metadata-with-two-grouping-factors}
+
+metadata \textless- data.frame(
+
+site = rownames(abund),
+
+region = rep(c(``north'', ``south''), each = 5), \# Factor 1
+
+shelf = rep(c(``inshore'', ``mid''), times = 5) \# Factor 2
+
+dist.mat \textless- vegdist(abund, method = ``bray'') \# Step 1:
+Calculate dissimilarity matrix (Bray-Curtis)
+
+adonis2(dist.mat \textasciitilde{} region * shelf, data = metadata,
+permutations = 999) \# Step 2: run PERMANOVA
+
+\subsection{NMDS}\label{nmds}
+
+Asking the question: how does the coral recruitment composition differ
+in vegetated tiles\ldots{}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(vegan)}
+
+\CommentTok{\#Create a site{-}by{-}species matrix which includes year and reef as the "site"}
+
+\CommentTok{\# Step 1: Create Site column and keep only species data}
+\NormalTok{site\_by\_species }\OtherTok{\textless{}{-}}\NormalTok{ Coral\_settlement\_nGBR }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{select}\NormalTok{(Year\_Collected, Reef, Acroporidae, Pocilloporidae, Poritid, Other) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{unite}\NormalTok{(}\StringTok{"Site"}\NormalTok{, Year\_Collected, Reef, }\AttributeTok{sep =} \StringTok{"\_"}\NormalTok{)}
+
+\CommentTok{\# Step 2: Store species{-}only matrix separately}
+\NormalTok{species\_matrix }\OtherTok{\textless{}{-}}\NormalTok{ site\_by\_species }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(Acroporidae, Pocilloporidae, Poritid, Other)}
+
+\CommentTok{\# Remove rows where all species counts are 0}
+\NormalTok{species\_matrix\_filtered }\OtherTok{\textless{}{-}}\NormalTok{ species\_matrix[}\FunctionTok{rowSums}\NormalTok{(species\_matrix) }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{, ] }\CommentTok{\#this step removes 43 tiles that have no recruits.}
+
+\CommentTok{\# Step 3: Run NMDS}
+\NormalTok{NMDS }\OtherTok{\textless{}{-}} \FunctionTok{metaMDS}\NormalTok{(species\_matrix\_filtered, }\AttributeTok{distance =} \StringTok{"bray"}\NormalTok{, }\AttributeTok{autotransform =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{k =} \DecValTok{2}\NormalTok{, }\AttributeTok{trymax =} \DecValTok{100}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Run 0 stress 0.1745302 
+## Run 1 stress 0.2001942 
+## Run 2 stress 0.197038 
+## Run 3 stress 0.19043 
+## Run 4 stress 0.1878581 
+## Run 5 stress 0.1823981 
+## Run 6 stress 0.1973656 
+## Run 7 stress 0.1948448 
+## Run 8 stress 0.1854282 
+## Run 9 stress 0.1939996 
+## Run 10 stress 0.192629 
+## Run 11 stress 0.1802377 
+## Run 12 stress 0.1975926 
+## Run 13 stress 0.2011235 
+## Run 14 stress 0.186324 
+## Run 15 stress 0.1966268 
+## Run 16 stress 0.19393 
+## Run 17 stress 0.2078842 
+## Run 18 stress 0.1867171 
+## Run 19 stress 0.1877302 
+## Run 20 stress 0.1815839 
+## Run 21 stress 0.197914 
+## Run 22 stress 0.1867361 
+## Run 23 stress 0.2194766 
+## Run 24 stress 0.1994805 
+## Run 25 stress 0.1925438 
+## Run 26 stress 0.1967635 
+## Run 27 stress 0.2056334 
+## Run 28 stress 0.1835677 
+## Run 29 stress 0.1937144 
+## Run 30 stress 0.2054904 
+## Run 31 stress 0.1838726 
+## Run 32 stress 0.1874636 
+## Run 33 stress 0.2006946 
+## Run 34 stress 0.1925334 
+## Run 35 stress 0.1919332 
+## Run 36 stress 0.1792134 
+## Run 37 stress 0.1797259 
+## Run 38 stress 0.1752724 
+## Run 39 stress 0.1838911 
+## Run 40 stress 0.1835544 
+## Run 41 stress 0.1857579 
+## Run 42 stress 0.1950891 
+## Run 43 stress 0.1823317 
+## Run 44 stress 0.1754317 
+## Run 45 stress 0.1994145 
+## Run 46 stress 0.1920592 
+## Run 47 stress 0.192306 
+## Run 48 stress 0.1884891 
+## Run 49 stress 0.2083178 
+## Run 50 stress 0.1955837 
+## Run 51 stress 0.1958095 
+## Run 52 stress 0.1814009 
+## Run 53 stress 0.1987653 
+## Run 54 stress 0.1916601 
+## Run 55 stress 0.1807283 
+## Run 56 stress 0.1924755 
+## Run 57 stress 0.1903739 
+## Run 58 stress 0.1908093 
+## Run 59 stress 0.1952725 
+## Run 60 stress 0.1917557 
+## Run 61 stress 0.181882 
+## Run 62 stress 0.1775983 
+## Run 63 stress 0.1956638 
+## Run 64 stress 0.1775816 
+## Run 65 stress 0.1910875 
+## Run 66 stress 0.1861129 
+## Run 67 stress 0.2097842 
+## Run 68 stress 0.2043553 
+## Run 69 stress 0.1941095 
+## Run 70 stress 0.1963199 
+## Run 71 stress 0.2136376 
+## Run 72 stress 0.1838085 
+## Run 73 stress 0.1949394 
+## Run 74 stress 0.1855656 
+## Run 75 stress 0.1796715 
+## Run 76 stress 0.1908532 
+## Run 77 stress 0.2143244 
+## Run 78 stress 0.2030811 
+## Run 79 stress 0.1832611 
+## Run 80 stress 0.1937234 
+## Run 81 stress 0.1821389 
+## Run 82 stress 0.1795855 
+## Run 83 stress 0.2098308 
+## Run 84 stress 0.2027357 
+## Run 85 stress 0.1924952 
+## Run 86 stress 0.2016489 
+## Run 87 stress 0.1788048 
+## Run 88 stress 0.2156538 
+## Run 89 stress 0.1964815 
+## Run 90 stress 0.1753465 
+## Run 91 stress 0.1814067 
+## Run 92 stress 0.2075672 
+## Run 93 stress 0.1814972 
+## Run 94 stress 0.1951835 
+## Run 95 stress 0.1782501 
+## Run 96 stress 0.1833717 
+## Run 97 stress 0.2110453 
+## Run 98 stress 0.1934076 
+## Run 99 stress 0.2037349 
+## Run 100 stress 0.1860983 
+## *** Best solution was not repeated -- monoMDS stopping criteria:
+##      6: no. of iterations >= maxit
+##     34: stress ratio > sratmax
+##     60: scale factor of the gradient < sfgrmin
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#NMDS\_3 \textless{}{-} metaMDS(species\_matrix\_filtered, distance = "bray", autotransform = FALSE, k = 3, trymax = 100)}
+
+
+\FunctionTok{print}\NormalTok{(NMDS)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## metaMDS(comm = species_matrix_filtered, distance = "bray", k = 2,      trymax = 100, autotransform = FALSE) 
+## 
+## global Multidimensional Scaling using monoMDS
+## 
+## Data:     species_matrix_filtered 
+## Distance: bray 
+## 
+## Dimensions: 2 
+## Stress:     0.1745302 
+## Stress type 1, weak ties
+## Best solution was not repeated after 100 tries
+## The best solution was from try 0 (metric scaling or null solution)
+## Scaling: centring, PC rotation, halfchange scaling 
+## Species: expanded scores based on 'species_matrix_filtered'
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#print(NMDS\_3)}
+
+\NormalTok{NMDS}\SpecialCharTok{$}\NormalTok{stress}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.1745302
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#NMDS\_3$stress}
+\CommentTok{\#the stress score is 0.118}
+\end{Highlighting}
+\end{Shaded}
+
+Assess the fit of a NMDS by plotting the original dissimilarities (diss)
+against the Euclidean ordination distances (dist). Shepard plot
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(NMDS}\SpecialCharTok{$}\NormalTok{diss, NMDS}\SpecialCharTok{$}\NormalTok{dist)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Data_Analysis_Thesis_files/figure-latex/unnamed-chunk-16-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{stressplot}\NormalTok{(}\AttributeTok{object =}\NormalTok{ NMDS)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Data_Analysis_Thesis_files/figure-latex/unnamed-chunk-16-2.pdf}}
+
+NMDS ordinations are often plotted without units or labels on the axes
+so that people do not try to interpret them.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ordiplot}\NormalTok{(NMDS, }\AttributeTok{type =} \StringTok{"n"}\NormalTok{)}
+\FunctionTok{orditorp}\NormalTok{(NMDS, }\AttributeTok{display =} \StringTok{"species"}\NormalTok{, }\AttributeTok{col =} \StringTok{"blue"}\NormalTok{, }\AttributeTok{air =} \FloatTok{0.01}\NormalTok{)}
+\FunctionTok{orditorp}\NormalTok{(NMDS, }\AttributeTok{display =} \StringTok{"sites"}\NormalTok{, }\AttributeTok{cex =} \FloatTok{0.5}\NormalTok{, }\AttributeTok{air =} \FloatTok{0.01}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Data_Analysis_Thesis_files/figure-latex/unnamed-chunk-17-1.pdf}}
+
+\subsubsection{PERMANOVA}\label{permanova}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(vegan)}
+\FunctionTok{library}\NormalTok{(dplyr)}
+\FunctionTok{library}\NormalTok{(tidyr)}
+
+\CommentTok{\# Step 1: Create site{-}by{-}species matrix and "Site" column}
+\NormalTok{site\_by\_species }\OtherTok{\textless{}{-}}\NormalTok{ Coral\_settlement\_nGBR }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(Year\_Collected, Reef, Shelf\_Position,Site, Tile, Acroporidae, Pocilloporidae, Poritid, Other) }
+
+\CommentTok{\# Add a unique Site ID *after* extracting metadata}
+\NormalTok{site\_by\_species }\OtherTok{\textless{}{-}}\NormalTok{ site\_by\_species }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Site\_ID =} \FunctionTok{paste}\NormalTok{(Year\_Collected, Reef, Site, Tile, }\AttributeTok{sep =} \StringTok{"\_"}\NormalTok{))}
+
+\CommentTok{\# Step 2: Separate metadata and species data}
+\NormalTok{metadata }\OtherTok{\textless{}{-}}\NormalTok{ site\_by\_species }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(Site\_ID, Shelf\_Position, Year\_Collected)}
+
+\NormalTok{species\_matrix }\OtherTok{\textless{}{-}}\NormalTok{ site\_by\_species }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(Site\_ID, Acroporidae, Pocilloporidae, Poritid, Other)}
+
+\CommentTok{\# Step 3: Set row names and remove species rows with all zeros}
+\NormalTok{species\_matrix\_filtered }\OtherTok{\textless{}{-}}\NormalTok{ species\_matrix }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{column\_to\_rownames}\NormalTok{(}\StringTok{"Site\_ID"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\FunctionTok{rowSums}\NormalTok{(.) }\SpecialCharTok{\textgreater{}} \DecValTok{0}\NormalTok{)}
+
+\CommentTok{\# Step 4: Match metadata rows to filtered species matrix}
+\NormalTok{metadata\_filtered }\OtherTok{\textless{}{-}}\NormalTok{ metadata }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(Site\_ID }\SpecialCharTok{\%in\%} \FunctionTok{rownames}\NormalTok{(species\_matrix\_filtered)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{column\_to\_rownames}\NormalTok{(}\StringTok{"Site\_ID"}\NormalTok{)}
+
+\CommentTok{\# Step 5: PERMANOVA}
+\NormalTok{adonis\_result }\OtherTok{\textless{}{-}}\NormalTok{ vegan}\SpecialCharTok{::}\FunctionTok{adonis2}\NormalTok{(species\_matrix\_filtered }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Shelf\_Position}\SpecialCharTok{+}\NormalTok{ Year\_Collected,}
+                                \AttributeTok{data =}\NormalTok{ metadata\_filtered,}
+                                \AttributeTok{method =} \StringTok{"bray"}\NormalTok{,}
+                                \AttributeTok{by =} \StringTok{"term"}\NormalTok{,}
+                                \AttributeTok{permutations =} \DecValTok{999}\NormalTok{)}
+
+\FunctionTok{print}\NormalTok{(adonis\_result)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for adonis under reduced model
+## Terms added sequentially (first to last)
+## Permutation: free
+## Number of permutations: 999
+## 
+## vegan::adonis2(formula = species_matrix_filtered ~ Shelf_Position + Year_Collected, data = metadata_filtered, permutations = 999, method = "bray", by = "term")
+##                 Df SumOfSqs      R2      F Pr(>F)    
+## Shelf_Position   2   30.623 0.18122 72.868  0.001 ***
+## Year_Collected   3    7.867 0.04656 12.480  0.001 ***
+## Residual       621  130.490 0.77222                  
+## Total          626  168.981 1.00000                  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+The PERMANOVA suggests that shelf position and year do significantly
+affect the coral community composition. Shelf position explains 17.4\%
+of the variation (strong and significant) Year collected explains 5\% of
+the variation (suggesting significant temporal differences) 77.5\% of
+the variation in composition of coral recruits remains unexplained.
+
+\section{Redundancy Analysis}\label{redundancy-analysis}
+
+\url{https://pmassicotte.github.io/stats-denmark-2019/07_rda.html\#/a-concrete-example-3}
+
+Suggests using the Hellinger-transform method (Borcard, Gillet, and
+Legendre 2011; Legendre and Gallagher 2001) that is suited to species
+abundance data,
+
+\begin{itemize}
+\tightlist
+\item
+  gives low weights to variables with low counts and many zeros. Divide
+  each value in a data matrix by its row sum, and taking the square root
+  of the quotient
+\end{itemize}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Recruits }\OtherTok{\textless{}{-}}\NormalTok{ Coral\_settlement\_nGBR }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(Acroporidae, Pocilloporidae, Poritid, Other)}
+\NormalTok{recruit\_hellinger }\OtherTok{\textless{}{-}} \FunctionTok{decostand}\NormalTok{(Recruits, }\AttributeTok{method =} \StringTok{"hellinger"}\NormalTok{)}
+
+\NormalTok{environment\_data }\OtherTok{\textless{}{-}}\NormalTok{ Coral\_settlement\_nGBR }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(Year\_Collected, Site, Reef, Shelf\_Position) }\CommentTok{\#worried because environment data is nested here.}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{my\_rda }\OtherTok{\textless{}{-}} \FunctionTok{rda}\NormalTok{(recruit\_hellinger}\SpecialCharTok{\textasciitilde{}}\NormalTok{Year\_Collected }\SpecialCharTok{+}\NormalTok{ Shelf\_Position}\SpecialCharTok{+}\NormalTok{ (Reef}\SpecialCharTok{/}\NormalTok{Site), }\AttributeTok{data =}\NormalTok{ environment\_data)}
+
+\FunctionTok{summary}\NormalTok{(my\_rda)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## rda(formula = recruit_hellinger ~ Year_Collected + Shelf_Position +      (Reef/Site), data = environment_data) 
+## 
+## Partitioning of variance:
+##               Inertia Proportion
+## Total          0.3727     1.0000
+## Constrained    0.1686     0.4525
+## Unconstrained  0.2040     0.5475
+## 
+## Eigenvalues, and their contribution to the variance 
+## 
+## Importance of components:
+##                         RDA1    RDA2     RDA3     RDA4     PC1    PC2     PC3
+## Eigenvalue            0.1343 0.02557 0.006092 0.002612 0.07728 0.0593 0.04022
+## Proportion Explained  0.3605 0.06863 0.016348 0.007010 0.20737 0.1591 0.10794
+## Cumulative Proportion 0.3605 0.42911 0.445462 0.452471 0.65984 0.8190 0.92690
+##                           PC4
+## Eigenvalue            0.02724
+## Proportion Explained  0.07310
+## Cumulative Proportion 1.00000
+## 
+## Accumulated constrained eigenvalues
+## Importance of components:
+##                         RDA1    RDA2     RDA3     RDA4
+## Eigenvalue            0.1343 0.02557 0.006092 0.002612
+## Proportion Explained  0.7967 0.15167 0.036131 0.015492
+## Cumulative Proportion 0.7967 0.94838 0.984508 1.000000
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(my\_rda)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Data_Analysis_Thesis_files/figure-latex/unnamed-chunk-21-1.pdf}}
+Explained variance
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{RsquareAdj}\NormalTok{(my\_rda)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## $r.squared
+## [1] 0.4524714
+## 
+## $adj.r.squared
+## [1] 0.4355984
+\end{verbatim}
+
+Tests of RDA results For canonical analysis such as RDA, model
+significance relies on permutation tests.
+
+The principle of a permutation test is to generate a reference
+distribution of the chosen statistic under the null hypothesis H0 by
+randomly permuting appropriate elements of the data a large number of
+times and recomputing the statistic each time. Then, one compares the
+true value of the statistic to this reference distribution. The p value
+is computed as the proportion of the permuted values equal to or larger
+than the true (unpermuted) value of the statistic for a one-tailed test
+in the upper tail, like the F test used in RDA (Borcard, Gillet, and
+Legendre 2011).
+
+H0: Observed results can be produced by random chance.
+
+The null hypothesis is rejected if this p value is equal to or smaller
+than the predefined significance level α (ex.: α=0.05).
+
+Test for 1. Global RDA significance 2. Axis significance 3. Terms
+(explanatory variables) significance
+
+\subsubsection{Global significance test}\label{global-significance-test}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova.cca}\NormalTok{(my\_rda, }\AttributeTok{permutations =} \DecValTok{999}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(formula = recruit_hellinger ~ Year_Collected + Shelf_Position + (Reef/Site), data = environment_data)
+##           Df Variance      F Pr(>F)    
+## Model     20  0.16862 26.816  0.001 ***
+## Residual 649  0.20404                  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+Since p = 0.001, reject H0, meaning that the RDA model is significant
+and not produced by random chance
+
+\subsubsection{Axis significance}\label{axis-significance}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova.cca}\NormalTok{(my\_rda, }\AttributeTok{by =} \StringTok{"axis"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Forward tests for axes
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(formula = recruit_hellinger ~ Year_Collected + Shelf_Position + (Reef/Site), data = environment_data)
+##           Df Variance        F Pr(>F)    
+## RDA1       1 0.134339 427.2946  0.001 ***
+## RDA2       1 0.025574  83.4755  0.001 ***
+## RDA3       1 0.006092  19.9155  0.001 ***
+## RDA4       1 0.002612   8.5522  0.001 ***
+## Residual 665 0.204042                    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\subsubsection{Terms significance}\label{terms-significance}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova.cca}\NormalTok{(my\_rda, }\AttributeTok{by =} \StringTok{"terms"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Terms added sequentially (first to last)
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(formula = recruit_hellinger ~ Year_Collected + Shelf_Position + (Reef/Site), data = environment_data)
+##                 Df Variance        F Pr(>F)    
+## Year_Collected   3 0.010548  11.1833  0.001 ***
+## Shelf_Position   2 0.111391 177.1510  0.001 ***
+## Reef             3 0.011063  11.7298  0.001 ***
+## Reef:Site       12 0.035616   9.4404  0.001 ***
+## Residual       649 0.204042                    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\subsubsection{Check for
+multicollinearity}\label{check-for-multicollinearity}
+
+Use the vif.cca function
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{sqrt}\NormalTok{(}\FunctionTok{vif.cca}\NormalTok{(my\_rda))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                  Year_Collected2023                  Year_Collected2024 
+##                            1.312300                            1.314602 
+##                  Year_Collected2025                   Shelf_PositionMid 
+##                            1.313481                            2.725301 
+##                 Shelf_PositionOuter                           ReefHicks 
+##                            2.781270                            2.211065 
+##                          ReefLizard                    ReefMacGillivray 
+##                            2.190414                                  NA 
+##                        ReefTurtle N                        ReefTurtle S 
+##                            2.219318                                  NA 
+##                   ReefDay:SiteDay 2                 ReefHicks:SiteDay 2 
+##                            1.373901                                  NA 
+##                ReefLizard:SiteDay 2          ReefMacGillivray:SiteDay 2 
+##                                  NA                                  NA 
+##              ReefTurtle N:SiteDay 2              ReefTurtle S:SiteDay 2 
+##                                  NA                                  NA 
+##                   ReefDay:SiteDay 3                 ReefHicks:SiteDay 3 
+##                            1.373643                                  NA 
+##                ReefLizard:SiteDay 3          ReefMacGillivray:SiteDay 3 
+##                                  NA                                  NA 
+##              ReefTurtle N:SiteDay 3              ReefTurtle S:SiteDay 3 
+##                                  NA                                  NA 
+##                 ReefDay:SiteHicks 1               ReefHicks:SiteHicks 1 
+##                                  NA                            1.356302 
+##              ReefLizard:SiteHicks 1        ReefMacGillivray:SiteHicks 1 
+##                                  NA                                  NA 
+##            ReefTurtle N:SiteHicks 1            ReefTurtle S:SiteHicks 1 
+##                                  NA                                  NA 
+##                 ReefDay:SiteHicks 2               ReefHicks:SiteHicks 2 
+##                                  NA                            1.348631 
+##              ReefLizard:SiteHicks 2        ReefMacGillivray:SiteHicks 2 
+##                                  NA                                  NA 
+##            ReefTurtle N:SiteHicks 2            ReefTurtle S:SiteHicks 2 
+##                                  NA                                  NA 
+##                 ReefDay:SiteHicks 3               ReefHicks:SiteHicks 3 
+##                                  NA                                  NA 
+##              ReefLizard:SiteHicks 3        ReefMacGillivray:SiteHicks 3 
+##                                  NA                                  NA 
+##            ReefTurtle N:SiteHicks 3            ReefTurtle S:SiteHicks 3 
+##                                  NA                                  NA 
+##           ReefDay:SiteLag2-Trimodal         ReefHicks:SiteLag2-Trimodal 
+##                                  NA                                  NA 
+##        ReefLizard:SiteLag2-Trimodal  ReefMacGillivray:SiteLag2-Trimodal 
+##                            1.382189                                  NA 
+##      ReefTurtle N:SiteLag2-Trimodal      ReefTurtle S:SiteLag2-Trimodal 
+##                                  NA                                  NA 
+##                   ReefDay:SiteMac 1                 ReefHicks:SiteMac 1 
+##                                  NA                                  NA 
+##                ReefLizard:SiteMac 1          ReefMacGillivray:SiteMac 1 
+##                                  NA                            1.384291 
+##              ReefTurtle N:SiteMac 1              ReefTurtle S:SiteMac 1 
+##                                  NA                                  NA 
+##                   ReefDay:SiteMac 2                 ReefHicks:SiteMac 2 
+##                                  NA                                  NA 
+##                ReefLizard:SiteMac 2          ReefMacGillivray:SiteMac 2 
+##                                  NA                            1.392636 
+##              ReefTurtle N:SiteMac 2              ReefTurtle S:SiteMac 2 
+##                                  NA                                  NA 
+##                   ReefDay:SiteMac 3                 ReefHicks:SiteMac 3 
+##                                  NA                                  NA 
+##                ReefLizard:SiteMac 3          ReefMacGillivray:SiteMac 3 
+##                                  NA                                  NA 
+##              ReefTurtle N:SiteMac 3              ReefTurtle S:SiteMac 3 
+##                                  NA                                  NA 
+##                 ReefDay:SiteTN_Back               ReefHicks:SiteTN_Back 
+##                                  NA                                  NA 
+##              ReefLizard:SiteTN_Back        ReefMacGillivray:SiteTN_Back 
+##                                  NA                                  NA 
+##            ReefTurtle N:SiteTN_Back            ReefTurtle S:SiteTN_Back 
+##                            1.371349                                  NA 
+##                ReefDay:SiteTN_coral              ReefHicks:SiteTN_coral 
+##                                  NA                                  NA 
+##             ReefLizard:SiteTN_coral       ReefMacGillivray:SiteTN_coral 
+##                                  NA                                  NA 
+##           ReefTurtle N:SiteTN_coral           ReefTurtle S:SiteTN_coral 
+##                            1.371349                                  NA 
+##                ReefDay:SiteTN_Crest              ReefHicks:SiteTN_Crest 
+##                                  NA                                  NA 
+##             ReefLizard:SiteTN_Crest       ReefMacGillivray:SiteTN_Crest 
+##                                  NA                                  NA 
+##           ReefTurtle N:SiteTN_Crest           ReefTurtle S:SiteTN_Crest 
+##                                  NA                                  NA 
+##                 ReefDay:SiteTS_Back               ReefHicks:SiteTS_Back 
+##                                  NA                                  NA 
+##              ReefLizard:SiteTS_Back        ReefMacGillivray:SiteTS_Back 
+##                                  NA                                  NA 
+##            ReefTurtle N:SiteTS_Back            ReefTurtle S:SiteTS_Back 
+##                                  NA                            1.371349 
+##              ReefDay:SiteTS_Channel            ReefHicks:SiteTS_Channel 
+##                                  NA                                  NA 
+##           ReefLizard:SiteTS_Channel     ReefMacGillivray:SiteTS_Channel 
+##                                  NA                                  NA 
+##         ReefTurtle N:SiteTS_Channel         ReefTurtle S:SiteTS_Channel 
+##                                  NA                            1.371349 
+##                ReefDay:SiteTS_Crest              ReefHicks:SiteTS_Crest 
+##                                  NA                                  NA 
+##             ReefLizard:SiteTS_Crest       ReefMacGillivray:SiteTS_Crest 
+##                                  NA                                  NA 
+##           ReefTurtle N:SiteTS_Crest           ReefTurtle S:SiteTS_Crest 
+##                                  NA                                  NA 
+##          ReefDay:SiteTurtleB-CooksP        ReefHicks:SiteTurtleB-CooksP 
+##                                  NA                                  NA 
+##       ReefLizard:SiteTurtleB-CooksP ReefMacGillivray:SiteTurtleB-CooksP 
+##                            1.382189                                  NA 
+##     ReefTurtle N:SiteTurtleB-CooksP     ReefTurtle S:SiteTurtleB-CooksP 
+##                                  NA                                  NA 
+##                ReefDay:SiteVicky-HS              ReefHicks:SiteVicky-HS 
+##                                  NA                                  NA 
+##             ReefLizard:SiteVicky-HS       ReefMacGillivray:SiteVicky-HS 
+##                                  NA                                  NA 
+##           ReefTurtle N:SiteVicky-HS           ReefTurtle S:SiteVicky-HS 
+##                                  NA                                  NA
+\end{verbatim}
+
+Not sure what the go is with some being NA. ``As a rule of thumb, if
+sqrt vif \textgreater2, collinarity is considered high and some of the
+explanatory cariables are redundant.
+
+I will remove reef and site.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{my\_rda2 }\OtherTok{\textless{}{-}} \FunctionTok{rda}\NormalTok{(recruit\_hellinger}\SpecialCharTok{\textasciitilde{}}\NormalTok{Year\_Collected }\SpecialCharTok{+}\NormalTok{ Shelf\_Position, }\AttributeTok{data =}\NormalTok{ environment\_data)}
+
+\FunctionTok{summary}\NormalTok{(my\_rda2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## rda(formula = recruit_hellinger ~ Year_Collected + Shelf_Position,      data = environment_data) 
+## 
+## Partitioning of variance:
+##               Inertia Proportion
+## Total          0.3727     1.0000
+## Constrained    0.1219     0.3272
+## Unconstrained  0.2507     0.6728
+## 
+## Eigenvalues, and their contribution to the variance 
+## 
+## Importance of components:
+##                         RDA1     RDA2     RDA3      RDA4     PC1     PC2
+## Eigenvalue            0.1109 0.007936 0.002847 0.0002622 0.09369 0.07859
+## Proportion Explained  0.2976 0.021297 0.007639 0.0007036 0.25142 0.21088
+## Cumulative Proportion 0.2976 0.318869 0.326508 0.3272111 0.57863 0.78952
+##                           PC3     PC4
+## Eigenvalue            0.04994 0.02850
+## Proportion Explained  0.13401 0.07647
+## Cumulative Proportion 0.92353 1.00000
+## 
+## Accumulated constrained eigenvalues
+## Importance of components:
+##                         RDA1     RDA2     RDA3      RDA4
+## Eigenvalue            0.1109 0.007936 0.002847 0.0002622
+## Proportion Explained  0.9094 0.065085 0.023345 0.0021503
+## Cumulative Proportion 0.9094 0.974505 0.997850 1.0000000
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(my\_rda2)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Data_Analysis_Thesis_files/figure-latex/unnamed-chunk-28-1.pdf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{RsquareAdj}\NormalTok{(my\_rda2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## $r.squared
+## [1] 0.3272111
+## 
+## $adj.r.squared
+## [1] 0.3221449
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova.cca}\NormalTok{(my\_rda2, }\AttributeTok{permutations =} \DecValTok{999}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(formula = recruit_hellinger ~ Year_Collected + Shelf_Position, data = environment_data)
+##           Df Variance      F Pr(>F)    
+## Model      5  0.12194 64.587  0.001 ***
+## Residual 664  0.25072                  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova.cca}\NormalTok{(my\_rda2, }\AttributeTok{by =} \StringTok{"axis"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Forward tests for axes
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(formula = recruit_hellinger ~ Year_Collected + Shelf_Position, data = environment_data)
+##           Df Variance        F Pr(>F)    
+## RDA1       1 0.110893 293.6849  0.001 ***
+## RDA2       1 0.007936  21.0817  0.001 ***
+## RDA3       1 0.002847   7.5730  0.001 ***
+## RDA4       1 0.000262   0.6986  0.589    
+## Residual 665 0.250722                    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova.cca}\NormalTok{(my\_rda2, }\AttributeTok{by =} \StringTok{"terms"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Terms added sequentially (first to last)
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(formula = recruit_hellinger ~ Year_Collected + Shelf_Position, data = environment_data)
+##                 Df Variance        F Pr(>F)    
+## Year_Collected   3 0.010548   9.3115  0.001 ***
+## Shelf_Position   2 0.111391 147.5010  0.001 ***
+## Residual       664 0.250722                    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{sqrt}\NormalTok{(}\FunctionTok{vif.cca}\NormalTok{(my\_rda2))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  Year_Collected2023  Year_Collected2024  Year_Collected2025   Shelf_PositionMid 
+##            1.301675            1.303955            1.302811            1.143891 
+## Shelf_PositionOuter 
+##            1.134246
+\end{verbatim}
+
+\#\#\#Unexplained Variance Kaiser Guttman criterion
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{my\_rda2}\SpecialCharTok{$}\NormalTok{CA}\SpecialCharTok{$}\NormalTok{eig[my\_rda2}\SpecialCharTok{$}\NormalTok{CA}\SpecialCharTok{$}\NormalTok{eig }\SpecialCharTok{\textgreater{}} \FunctionTok{mean}\NormalTok{(my\_rda2}\SpecialCharTok{$}\NormalTok{CA}\SpecialCharTok{$}\NormalTok{eig)]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##        PC1        PC2 
+## 0.09369417 0.07858813
+\end{verbatim}
+
+\section{Partial RDA}\label{partial-rda}
+
+It is possible to run an RDA of a matrix Y, explained by a matrix
+variables X, in the presence of co-variable(s) W.
+
+This analysis allows to display the patterns of the response data (Y)
+uniquely explained by a linear model of the explanatory variables (X)
+when the effect of other covariates (W) is held constant (Borcard,
+Gillet, and Legendre 2011). \#\# Hold Year constant Model the effect of
+shelf position on coral recruit family abundances once the effect of
+year is removed
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{partial\_rda }\OtherTok{\textless{}{-}} \FunctionTok{rda}\NormalTok{(recruit\_hellinger}\SpecialCharTok{\textasciitilde{}}\NormalTok{ Shelf\_Position }\SpecialCharTok{+} \FunctionTok{Condition}\NormalTok{(Year\_Collected), }\AttributeTok{data =}\NormalTok{ environment\_data)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(partial\_rda)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## rda(formula = recruit_hellinger ~ Shelf_Position + Condition(Year_Collected),      data = environment_data) 
+## 
+## Partitioning of variance:
+##               Inertia Proportion
+## Total         0.37266     1.0000
+## Conditioned   0.01055     0.0283
+## Constrained   0.11139     0.2989
+## Unconstrained 0.25072     0.6728
+## 
+## Eigenvalues, and their contribution to the variance 
+## after removing the contribution of conditiniong variables
+## 
+## Importance of components:
+##                         RDA1     RDA2     PC1     PC2     PC3    PC4
+## Eigenvalue            0.1063 0.005075 0.09369 0.07859 0.04994 0.0285
+## Proportion Explained  0.2936 0.014016 0.25874 0.21703 0.13792 0.0787
+## Cumulative Proportion 0.2936 0.307614 0.56636 0.78338 0.92130 1.0000
+## 
+## Accumulated constrained eigenvalues
+## Importance of components:
+##                         RDA1     RDA2
+## Eigenvalue            0.1063 0.005075
+## Proportion Explained  0.9544 0.045563
+## Cumulative Proportion 0.9544 1.000000
+\end{verbatim}
+
+Conditioned gives the amount of variance that has been explained by the
+covariables and removed Constrained gives the amount of variance
+uniquely explained by the explanatory variables
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{RsquareAdj}\NormalTok{(partial\_rda)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## $r.squared
+## [1] 0.2989068
+## 
+## $adj.r.squared
+## [1] 0.2982176
+\end{verbatim}
+
+\subsection{Hold Shelf Position
+Constant}\label{hold-shelf-position-constant}
+
+Model the effect of year on coral recruit family abundances once the
+effect of shelf position is removed
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{partial\_rda2 }\OtherTok{\textless{}{-}} \FunctionTok{rda}\NormalTok{(recruit\_hellinger}\SpecialCharTok{\textasciitilde{}}\NormalTok{ Year\_Collected }\SpecialCharTok{+} \FunctionTok{Condition}\NormalTok{(Shelf\_Position), }\AttributeTok{data =}\NormalTok{ environment\_data)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(partial\_rda2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## rda(formula = recruit_hellinger ~ Year_Collected + Condition(Shelf_Position),      data = environment_data) 
+## 
+## Partitioning of variance:
+##                Inertia Proportion
+## Total         0.372660    1.00000
+## Conditioned   0.111980    0.30049
+## Constrained   0.009958    0.02672
+## Unconstrained 0.250722    0.67279
+## 
+## Eigenvalues, and their contribution to the variance 
+## after removing the contribution of conditiniong variables
+## 
+## Importance of components:
+##                           RDA1    RDA2     RDA3     PC1     PC2     PC3    PC4
+## Eigenvalue            0.005869 0.00317 0.000919 0.09369 0.07859 0.04994 0.0285
+## Proportion Explained  0.022513 0.01216 0.003525 0.35942 0.30147 0.19158 0.1093
+## Cumulative Proportion 0.022513 0.03468 0.038200 0.39762 0.69910 0.89068 1.0000
+## 
+## Accumulated constrained eigenvalues
+## Importance of components:
+##                           RDA1    RDA2     RDA3
+## Eigenvalue            0.005869 0.00317 0.000919
+## Proportion Explained  0.589334 0.31838 0.092282
+## Cumulative Proportion 0.589334 0.90772 1.000000
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{RsquareAdj}\NormalTok{(partial\_rda2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## $r.squared
+## [1] 0.02672155
+## 
+## $adj.r.squared
+## [1] 0.02375285
+\end{verbatim}
+
+Test significance of partial RDA
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova.cca}\NormalTok{(partial\_rda2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(formula = recruit_hellinger ~ Year_Collected + Condition(Shelf_Position), data = environment_data)
+##           Df Variance      F Pr(>F)    
+## Model      3 0.009958 8.7908  0.001 ***
+## Residual 664 0.250722                  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+Since p≤0.05 we reject H0 and can conclude that the result was not
+produced randomly.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(partial\_rda2, }\AttributeTok{scaling =} \DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Data_Analysis_Thesis_files/figure-latex/unnamed-chunk-38-1.pdf}}
+
+\subsection{Variance partitioning}\label{variance-partitioning}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{env\_shelf }\OtherTok{\textless{}{-}}\NormalTok{ environment\_data[,}\StringTok{"Shelf\_Position"}\NormalTok{]}
+
+\NormalTok{env\_year }\OtherTok{\textless{}{-}}\NormalTok{ environment\_data[,}\StringTok{"Year\_Collected"}\NormalTok{]}
+\NormalTok{vp }\OtherTok{\textless{}{-}} \FunctionTok{varpart}\NormalTok{(recruit\_hellinger, env\_shelf, env\_year)}
+\NormalTok{vp}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Partition of variance in RDA 
+## 
+## Call: varpart(Y = recruit_hellinger, X = env_shelf, env_year)
+## 
+## Explanatory tables:
+## X1:  env_shelf
+## X2:  env_year 
+## 
+## No. of explanatory tables: 2 
+## Total variation (SS): 249.31 
+##             Variance: 0.37266 
+## No. of observations: 670 
+## 
+## Partition table:
+##                      Df R.squared Adj.R.squared Testable
+## [a+c] = X1            2   0.30049       0.29839     TRUE
+## [b+c] = X2            3   0.02830       0.02393     TRUE
+## [a+b+c] = X1+X2       5   0.32721       0.32214     TRUE
+## Individual fractions                                    
+## [a] = X1|X2           2                 0.29822     TRUE
+## [b] = X2|X1           3                 0.02375     TRUE
+## [c]                   0                 0.00017    FALSE
+## [d] = Residuals                         0.67786    FALSE
+## ---
+## Use function 'rda' to test significance of fractions of interest
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(vp)}
+\end{Highlighting}
+\end{Shaded}
+
+\pandocbounded{\includegraphics[keepaspectratio]{Data_Analysis_Thesis_files/figure-latex/unnamed-chunk-39-1.pdf}}
+
+\#\#\#Need to do test of significance of fractions
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova.cca}\NormalTok{(}\FunctionTok{rda}\NormalTok{(recruit\_hellinger, env\_shelf))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(X = recruit_hellinger, Y = env_shelf)
+##           Df Variance      F Pr(>F)    
+## Model      2  0.11198 143.26  0.001 ***
+## Residual 667  0.26068                  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{anova.cca}\NormalTok{(}\FunctionTok{rda}\NormalTok{(recruit\_hellinger, env\_year))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(X = recruit_hellinger, Y = env_year)
+##           Df Variance      F Pr(>F)    
+## Model      3  0.01055 6.4666  0.001 ***
+## Residual 666  0.36211                  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#[a + b+c]}
+\FunctionTok{anova.cca}\NormalTok{(}\FunctionTok{rda}\NormalTok{(recruit\_hellinger, environment\_data))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(X = recruit_hellinger, Y = environment_data)
+##           Df Variance      F Pr(>F)    
+## Model     20  0.16862 26.816  0.001 ***
+## Residual 649  0.20404                  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# [a]}
+\FunctionTok{anova.cca}\NormalTok{(}\FunctionTok{rda}\NormalTok{(recruit\_hellinger, env\_shelf, env\_year))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(X = recruit_hellinger, Y = env_shelf, Z = env_year)
+##           Df Variance     F Pr(>F)    
+## Model      2  0.11139 147.5  0.001 ***
+## Residual 664  0.25072                 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# [c]}
+\FunctionTok{anova.cca}\NormalTok{(}\FunctionTok{rda}\NormalTok{(recruit\_hellinger, env\_year, env\_shelf))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Permutation test for rda under reduced model
+## Permutation: free
+## Number of permutations: 999
+## 
+## Model: rda(X = recruit_hellinger, Y = env_year, Z = env_shelf)
+##           Df Variance      F Pr(>F)    
+## Model      3 0.009958 8.7908  0.001 ***
+## Residual 664 0.250722                  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\#Benthic Data
+
+Importing benthic data
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{PIT\_50m }\OtherTok{\textless{}{-}} \FunctionTok{read\_csv}\NormalTok{(}\StringTok{"PIT\_50m.csv"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\FunctionTok{across}\NormalTok{(}\DecValTok{8}\SpecialCharTok{:}\DecValTok{50}\NormalTok{, }\SpecialCharTok{\textasciitilde{}}\FunctionTok{replace\_na}\NormalTok{(.x, }\DecValTok{0}\NormalTok{)))}\CommentTok{\# Read in data}
+
+\NormalTok{PIT\_50m }\OtherTok{\textless{}{-}}\NormalTok{ PIT\_50m }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{filter}\NormalTok{(Year }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\StringTok{"2021{-}22"}\NormalTok{, }\StringTok{"2022{-}23"}\NormalTok{, }\StringTok{"2023{-}24"}\NormalTok{, }\StringTok{"2024{-}25"}\NormalTok{, }\StringTok{"2025{-}26"}\NormalTok{))}
+
+\NormalTok{Belt\_10m }\OtherTok{\textless{}{-}} \FunctionTok{read\_csv}\NormalTok{(}\StringTok{"Belt\_10m.csv"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\FunctionTok{across}\NormalTok{(}\DecValTok{8}\SpecialCharTok{:}\DecValTok{25}\NormalTok{, }\SpecialCharTok{\textasciitilde{}}\FunctionTok{replace\_na}\NormalTok{(.x, }\DecValTok{0}\NormalTok{))) }\CommentTok{\# Read in data}
+\NormalTok{Belt\_10m }\OtherTok{\textless{}{-}}\NormalTok{ Belt\_10m }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(Year }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\StringTok{"2021{-}22"}\NormalTok{, }\StringTok{"2022{-}23"}\NormalTok{, }\StringTok{"2023{-}24"}\NormalTok{, }\StringTok{"2024{-}25"}\NormalTok{, }\StringTok{"2025{-}26"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{is the total number of recruits related to the number
+proportion of coral in
+PIT?}\label{is-the-total-number-of-recruits-related-to-the-number-proportion-of-coral-in-pit}
+
+I am going to have to make a decision if I just keep the January or
+October, and then will need to change the year to faciliate an inner
+join.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#PIT\_and\_recruits \textless{}{-} inner\_join(Coral\_settlement\_nGBR, PIT\_50m)}
+\end{Highlighting}
+\end{Shaded}
+
+\section{Model Diagnostics Based on Murray
+Feedback}\label{model-diagnostics-based-on-murray-feedback}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Coral\_settlement\_nGBR\_CS }\OtherTok{\textless{}{-}} \FunctionTok{read\_csv}\NormalTok{(}\StringTok{"\textasciitilde{}/Larval recruitment resources/Data Analysis/Coral{-}Settlement{-}Northern{-}GBR/Coral settlement\_nGBR\_CS.csv"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\FunctionTok{across}\NormalTok{(}\DecValTok{15}\SpecialCharTok{:}\DecValTok{29}\NormalTok{, }\SpecialCharTok{\textasciitilde{}}\FunctionTok{replace\_na}\NormalTok{(.x, }\DecValTok{0}\NormalTok{))) }\CommentTok{\# Read in data}
+
+\NormalTok{Coral\_settlement\_nGBR }\OtherTok{\textless{}{-}}\NormalTok{ Coral\_settlement\_nGBR\_CS }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{filter}\NormalTok{(}\StringTok{\textasciigrave{}}\AttributeTok{Shelf posn}\StringTok{\textasciigrave{}} \SpecialCharTok{!=} \StringTok{"Coral Sea"}\NormalTok{, }\CommentTok{\#remove coral sea data}
+\NormalTok{        Obs }\SpecialCharTok{!=} \FunctionTok{c}\NormalTok{(}\DecValTok{1499}\NormalTok{, }\DecValTok{1621}\NormalTok{, }\DecValTok{1622}\NormalTok{)) }\CommentTok{\#Remove loose tiles with heavy biofouling}
+
+\NormalTok{Coral\_settlement\_nGBR }\OtherTok{\textless{}{-}}\NormalTok{ Coral\_settlement\_nGBR }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{rename}\NormalTok{(}\StringTok{"Shelf\_Position"}\OtherTok{=} \StringTok{\textasciigrave{}}\AttributeTok{Shelf posn}\StringTok{\textasciigrave{}}\NormalTok{,}
+         \StringTok{"Year\_Collected"}\OtherTok{=} \StringTok{\textasciigrave{}}\AttributeTok{Year (Jan)}\StringTok{\textasciigrave{}}\NormalTok{,}
+         \StringTok{"Site\_\#"}\OtherTok{=} \StringTok{\textasciigrave{}}\AttributeTok{Site \#}\StringTok{\textasciigrave{}}\NormalTok{,}
+         \StringTok{"Acroporidae"} \OtherTok{=}\NormalTok{Acropora,}
+         \StringTok{"Pocilloporidae"} \OtherTok{=}\NormalTok{ Pocillopora,}
+         \StringTok{"Poritid"} \OtherTok{=}\NormalTok{ Porites) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Year\_Collected =} \FunctionTok{factor}\NormalTok{(Year\_Collected),}
+         \AttributeTok{Shelf\_Position =} \FunctionTok{factor}\NormalTok{(Shelf\_Position))}
+\end{Highlighting}
+\end{Shaded}
+
+Suggests that the variance is not equal.
+
+The 0 count skewed So we would do poisson or negative binomial
+
+Priors would be beta, intercept, sd, and ``shape''?
+
+\end{document}

@@ -1,0 +1,909 @@
+---
+title: "15th of June Discussion"
+author: "Monique White"
+date: '`r Sys.Date()`'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r eval=TRUE, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(car)
+library(emmeans)
+library("FactoMineR")
+library("factoextra")
+library(FactoMineR)
+library(factoextra)
+library(vegan)
+library(PCAmixdata)
+library(ggfortify)
+library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
+library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
+library(ggpubr)
+```
+
+
+```{r message=FALSE}
+Coral_settlement_nGBR_CS <- read_csv("~/Larval recruitment resources/Data Analysis/Coral settlement_nGBR_CS.csv") %>%
+  mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR_CS %>% 
+  filter(`Shelf posn` != "Coral Sea", #remove coral sea data
+        Obs != c(1499, 1621, 1622)) #Remove loose tiles with heavy biofouling
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR %>% 
+  rename("Shelf_Position"= `Shelf posn`,
+         "Year_Collected"= `Year (Jan)`,
+         "Site_#"= `Site #`,
+         "Acroporidae" =Acropora,
+         "Pocilloporidae" = Pocillopora,
+         "Poritid" = Porites) |> 
+  mutate(Year_Collected = factor(Year_Collected))
+```
+
+Importing benthic data
+```{r}
+PIT_50m <- read_csv("~/Larval recruitment resources/Data Analysis/PIT_50m.csv") %>%
+  mutate(across(8:50, ~replace_na(.x, 0))) # Read in data
+
+Belt_10m <- read_csv("~/Larval recruitment resources/Data Analysis/Belt_10m.csv") %>%
+  mutate(across(8:25, ~replace_na(.x, 0))) # Read in data
+```
+
+What are the different levels for the data?
+
+```{r}
+Coral_settlement_nGBR %>% 
+  group_by(Shelf_Position, Reef, Site) %>% 
+  distinct(Reef)
+
+Coral_settlement_nGBR %>% 
+  filter(Reef %in% c("Turtle N", "Turtle S")) %>% 
+  distinct(Site)
+```
+
+```{r echo=FALSE, message=FALSE}
+total_recruits <- Coral_settlement_nGBR %>%
+  select(Year_Collected, Shelf_Position, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total")
+
+#Order so that Other is last in Family
+total_recruits <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 6:9, names_to = "Family", values_to = "Total") %>%
+  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
+```
+
+```{r}
+total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
+```
+
+```{r}
+  ggplot(data=total_recruits , aes(x=Year_Collected, y=Total, colour = Shelf_Position))+
+  geom_boxplot(position = "dodge") +
+  theme_classic()+
+  labs(
+  y = expression("Recruits per Tile"),
+  x = "Year",
+  colour = "Shelf Position")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
+
+Detect Outliers?
+
+```{r Detect Outliers, echo=FALSE, fig.height=8, fig.width=6.5}
+p.1 <- total_recruits %>% 
+  group_by(Year_Collected, Reef, Family, Shelf_Position)  %>% 
+  ggplot(aes(x=Family, y=Total, colour = Shelf_Position))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression("Recruits per Reef/Year"),
+  x = "Family",
+  colour = "Shelf Position")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+
+p.2 <- total_recruits %>% 
+  group_by(Year_Collected, Reef, Family, Shelf_Position) %>%
+  summarise(average_no_recruits = mean(Total)) %>% 
+  ggplot(aes(x=Family, y=(average_no_recruits), colour = Shelf_Position))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression("Mean Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
+  x = "Family",
+  colour = "Shelf Position"
+) +
+scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+
+ggarrange(p.1, p.2, ncol = 1)
+```
+
+Unsure that raw data is the way to go then, because there are many points that suggest there are many outliers, or the need for transformation. But the GLMM we used non-transformed values.
+
+***Note that log(X+1) transformation does work on transforming total recruits per tile.***
+
+Identify outlier values (for a given family, reef and year):
+
+```{r message=FALSE, echo=FALSE}
+total_recruits %>% 
+  group_by(Family, Shelf_Position, Year_Collected, Reef) %>%
+  summarise(average = mean(Total),
+            se = sd(Total)/ sqrt(n()),
+            max = max(Total),
+            min = min(Total)) %>% 
+  arrange(desc(average)) %>% 
+  print(n=20)
+```
+
+
+# Models
+
+## Question one. is the total number of recruits different across the shelf?
+
+### Use GLMM for total recruits
+
+Run generalised linear models with the Poisson, normal binomail and the zero inflated normal bionomial.
+Total is the dependent variable (the count of coral recruits at a given sampling unit)
+Shelf position is a fixed effect predictor, it is used to test if the average coral settlement differs between shelf positions
+Random effects: 
+a nested random effect, modelling the variations between reefs, and variation between sites nested within reefs
+
+***Check the levels of grouping variables***
+
+```{r check levels of grouping variables, echo=FALSE}
+Coral_settlement_nGBR %>% count(Reef, Site)
+
+Coral_settlement_nGBR$Year_Collected <- factor(Coral_settlement_nGBR$Year_Collected)
+
+```
+
+All reefs have multiple sites, so nesting should work.
+
+
+```{r warning=FALSE, echo=TRUE}
+pois_total_yr <- glmer(total ~ Shelf_Position + Year_Collected + (1 | Reef/Site), 
+      family = "poisson", data = Coral_settlement_nGBR)
+
+nbin_total_yr <- glmmTMB(total ~ Shelf_Position + Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+zbin_total_yr <- glmmTMB(total ~ Shelf_Position + Year_Collected + (1 | Reef/Site),
+                      ziformula = ~1,
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+AIC(pois_total_yr, nbin_total_yr, zbin_total_yr) #nbin has the lowest AIC
+```
+
+Also just considering that I don't want to have too many variables in the model so removing site from the random variable.
+
+```{r}
+pois_total_reef_only <- glmer(total ~ Shelf_Position + Year_Collected + (1 | Reef), 
+      family = "poisson", data = Coral_settlement_nGBR)
+
+zbin_total_reef_only <- glmmTMB(total ~ Shelf_Position + Year_Collected + (1 | Reef),
+                      ziformula = ~1,
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+nbin_total_reef_only <- glmmTMB(total ~ Shelf_Position + Year_Collected + (1 | Reef), 
+                         family = "nbinom2", data = Coral_settlement_nGBR)
+
+AIC(pois_total_reef_only, nbin_total_reef_only, zbin_total_reef_only) #nbin has the lowest AIC
+```
+
+```{r}
+AIC(pois_total_yr, nbin_total_yr, zbin_total_yr,pois_total_reef_only, nbin_total_reef_only, zbin_total_reef_only)
+```
+
+normal binomial model has the lowest AIC so I will get the summary of that model.
+
+```{r echo=FALSE}
+#summary(nbin_total_reef_only)
+
+summary(nbin_total_yr)
+```
+
+2023 and 2024 are significantly different to 2022.  2025 is not significantly different to 2022.  Outer shelf is significantly different to inner shelf (p<0.01),   Mid shelf is significantly different to inner shelf reefs (p<0.05).  Intercept is also significant: not quite sure what that means in a biological framework.  When making a figure should I then be using summary statistics or raw count data? Because the large number of zeros will make it difficult to do a boxplot of the raw data. 
+
+```{r}
+# Specify 'exponentiate = TRUE' to interpret coefficients as ratios
+nbin_total_yr.results <- parameters::model_parameters(nbin_total_yr, exponentiate = TRUE) 
+
+summary(nbin_total_yr.results)
+```
+
+```{r}
+#predict model
+pred_nbin_total <- predict(nbin_total_yr, type = "response")
+
+
+mean(pred_nbin_total)
+mean(Coral_settlement_nGBR$total)
+#the means look reasonable
+
+var(pred_nbin_total)
+var(Coral_settlement_nGBR$total)
+#the variance is quite different...
+
+hist(pred_nbin_total)
+hist(Coral_settlement_nGBR$total)
+```
+The mean and variance look really different?
+
+### Simulations of the model 
+
+Simulating model -> need to check the reason people do this... I think it is to see if the observed values are explained by the model or not.
+
+
+```{r}
+sim1 <- simulateResiduals(nbin_total_yr)
+testResiduals(sim1)
+```
+
+**Key take aways:**
+- The uniformity indicates the scaled residuals are uniformly distributed. The p value > 0.05 suggests there is no evidence the residuals deviate from uniformity.
+- Dispersion is close to 1 and p value is >0.05, suggesting that there is no overdispersion or under dispersion.
+- Outliers: suggesting that the number of outliers is not significantly different to what would be expected.
+
+# Q2 is the composition of the recruits different across the shelf?
+
+This is where I think a redundancy analysis could be really useful. I have also tried to make GLMM for each family, but had some trouble that the negative binomial doesn't work on Poritidae or Pocilloporidae.
+
+## NMDS
+The NMDS procedure is iterative and takes place over several steps:
+
+    Define the original positions of communities in multidimensional space.
+    Specify the number of reduced dimensions (typically 2).
+    Construct an initial configuration of the samples in 2-dimensions.
+    Regress distances in this initial configuration against the observed (measured) distances.
+    Determine the stress, or the disagreement between 2-D configuration and predicted values from the regression. If the 2-D configuration perfectly preserves the original rank orders, then a plot of one against the other must be monotonically increasing. The extent to which the points on the 2-D configuration differ from this monotonically increasing line determines the degree of stress. This relationship is often visualized in what is called a Shepard plot.
+    If stress is high, reposition the points in 2 dimensions in the direction of decreasing stress, and repeat until stress is below some threshold.**A good rule of thumb: stress < 0.05 provides an excellent representation in reduced dimensions, < 0.1 is great, < 0.2 is good/ok, and stress < 0.3 provides a poor representation.** To reiterate: high stress is bad, low stress is good!
+
+
+```{r}
+library(vegan)
+
+#Create a site-by-species matrix which includes year and reef as the "site"
+
+# Step 1: Create Site column and keep only species data
+site_by_species <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Reef, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  unite("Site", Year_Collected, Reef, sep = "_")
+
+# Step 2: Store species-only matrix separately
+species_matrix <- site_by_species %>%
+  select(Acroporidae, Pocilloporidae, Poritid, Other)
+
+# Step 3: Run NMDS
+NMDS <- metaMDS(species_matrix, k = 2, trymax = 100)
+```
+
+The error you're seeing from metaMDS() is typically caused by empty rows in your species matrix — that is, some rows (sites) have zero abundance across all species, which makes Bray-Curtis dissimilarity undefined.
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(vegan)
+library(ggplot2)
+library(ggrepel)
+
+# --- Same steps as before ---
+
+# Step 1: Combine site info
+site_by_species <- Coral_settlement_nGBR %>%
+  select(Year_Collected, Reef, Shelf_Position, Acroporidae, Pocilloporidae, Poritid, Other) %>%
+  unite("Site", Year_Collected, Reef, sep = "_")
+
+# Step 2: Aggregate species by site
+site_species_matrix <- site_by_species %>%
+  group_by(Site, Shelf_Position) %>%
+  summarise(across(c(Acroporidae, Pocilloporidae, Poritid, Other), sum, na.rm = TRUE),
+            .groups = "drop") %>%
+  separate(Site, into = c("Year", "Reef"), sep = "_", remove = FALSE)
+
+# Step 3: Prepare species matrix for NMDS
+species_matrix <- site_species_matrix %>%
+  select(Site, Acroporidae, Pocilloporidae, Poritid, Other) %>%
+  column_to_rownames("Site")
+
+species_matrix_filtered <- species_matrix[rowSums(species_matrix) > 0, ]
+
+# Step 4: Run NMDS
+NMDS <- metaMDS(species_matrix_filtered, k = 2, trymax = 100)
+
+# Step 5: Site scores (samples)
+nmds_scores <- scores(NMDS, display = "sites") %>%
+  as.data.frame() %>%
+  rownames_to_column("Site")
+
+nmds_scores <- nmds_scores %>%
+  left_join(site_species_matrix %>% select(Site, Year, Reef, Shelf_Position), by = "Site")
+
+# Step 6: Species scores (for arrows)
+species_scores <- scores(NMDS, display = "species") %>%
+  as.data.frame() %>%
+  rownames_to_column("Species")
+
+# Step 7: Plot
+ggplot(nmds_scores, aes(x = NMDS1, y = NMDS2)) +
+  geom_point(aes(color = Shelf_Position, shape = Year), size = 3) +
+  
+  # Arrows for species
+  geom_segment(data = species_scores,
+               aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2),
+               arrow = arrow(length = unit(0.3, "cm")), color = "black") +
+  
+  # Labels for species
+  geom_text_repel(data = species_scores,
+            aes(x = NMDS1, y = NMDS2, label = Species),
+            color = "black", size = 4, hjust = 0.5, vjust = -0.8) +
+  
+  theme_minimal() +
+  labs(title = "NMDS with Species Arrows",
+       x = "NMDS1", y = "NMDS2",
+       color = "Shelf Position", shape = "Year") +
+  theme(text = element_text(size = 12))+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_shape_manual(values = c(15, 16, 17, 18))# squares, circles, triangles, diamond
+
+```
+
+
+```{r}
+#use a shepard plot to show the distances between each pair of communities agaisnt their original dissimilarities
+
+stressplot(NMDS)
+```
+
+K = 3 seemed to cause less spread than the k=2
+```{r}
+ordiplot(NMDS, type = "n")
+orditorp(NMDS, display = "species", col = "red", air = 0.01)
+#orditorp(NMDS, display = "sites", cex = 1.25, air = 0.01)
+```
+
+## PCA
+
+Using PCA (rda() from vegan) on a Hellinger-transformed species abundance matrix, where each row is a sample (site or observation) and each column is a coral family.
+The PCA is identifying the major axes (principal components) along which the coral community composition varies across samples (i.e. finding patterns in how these four coral families co-vary across sites).
+
+#### Representing families in the PCA
+
+Each principal component (PC) is a linear combination of the original variables — here, the four coral families.
+
+You can visualize how strongly each family contributes to each PC using a biplot, which shows both:
+Points = your samples
+Arrows = the coral families (loadings or species scores)
+
+```{r fig.height=10, fig.width=7}
+# Create Hellinger-transformed distance matrix
+Distance_matrix <- Coral_settlement_nGBR %>% 
+  select(Acroporidae, Pocilloporidae, Poritid, Other)
+
+Community_matrix <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, Reef)
+
+total.hellinger <- decostand(Distance_matrix, method = "hellinger")
+
+# PCA
+total.h.pca <- rda(total.hellinger)
+
+# Extract PCA scores for sites (samples)
+pca_scores <- scores(total.h.pca, display = "sites") %>% 
+  as.data.frame()
+
+# Combine PCA scores with metadata
+pca_data <- bind_cols(pca_scores, Community_matrix)
+
+# Plot with ggplot2, coloring by Shelf_Position
+p.3 <- ggplot(pca_data, aes(x = PC1, y = PC2, color = Shelf_Position)) +
+  geom_point(size = 3) +
+  labs(
+    x = paste0("PC1 (", round(summary(total.h.pca)$cont$importance[2,1]*100, 1), "%)"),
+    y = paste0("PC2 (", round(summary(total.h.pca)$cont$importance[2,2]*100, 1), "%)"),
+    title = "PCA of Coral Settlement Data (Hellinger-transformed)"
+  ) +
+  theme_minimal() +
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+
+# Site scores
+site_scores <- scores(total.h.pca, display = "sites") %>% as.data.frame()
+# Species (coral family) loadings
+species_scores <- scores(total.h.pca, display = "species") %>% as.data.frame()
+
+# Add metadata to site scores
+pca_data <- bind_cols(site_scores, Community_matrix)
+
+# Plot
+p.4 <- ggplot(pca_data, aes(x = PC1, y = PC2, color = Shelf_Position)) +
+  geom_point(size = 3) +
+  # Add species vectors
+  geom_segment(data = species_scores,
+               aes(x = 0, y = 0, xend = PC1, yend = PC2),
+               arrow = arrow(length = unit(0.2, "cm")),
+               color = "black") +
+  geom_text(data = species_scores,
+            aes(x = PC1 * 1.1, y = PC2 * 1.1, label = rownames(species_scores)),
+            color = "black") +
+  labs(title = "PCA Biplot of Coral Families",
+       x = paste0("PC1 (", round(summary(total.h.pca)$cont$importance[2,1]*100, 1), "%)"),
+       y = paste0("PC2 (", round(summary(total.h.pca)$cont$importance[2,2]*100, 1), "%)")) +
+  theme_minimal()+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+
+ggarrange(p.3, p.4, ncol = 1)
+```
+
+I wonder if the PCA should be on mean value per year instead of raw counts?
+
+
+***Correspondance analysis is recommended for data with lots of Zeros***
+
+I couldn't get correspondance analysis in vegan package to work for individual tile recruit counts, as there were many zero values.
+Instead I calculated the sum and average recruits per (year and reef)...
+Also important to note that the community matrix (Cms) has an effect on the CCA - when reef or shelf_position are included. See below.
+
+## Community matrix including year, reef, and shelf position
+
+```{r message=FALSE}
+distance_matrix_summary <- Coral_settlement_nGBR %>%
+  group_by(Year_Collected, Shelf_Position, Reef, Site) %>% #? do I need Site here?
+  summarise(sum_acro = sum(Acroporidae),
+            sum_poci = sum(Pocilloporidae),
+            sum_pori = sum(Poritid),
+            sum_oth = sum(Other),
+            acro_avg = mean(Acroporidae), #Account for the number of tiles
+            poci_avg = mean(Pocilloporidae), #Account for the number of tiles
+            pori_avg = mean(Poritid), #Account for the number of tiles
+            oth_avg = mean(Other)) #Account for the number of tiles
+```
+
+Unsure if I need to standardise values for CCA. I looked at decostand and vegan vingerette but still would like guidance on this.
+
+```{r}
+dms <- distance_matrix_summary %>%
+  ungroup() %>%
+  select(sum_acro, sum_poci, sum_pori, sum_oth)
+
+dms_avg <- distance_matrix_summary %>%
+  ungroup() %>%
+  select(acro_avg, poci_avg, pori_avg, oth_avg)
+
+cms <- distance_matrix_summary %>% 
+  select(Year_Collected, Shelf_Position, Reef)
+```
+
+```{r}
+total.ca <- cca(X = dms, Y= cms)
+total.ca.avg <- cca(X = dms_avg, Y = cms)
+```
+
+```{r}
+summary(total.ca)
+summary(total.ca.avg)
+```
+Correlation analysis when using the sum of recruits (A) or the mean number of recruits (B). **Note that in the plots i used CCA1 and CCA2 values, but I think that was incorrect**
+
+```{r echo=FALSE, include=FALSE}
+site_scores <- as.data.frame(scores(total.ca, display = "sites", scaling = 1)) %>%
+  mutate(Shelf_Position = cms$Shelf_Position
+         #,         Reef = cms$Reef
+         )
+
+plot(total.ca, scaling = 1, type = "none", 
+     xlab = paste0("PC1 (", round(total.ca$CA$eig[1] / sum(total.ca$CA$eig) * 100, 2), "%)"),
+     ylab = paste0("PC2 (", round(total.ca$CA$eig[2] / sum(total.ca$CA$eig) * 100, 2), "%)"))
+
+# Colour palette for Shelf_Position
+cols <- c("Inner" = "#99CCFF", "Mid" = "#3399FF", "Outer" = "#003366")
+
+points(site_scores[,1:2],
+       pch = 21,
+       bg = cols[site_scores$Shelf_Position],
+       col = "black",
+       cex = 1.2)
+
+legend("topright", legend = names(cols), fill = cols, title = "Shelf Position")
+
+# Prepare site scores with Shelf_Position
+site_scores <- as.data.frame(scores(total.ca, display = "sites", scaling = 1)) %>%
+  mutate(Shelf_Position = cms$Shelf_Position)
+
+# Calculate variance explained
+eig_vals <- total.ca$CA$eig
+pc1_var <- round(eig_vals[1] / sum(eig_vals) * 100, 2)
+pc2_var <- round(eig_vals[2] / sum(eig_vals) * 100, 2)
+
+# ggplot
+p.5 <- ggplot(site_scores, aes(x = CCA1, y = CCA2, fill = Shelf_Position)) +
+  geom_point(shape = 21, size = 3, color = "black") +
+  scale_fill_manual(values = c("Inner" = "#99CCFF", "Mid" = "#3399FF", "Outer" = "#003366")) +
+  labs(
+    x = paste0("PC1 (", pc1_var, "%)"),
+    y = paste0("PC2 (", pc2_var, "%)"),
+    fill = "Shelf Position"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+```
+
+```{r echo=FALSE, include=FALSE, eval=TRUE}
+# Extract scores
+site_scores <- as.data.frame(scores(total.ca, display = "sites", scaling = 1)) %>%
+  mutate(Shelf_Position = cms$Shelf_Position)
+
+species_scores <- as.data.frame(scores(total.ca, display = "species", scaling = 1))
+
+# Define colour palette for shelf positions
+cols <- c("Inner" = "#99CCFF", "Mid" = "#3399FF", "Outer" = "#003366")
+
+# Start the empty plot
+plot(total.ca, scaling = 1, type = "none",
+     xlab = paste0("PC1 (", round(total.ca$CA$eig[1] / sum(total.ca$CA$eig) * 100, 2), "%)"),
+     ylab = paste0("PC2 (", round(total.ca$CA$eig[2] / sum(total.ca$CA$eig) * 100, 2), "%)"))
+
+# Add site points, colored by Shelf_Position
+points(site_scores[, 1:2],
+       pch = 21,
+       col = "black",
+       bg = cols[site_scores$Shelf_Position],
+       cex = 1.2)
+
+# Add species arrows (from origin to coordinate)
+arrows(0, 0,
+       species_scores[, 1], species_scores[, 2],
+       length = 0.1, col = "black")
+
+# Add species labels at end of arrows
+text(species_scores[, 1:2],
+     labels = rownames(species_scores),
+     col = "black", cex = 0.8, pos = 4)
+
+# Add legend
+legend("topright", legend = names(cols), fill = cols, title = "Shelf Position")
+
+library(ggplot2)
+library(dplyr)
+
+# Extract scores
+site_scores <- as.data.frame(scores(total.ca, display = "sites", scaling = 1)) %>%
+  mutate(Shelf_Position = cms$Shelf_Position)
+
+species_scores <- as.data.frame(scores(total.ca, display = "species", scaling = 1)) %>%
+  mutate(Species = rownames(.))
+
+# Define colour palette for shelf positions
+cols <- c("Inner" = "#99CCFF", "Mid" = "#3399FF", "Outer" = "#003366")
+
+# Calculate percent variance for axis labels
+eig_vals <- total.ca$CA$eig
+pc1_var <- round(eig_vals[1] / sum(eig_vals) * 100, 2)
+pc2_var <- round(eig_vals[2] / sum(eig_vals) * 100, 2)
+
+# Create ggplot object
+p.6 <- ggplot() +
+  # Site scores
+  geom_point(data = site_scores, aes(x = CCA1, y = CCA2, fill = Shelf_Position),
+             shape = 21, size = 3, color = "black") +
+  
+  # Species arrows
+  geom_segment(data = species_scores,
+               aes(x = 0, y = 0, xend = CCA1, yend = CCA2),
+               arrow = arrow(length = unit(0.2, "cm")),
+               color = "black") +
+  
+  # Species labels
+  geom_text(data = species_scores,
+            aes(x = CCA1, y = CCA2, label = Species),
+            color = "black", size = 3, hjust = 0, vjust = 1) +
+
+  # Axis labels, limits, and theme
+  scale_x_continuous(limits = c(-4, 4)) +
+  scale_y_continuous(limits = c(-3, 3))+
+  labs(x = paste0("PC1 (", pc1_var, "%)"),
+       y = paste0("PC2 (", pc2_var, "%)"),
+       fill = "Shelf Position") +
+  scale_fill_manual(values = cols) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+# To view the plot
+p.6
+```
+
+```{r echo=FALSE, include=FALSE, eval=TRUE}
+# Extract scores
+site_scores_avg <- as.data.frame(scores(total.ca.avg, display = "sites", scaling = 1)) %>%
+  mutate(Shelf_Position = cms$Shelf_Position)
+
+species_scores_avg <- as.data.frame(scores(total.ca.avg, display = "species", scaling = 1))%>%
+  mutate(Species = rownames(.))
+
+# Define colour palette for shelf positions
+cols <- c("Inner" = "#99CCFF", "Mid" = "#3399FF", "Outer" = "#003366")
+
+# Start the empty plot
+plot(total.ca.avg, scaling = 1, type = "none",
+     xlab = paste0("PC1 (", round(total.ca.avg$CA$eig[1] / sum(total.ca.avg$CA$eig) * 100, 2), "%)"),
+     ylab = paste0("PC2 (", round(total.ca.avg$CA$eig[2] / sum(total.ca.avg$CA$eig) * 100, 2), "%)"))
+
+# Add site points, colored by Shelf_Position
+points(site_scores_avg[, 1:2],
+       pch = 21,
+       col = "black",
+       bg = cols[site_scores$Shelf_Position],
+       cex = 1.2)
+
+# Add species arrows (from origin to coordinate)
+arrows(0, 0,
+       species_scores_avg[, 1], species_scores_avg[, 2],
+       length = 0.1, col = "black")
+
+# Add species labels at end of arrows
+text(species_scores_avg[, 1:2],
+     labels = rownames(species_scores_avg),
+     col = "black", cex = 0.8, pos = 4)
+
+# Add legend
+legend("topright", legend = names(cols), fill = cols, title = "Shelf Position")
+
+p.7 <- ggplot() +
+  # Site scores
+  geom_point(data = site_scores_avg, aes(x = CCA1, y = CCA2, fill = Shelf_Position),
+             shape = 21, size = 3, color = "black") +
+  
+  # Species arrows
+  geom_segment(data = species_scores_avg,
+               aes(x = 0, y = 0, xend = CCA1, yend = CCA2),
+               arrow = arrow(length = unit(0.2, "cm")),
+               color = "black") +
+  
+  # Species labels
+  geom_text(data = species_scores_avg,
+            aes(x = CCA1, y = CCA2, label = Species),
+            color = "black", size = 3, hjust = 0, vjust = 1) +
+
+  # Axis labels, limits, and theme
+  scale_x_continuous(limits = c(-4, 4)) +
+  scale_y_continuous(limits = c(-3, 3))+
+  labs(x = paste0("PC1 (", pc1_var, "%)"),
+       y = paste0("PC2 (", pc2_var, "%)"),
+       fill = "Shelf Position") +
+  scale_fill_manual(values = cols) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+# To view the plot
+p.7
+
+```
+
+```{r echo=FALSE, fig.height=10, fig.width=5}
+ggarrange(p.6, p.7, ncol = 1, labels = c("A", "B"))
+```
+
+
+### Changed community matrix 
+Only Year collected and shelf position
+
+```{r echo=FALSE}
+cms <- distance_matrix_summary %>% 
+   ungroup() %>%
+  select(Year_Collected, Shelf_Position)
+
+total.ca <- cca(X = dms, Y= cms)
+total.ca.avg <- cca(X = dms_avg, Y = cms)
+
+#Summary
+summary(total.ca)
+summary(total.ca.avg)
+
+#plot of total recruits
+# Extract scores
+site_scores <- as.data.frame(scores(total.ca, display = "sites", scaling = 1)) %>%
+  mutate(Shelf_Position = cms$Shelf_Position)
+
+species_scores <- as.data.frame(scores(total.ca, display = "species", scaling = 1))
+
+# Define colour palette for shelf positions
+cols <- c("Inner" = "#99CCFF", "Mid" = "#3399FF", "Outer" = "#003366")
+
+# Start the empty plot
+plot(total.ca, scaling = 1, type = "none",
+     xlab = paste0("PC1 (", round(total.ca$CA$eig[1] / sum(total.ca$CA$eig) * 100, 2), "%)"),
+     ylab = paste0("PC2 (", round(total.ca$CA$eig[2] / sum(total.ca$CA$eig) * 100, 2), "%)"))
+
+# Add site points, colored by Shelf_Position
+points(site_scores[, 1:2],
+       pch = 21,
+       col = "black",
+       bg = cols[site_scores$Shelf_Position],
+       cex = 1.2)
+
+# Add species arrows (from origin to coordinate)
+arrows(0, 0,
+       species_scores[, 1], species_scores[, 2],
+       length = 0.1, col = "black")
+
+# Add species labels at end of arrows
+text(species_scores[, 1:2],
+     labels = rownames(species_scores),
+     col = "black", cex = 0.8, pos = 4)
+
+# Add legend
+legend("topright", legend = names(cols), fill = cols, title = "Shelf Position")
+
+#plot of average
+# Extract scores
+site_scores_avg <- as.data.frame(scores(total.ca.avg, display = "sites", scaling = 1)) %>%
+  mutate(Shelf_Position = cms$Shelf_Position)
+
+species_scores_avg <- as.data.frame(scores(total.ca.avg, display = "species", scaling = 1))
+
+# Define colour palette for shelf positions
+cols <- c("Inner" = "#99CCFF", "Mid" = "#3399FF", "Outer" = "#003366")
+
+# Start the empty plot
+plot(total.ca.avg, scaling = 1, type = "none",
+     xlab = paste0("PC1 (", round(total.ca.avg$CA$eig[1] / sum(total.ca.avg$CA$eig) * 100, 2), "%)"),
+     ylab = paste0("PC2 (", round(total.ca.avg$CA$eig[2] / sum(total.ca.avg$CA$eig) * 100, 2), "%)"))
+
+# Add site points, colored by Shelf_Position
+points(site_scores_avg[, 1:2],
+       pch = 21,
+       col = "black",
+       bg = cols[site_scores$Shelf_Position],
+       cex = 1.2)
+
+# Add species arrows (from origin to coordinate)
+arrows(0, 0,
+       species_scores_avg[, 1], species_scores_avg[, 2],
+       length = 0.1, col = "black")
+
+# Add species labels at end of arrows
+text(species_scores_avg[, 1:2],
+     labels = rownames(species_scores_avg),
+     col = "black", cex = 0.8, pos = 4)
+
+# Add legend
+legend("topright", legend = names(cols), fill = cols, title = "Shelf Position")
+```
+
+***Maybe consider PCoA.***
+
+## Models for individual Families
+
+Isolating Data for a single Family of coral. Also includes the position of recruit on tile in the data frame so could be included as a variable in a model.
+
+```{r echo=FALSE}
+Pocilloporidae <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, 
+         Reef, Site, Tile, 
+         Pocilloporidae, Top_Pocil, 
+         Under_Pocil, Side_Pocil, total)
+
+Pocilloporidae <- Pocilloporidae %>% 
+  rename(Top = Top_Pocil,
+                   Bottom = Under_Pocil,
+                   Side = Side_Pocil,
+         Recruits_per_tile = total)
+
+Pocilloporidae <- Pocilloporidae %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Location",
+               values_to = "Recruits")
+
+Acroporidae <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, 
+         Reef, Site, Tile, 
+         Acroporidae, Top_Acr, 
+         Under_Acr, Side_Acr, total)
+
+Acroporidae <- Acroporidae %>% 
+  rename(Top = Top_Acr,
+                   Bottom = Under_Acr,
+                   Side = Side_Acr,
+         Recruits_per_tile = total)
+
+Acroporidae <- Acroporidae %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Location",
+               values_to = "Recruits")
+
+Poritid <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, 
+         Reef, Site, Tile, 
+         Poritid, Top_Por, Under_Por, 
+         Side_Por, total)
+
+Poritid <- Poritid %>% 
+  rename(Top = Top_Por,
+                   Bottom = Under_Por,
+                   Side = Side_Por,
+         Recruits_per_tile = total) 
+
+Poritid <- Poritid %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Location",
+               values_to = "Recruits")
+```
+
+
+## GLMM with Total Recruits for a given coral family, per tile.
+
+To analyze whether there's a difference in the number of recruits of a given coral family (e.g., Poritids) across shelf positions, while accounting for random effects due to site nested within reef and controlling for year, the model you choose depends on:
+
+The distribution of your response variable (e.g., counts of recruits),
+
+Whether the response is aggregated or split by tile facet (side/top/bottom),
+
+The structure of your random effects (nested site within reef),
+
+Whether Year_Collected should be a fixed or random effect.
+
+```{r poisson of total Recruits, message=FALSE, warning=FALSE}
+
+pois_Poritid <- glmer(Poritid ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+      family = "poisson", data = Poritid) 
+
+pois_Acroporidae <- glmer(Acroporidae ~ Shelf_Position + Year_Collected+ (1 | Reef/Site), 
+      family = "poisson", data = Acroporidae)
+
+pois_Pocilloporidae<- glmer(Pocilloporidae ~ Shelf_Position + (Year_Collected)+(1 | Reef/Site), 
+      family = "poisson", data = Pocilloporidae)
+```
+
+### Negative Binomial of Total Recruits (for a family)
+
+```{r warning=FALSE}
+nbin_Poritid <- glmmTMB(Poritid ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Poritid)
+
+nbin_Pocilloporidae <- glmmTMB(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Pocilloporidae)
+
+nbin_Acroporidae <- glmmTMB(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Acroporidae)
+```
+
+### Negative Binomial Zero Inflated of Total recruits (per family)
+
+```{r warning=FALSE}
+# Fit model with zero-inflated negative binomial distribution 
+
+zbin_Poritid <- glmmTMB(Poritid ~ Shelf_Position + (1 | Reef/Site) + Year_Collected,
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = Poritid)
+
+zbin_Pocilloporidae<- glmmTMB(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + Year_Collected,
+                               ziformula = ~1,
+                        family = "nbinom2",
+                        data = Pocilloporidae)
+
+zbin_Acroporidae <- glmmTMB(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + Year_Collected,
+                            ziformula = ~1,
+                        family = "nbinom2",
+                        data = Acroporidae)
+```
+
+Compare AIC of those models
+
+```{r}
+AIC(pois_Acroporidae, nbin_Acroporidae, zbin_Acroporidae)
+AIC(pois_Pocilloporidae, nbin_Pocilloporidae, zbin_Pocilloporidae)
+AIC(pois_Poritid, nbin_Poritid, zbin_Poritid)
+```
+
+Seems like it is going to be a bit more difficult to model individual families. Could instead do a model on the total number of recruits, with Family as an explanatory variable in the model, along with Shelf position?

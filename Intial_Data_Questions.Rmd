@@ -1,0 +1,645 @@
+---
+title: "Updated Data Questions"
+author: "Monique White"
+date: '`r Sys.Date()`'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r eval=TRUE, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(car)
+library(emmeans)
+library("FactoMineR")
+library("factoextra")
+library(FactoMineR)
+library(factoextra)
+library(vegan)
+library(PCAmixdata)
+library(ggfortify)
+library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
+library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
+```
+
+
+```{r message=FALSE}
+Coral_settlement_nGBR_CS <- read_csv("~/Larval recruitment resources/Data Analysis/Coral settlement_nGBR_CS.csv") %>%
+  mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR_CS %>% 
+  filter(`Shelf posn` != "Coral Sea", #remove coral sea data
+        Obs != c(1499, 1621, 1622)) #Remove loose tiles with heavy biofouling
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR %>% 
+  rename("Shelf_Position"= `Shelf posn`,
+         "Year_Collected"= `Year (Jan)`,
+         "Site_#"= `Site #`,
+         "Acroporidae" =Acropora,
+         "Pocilloporidae" = Pocillopora,
+         "Poritid" = Porites)
+```
+
+Importing benthic data
+```{r}
+PIT_50m <- read_csv("~/Larval recruitment resources/Data Analysis/PIT_50m.csv") %>%
+  mutate(across(8:50, ~replace_na(.x, 0))) # Read in data
+
+Belt_10m <- read_csv("~/Larval recruitment resources/Data Analysis/Belt_10m.csv") %>%
+  mutate(across(8:25, ~replace_na(.x, 0))) # Read in data
+```
+
+## Q1. is there a difference cross shelf in the total number of recruits?
+
+Boxplot of the average number of recruits per tile - where the mean is calculated across all tiles in a given reef and year- of each Family (Acroporidae, Pocilloporidae, Poritid and Other corals in inner shelf, mid shelf,  and outer shelf reefs.
+
+To detect outliers
+
+```{r echo=FALSE, message=FALSE}
+total_recruits <- Coral_settlement_nGBR %>% 
+  dplyr::select(Year_Collected, Shelf_Position, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total")
+
+#Order so that Family has other last
+total_recruits <- Coral_settlement_nGBR %>% 
+  dplyr::select(Year_Collected, Shelf_Position, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total") %>%
+  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
+
+
+total_recruits %>% 
+  group_by(Year_Collected, Reef, Family, Shelf_Position)  %>% 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf_Position))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression("Recruits per Reef/Year"),
+  x = "Year",
+  colour = "Shelf Position")+
+  facet_wrap(~Family, scale = "free_y", ncol = 2)+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+
+```
+### Figure 1
+
+
+
+```{r echo=FALSE, message=FALSE}
+total_recruits <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total")
+
+#Order so that Family has other last
+total_recruits <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total") %>%
+  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
+
+
+total_recruits %>% 
+  group_by(Year_Collected, Reef, Family, Shelf_Position) %>%
+  summarise(average_no_recruits = mean(Total)) %>% 
+  ggplot(aes(x=Family, y=log10(average_no_recruits+1), colour = Shelf_Position))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression(log10("Mean Recruits per Reef/Year" + 1)),
+  x = "Family",
+  colour = "Shelf Position")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+
+total_recruits %>% 
+  group_by(Year_Collected, Reef, Family, Shelf_Position) %>%
+  summarise(average_no_recruits = mean(Total)) %>% 
+  ggplot(aes(x=Family, y=(average_no_recruits), colour = Shelf_Position))+
+  geom_boxplot(position = "dodge")+
+  geom_point(position = "jitter")+
+  theme_classic()+
+  labs(
+  y = expression("Mean Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
+  x = "Family",
+  colour = "Shelf Position"
+) +
+scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+
+total_recruits %>% 
+  group_by(Year_Collected, Reef, Family,Site, Shelf_Position) %>%
+  summarise(average_no_recruits = mean(Total)) %>% 
+  ggplot(aes(x=Year_Collected, y=(average_no_recruits)))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression("Mean Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf Position"
+) +
+  facet_grid(Shelf_Position~Family, scale = "free")
+
+total_recruits %>% 
+  group_by(Year_Collected, Reef, Site, Family, Shelf_Position) %>%
+  summarise(average_no_recruits = mean(Total)) %>% 
+  ggplot(aes(x=Year_Collected, y=(average_no_recruits)))+
+  geom_boxplot(position = "dodge")+
+  geom_point()+
+  theme_classic()+
+  labs(
+  y = expression("Mean Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf Position"
+) +
+  facet_grid(Family~Shelf_Position, scale = "free")
+
+```
+
+The mean number of coral recruits for a given reef and year.
+
+Boxplot of the average number of recruits per tile - where the mean is calculated across all tiles in a given reef and year- in inshore, mid shelf  and outer shelf reefs.
+
+```{r Probably want to use raw counts }
+total_recruits |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Site))+
+  geom_boxplot(position = "dodge")+
+  geom_point(position = "jitter", 
+             alpha = 0.1)+
+  theme_classic()+
+  labs(
+  y = expression("Mean Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf Position"
+) +
+  facet_grid(Family~Shelf_Position, scale = "free")
+
+total_recruits |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Site))+
+  geom_boxplot(position = "dodge")+
+  geom_point(position = "jitter", 
+             alpha = 0.1)+
+  theme_classic()+
+  labs(
+  y = expression("Recruits (" * Tile^{-1} ~ Year^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf Position"
+) +
+  facet_grid(Shelf_Position~Family, scale = "free")
+```
+
+## Acroporidae
+```{r Acroporidae}
+total_recruits |> 
+  filter(Family == "Acroporidae") |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Reef))+
+  geom_boxplot(position = "dodge")+
+  geom_point(position = "jitter", 
+             alpha = 0.3)+
+  theme_classic()+
+  labs(
+  y = expression("Recruits (" * Tile^{-1} ~ Year^{-1} * ")"),
+  x = "Year",
+  colour = "Reef"
+) +
+  facet_wrap(~Shelf_Position,
+             scale = "free"
+             )
+```
+
+```{r echo=FALSE}
+total_recruits %>% 
+  group_by(Year_Collected, Reef, Shelf_Position) %>%
+  summarise(average_no_recruits = mean(Total)) %>% 
+  ggplot(aes(x=Shelf_Position, y=log10(average_no_recruits+1), colour = Shelf_Position))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression(log10("Mean Recruits (" * Reef^{-1} ~ Year^{-1} * "))" + 1)),
+  x = "Shelf Position",
+  colour = "Shelf Position")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
+
+Tile abundance is normally distributed when transformed using the log10(x+1) transformation.
+
+
+```{r transformation, echo=FALSE}
+#Transformation to meet normal assumption
+#Coral_settlement_nGBR %>% 
+  #ggplot()+
+  #geom_density(aes(x=total)) #Total recruits requires transformation
+
+#Coral_settlement_nGBR %>% 
+  #ggplot()+
+  #geom_density(aes(x=log(total))) # This seems the most appropriate
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR %>%
+  mutate(log10_total = log10(total + 1))
+
+qqnorm(Coral_settlement_nGBR$log10_total)
+qqline(Coral_settlement_nGBR$log10_total)
+
+shapiro.test(Coral_settlement_nGBR$log10_total)
+```
+
+## Model
+
+dependent variable: log10_total (log10(total+1))
+Independent variables: Shelf position, year collected, Site nested within Reef
+
+```{r echo=FALSE}
+# Treat Reef as random too, and Site nested in Reef
+model_nested <- lmer(log10_total ~ Shelf_Position + Year_Collected + (1 | Reef/Site), 
+                     data = Coral_settlement_nGBR)
+
+summary(model_nested)
+```
+
+Random Effects:
+
+  Site:Reef (i.e. Site nested within Reef): Variance = 0.0599, Std.Dev = 0.245 → meaningful random variation at the site level.
+
+  Reef: Very small variance (0.0031), suggesting little between-reef variability after accounting for Site.
+
+  Conclusion: Nesting Site within Reef is appropriate and removes the collinearity issue I had in a previous model.
+  
+  Coral recruitment is significantly lower on the Outer shelf, even after accounting for Year and nested random effects.
+
+Mid shelf shows a non-significant trend toward lower recruitment compared to Inner shelf.
+
+#### Actually wondering whether year should be a random effect, a fixed effect or something else?
+
+```{r echo=FALSE}
+model_nested_year <- lmer(log10_total ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected),
+                          data = Coral_settlement_nGBR)
+
+summary(model_nested_year)
+
+anova(model_nested, model_nested_year)
+```
+
+Interpretation of ANOVA:
+
+model_nested includes Year_Collected as a fixed effect, while model_nested_year treats it as a random effect.
+
+A likelihood ratio test (LRT) shows that including Year_Collected as a fixed effect significantly improves model fit (Chi-square = 17.194, df = 2, p < 0.001).
+
+Both AIC and BIC are lower for model_nested, supporting it as the better-fitting model.
+
+### Use GLMM for total recruits
+
+
+```{r}
+pois_total <- glmer(total ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+      family = "poisson", data = Coral_settlement_nGBR)
+
+nbin_Total <- glmmTMB(total ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+zbin_Total <- glmmTMB(total ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected),
+                      ziformula = ~1,
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+AIC(pois_total, nbin_Total, zbin_Total) #nbin has the lowest AIC
+```
+
+```{r}
+summary(nbin_Total)
+```
+
+Deciding if year should be a random or fixed effect
+
+```{r}
+random_total_GLMM <- glmmTMB(total ~ Shelf_Position + (1|Reef/Site) + (1|Year_Collected), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+fixed_total_GLMM <- glmmTMB(total ~ Shelf_Position + Year_Collected + (1|Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+AIC(random_total_GLMM, fixed_total_GLMM)  
+```
+
+Having year as a fixed variable seems to be better.
+
+```{r}
+fixed_total_GLMM %>% 
+  summary()
+```
+
+Outer shelf has significantly lower recruitment than inner shelf. 
+
+compared to tiles collected in 2022, the  number of recruits was significantly lower in 2023, significantly higher in 2024, and not signficantly different in 2025.
+
+# Q2 is the composition of the recruits different across the shelf?
+
+## Factor Analysis of Mixed Data - Shelf and Total Recruits
+
+Note this model includes
+Year collected, 
+Shelf position, and 
+Reef.
+
+Year collected than is considered the supplementary variable and only shelf position and reef are the qualitative variables. 
+
+Based on the Redundancy analysis paper: a swiss army knife
+Variable selection is a critical preliminary step in ecological modelling. Depending on the analytical goals and our mechanistic understanding of the system, we may use either a predictive or explanatory approach to variable selection (Mac Nally, 2000). 
+They use a predictive approach using RDA with forward selection, where the goal is to maximize the genetic variance explained by a set of environmental predictors. This approach is well-suited when prediction is the primary objective and variable reduction is needed to avoid overfitting and collinearity (Dormann et al., 2013). The procedure begins with a test of significance of the global RDA model (all variables included). If this global model is significant (Blanchet et al., 2008), we begin forward selection with an empty model where multivariate genetic variation is explained by a fixed intercept. The model is then sequentially complexified by adding explanatory variables one by one, using two stopping criteria to prevent overestimation of the explained variance: a permutation-based significance test and the adjusted R2 of the global model. If the addition of a variable meets either stopping criteria (i.e. permuted p-value is greater than the threshold or the adjusted R2 decreases), the variable is rejected and forward selection ends. For example, Gibson and Moyle (2020) used forward selection with RDA to identify 14 abiotic variables associated with genetic variation in a wild tomato species. They found that variable selection differed when accounting for geographical distance among sampled populations using partial RDA, likely because of collinearity between geographical distance and environmental variation.
+
+They applied forward selection using the ordiR2step vegan function with the following stopping criteria: variable significance of p < 0.01 using 1,000 permutations, and the adjusted R2 of the global model (Supporting Information 1). 
+In this and all subsequent analyses, we standardized the predictors (i.e. subtracted the mean and divided by the standard deviation) to ensure the variable units were comparable (Legendre & Legendre, 2012). 
+
+
+```{r echo=FALSE}
+FAMD_df_Year <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, 
+         Shelf_Position, 
+         Reef, 
+         Acroporidae, Pocilloporidae, 
+         Poritid, Other)
+
+#check for null values
+colSums(is.na(FAMD_df_Year))
+
+FAMD_df_Year$Year_Collected=as.factor(FAMD_df_Year$Year_Collected)
+FAMD_df_Year$Shelf_Position=as.factor(FAMD_df_Year$Shelf_Position)
+FAMD_df_Year$Reef=as.factor(FAMD_df_Year$Reef)
+
+#Calculate the Principal Components
+res.FAMD_Year <- FAMD(FAMD_df_Year,
+                 sup.var = 1, ##sets the target variable "Year_Collected" as a supplementary variable
+                 graph = FALSE,
+                ncp = 25)
+
+get_eigenvalue(res.FAMD_Year)
+
+# Use PCAmixData to split mixed dataset into quantitative and qualitative variables
+split_Year <- splitmix(FAMD_df_Year[2:5])
+#When I look at split it only lists the X.quanti as prop Acroporidae  and Prop Pocilloporidae... 
+#Not sure if that is a problem...
+
+res.pcamix_Year <- PCAmix(X.quanti = split_Year$X.quanti,
+                     X.quali = split_Year$X.quali,
+                     rename.level = TRUE,
+                     graph = FALSE,
+                     ndim = 25)
+
+#Inspect Principal Components
+res.pcamix_Year$eig 
+```
+
+Eigenvalue >1 indicate it accounts for more variance than one of the original variables in standardised data.
+Only the first 5 dimensions hold true for that. Cumulative impact of the first five dimensions is explaining 84% of the variance in the data.
+
+```{r echo=FALSE}
+fviz_famd_ind(res.FAMD_Year, label = "none",
+              habillage = "Shelf_Position",
+              palette = c("#00AFBB", "#CCFF00", "#FFCCFF"), # color by groups
+              repel = TRUE,
+              alpha.ind = 0.5)+
+  xlim(-5, 6) + ylim(-4.5, 4.5)+
+  theme(text = element_text(size=12), axis.text.x = element_text(size=12), axis.text.y = element_text(size=12))
+```
+
+Model 2. Uses Year_collected and Reef to explain the Abundance of the different Coral Family.  Uses shelf position as a supplementary variable.
+
+
+```{r echo=FALSE}
+FAMD_df <- Coral_settlement_nGBR %>% 
+  select(Shelf_Position, Year_Collected, Reef, 
+         Acroporidae, Pocilloporidae, 
+         Poritid, Other)
+
+#check for null values
+colSums(is.na(FAMD_df))
+
+FAMD_df$Year_Collected=as.factor(FAMD_df$Year_Collected)
+FAMD_df$Shelf_Position=as.factor(FAMD_df$Shelf_Position)
+FAMD_df$Reef=as.factor(FAMD_df$Reef)
+
+#Calculate the Principal Components
+res.FAMD <- FAMD(FAMD_df,
+                 sup.var = 1, ##sets the target variable "Shelf_Position" as a supplementary variable
+                 graph = FALSE,
+                ncp = 25)
+
+get_eigenvalue(res.FAMD)
+
+# Use PCAmixData to split mixed dataset into quantitative and qualitative variables
+split <- splitmix(FAMD_df[2:5])
+#When I look at split it only lists the X.quanti as prop Acroporidae and Prop Pocilloporidae...
+
+res.pcamix <- PCAmix(X.quanti = split$X.quanti,
+                     X.quali = split$X.quali,
+                     rename.level = TRUE,
+                     graph = FALSE,
+                     ndim = 25)
+
+#Inspect Principal COmponents
+res.pcamix$eig 
+```
+
+Eignenvalue >1 indicate accounts for more variance than accounted but one of the original variables in standardised data. only the first 5 hold true for that. and the cumulative impact is explaining 60% of the variance in the data.Suggests that variables may be non-linear and complex or that variables/factors accounting for variation in the data are not included in the data set.
+
+Because the other model where the Year collected is the supplementary variable explains more of the variance I think that is the preferred model.
+
+```{r echo=FALSE}
+fviz_famd_ind(res.FAMD, label = "none",
+              habillage = "Shelf_Position",
+              palette = c("#00AFBB", "#CCFF00", "#FFCCFF"), # color by groups
+              repel = TRUE,
+              alpha.ind = 0.5)+
+  xlim(-5, 6) + ylim(-4.5, 4.5)+
+  theme(text = element_text(size=12), axis.text.x = element_text(size=12), axis.text.y = element_text(size=12))
+```
+
+## Alternative method of a reduction analysis - using PCA, biplot, autoplot? 
+
+```{r PCA of proportion}
+pca_abundance <- Coral_settlement_nGBR %>% 
+  select(Acroporidae, Pocilloporidae, Poritid, Other)
+pca <- prcomp(pca_abundance, scale. = TRUE)
+biplot(pca)
+#could colour by family. Then do RDA to have environmental variables
+
+# Make sure shelf position and year collected are factors
+Coral_settlement_nGBR$Year_Collected <- as.factor(Coral_settlement_nGBR$Year_Collected)
+Coral_settlement_nGBR$Shelf_Position <- as.factor(Coral_settlement_nGBR$Shelf_Position)
+
+# Now rerun the autoplot
+autoplot(pca, 
+         data = Coral_settlement_nGBR, 
+         colour = 'Shelf_Position', 
+         shape = 'Year_Collected') 
+```
+
+
+Partial RDA has several applications. It is a powerful tool when users what to assess the effect of environmental variables on species composition while taking into account the variation due to other environmental variables that are not the focus of the study.
+
+```{r}
+library(vegan)
+
+total_recruits_rda <- rda(total_recruits)
+```
+
+
+# Family
+
+Isolating Data for a single Family of coral
+
+```{r echo=FALSE}
+Pocilloporidae <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, 
+         Reef, Site, Tile, 
+         Pocilloporidae, Top_Pocil, 
+         Under_Pocil, Side_Pocil, total)
+
+Pocilloporidae <- Pocilloporidae %>% 
+  rename(Top = Top_Pocil,
+                   Bottom = Under_Pocil,
+                   Side = Side_Pocil,
+         Recruits_per_tile = total)
+
+Pocilloporidae <- Pocilloporidae %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Location",
+               values_to = "Recruits")
+
+Acroporidae <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, 
+         Reef, Site, Tile, 
+         Acroporidae, Top_Acr, 
+         Under_Acr, Side_Acr, total)
+
+Acroporidae <- Acroporidae %>% 
+  rename(Top = Top_Acr,
+                   Bottom = Under_Acr,
+                   Side = Side_Acr,
+         Recruits_per_tile = total)
+
+Acroporidae <- Acroporidae %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Location",
+               values_to = "Recruits")
+
+Poritid <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf_Position, 
+         Reef, Site, Tile, 
+         Poritid, Top_Por, Under_Por, 
+         Side_Por, total)
+
+Poritid <- Poritid %>% 
+  rename(Top = Top_Por,
+                   Bottom = Under_Por,
+                   Side = Side_Por,
+         Recruits_per_tile = total) 
+
+Poritid <- Poritid %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Location",
+               values_to = "Recruits")
+```
+
+
+## GLMM with TOtal Recruits per tile.
+
+To analyze whether there's a difference in the number of recruits of a given coral family (e.g., Poritids) across shelf positions, while accounting for random effects due to site nested within reef and controlling for year, the model you choose depends on:
+
+The distribution of your response variable (e.g., counts of recruits),
+
+Whether the response is aggregated or split by tile facet (side/top/bottom),
+
+The structure of your random effects (nested site within reef),
+
+Whether Year_Collected should be a fixed or random effect.
+
+```{r poisson of total Recruits, message=FALSE}
+pois_Poritid <- glmer(Poritid ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+      family = "poisson", data = Poritid) 
+
+pois_Acroporidae <- glmer(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+      family = "poisson", data = Acroporidae)
+
+pois_Pocilloporidae <- glmer(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+      family = "poisson", data = Pocilloporidae) 
+```
+
+### Negative Binomial of Total Recruits (for a family)
+
+```{r}
+nbin_Poritid <- glmmTMB(Poritid ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Poritid)
+
+nbin_Pocilloporidae <- glmmTMB(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Pocilloporidae)
+
+nbin_Acroporidae <- glmmTMB(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Acroporidae)
+```
+
+### Negative Binomial Zero Inflated of Total recruits (per family)
+
+```{r}
+# Fit model with zero-inflated negative binomial distribution 
+
+zbin_Poritid <- glmmTMB(Poritid ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected),
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = Poritid)
+
+zbin_Pocilloporidae <- glmmTMB(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected),
+                               ziformula = ~1,
+                        family = "nbinom2",
+                        data = Pocilloporidae)
+
+zbin_Acroporidae <- glmmTMB(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + (1 | Year_Collected),
+                            ziformula = ~1,
+                        family = "nbinom2",
+                        data = Acroporidae)
+```
+
+Compare AIC of those models
+
+```{r}
+AIC(pois_Acroporidae, nbin_Acroporidae, zbin_Acroporidae)
+AIC(pois_Pocilloporidae, nbin_Pocilloporidae, zbin_Pocilloporidae)
+AIC(pois_Poritid, nbin_Poritid, zbin_Poritid)
+```
+
+For all Families the negative Binominal had a lower AIC value compared to Poisson and zero inflated negative binomial.
+
+```{r}
+nbin_Acroporidae %>% 
+  summary()
+```
+
+Acroporidae abundance significantly different in the outer reefs than inshore reefs.
+
+```{r}
+nbin_Pocilloporidae %>% 
+  summary()
+```
+
+Significant difference in Pocilloporidae abundance in mid shore reefs compared to inshore reefs
+
+```{r}
+nbin_Poritid %>% 
+  summary()
+```
+
+Don't see much of a difference in Poritid across shelf position. Although slightly less in mid shore reefs (p<0.1)
+
+# Graphical Depiction of Coral Recruits 
+
+```{r}
+Acroporidae %>% 
+  ggplot(aes(x=Shelf_Position, y=Recruits, colour = Year_Collected))+
+  geom_point()
+```
+
+# Exploring the Environmental Data
