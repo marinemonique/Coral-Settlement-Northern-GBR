@@ -1,0 +1,502 @@
+---
+title: "Thesis Map Final"
+author: "Monique White"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load required packages
+library(tidyverse)   # data wrangling and ggplot
+library(sf)          # Spatial data handling
+library(gisaimsr)    # GIS data focused in the Great Barrier Reef
+library(ggspatial)   # for scale bar & north arrow
+library(ggtext)      # ggplot2-rendering with element_markdown()
+library(ggnewscale)  # multiple fill and colour scales in ggplot2
+library(maptiles)    # download and display map tiles
+library(terra)       # spatial data analysis
+library(scales)      # # for rgb() and hex color conversion
+library(raster) # for map
+library(ggspatial) 
+library(sf)
+library(dataaimsr)
+library(gisaimsr)
+library(ggrepel)
+library(ozmaps)
+library(raster) # for map
+library(ggspatial) 
+library(sf)
+library(dataaimsr)
+library(gisaimsr)
+library(ggrepel)
+#library(rgeos) # has been replaced by sf package
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(tidyverse)
+library(ggpubr)
+```
+
+# Map of North Queensland
+
+# Define bounding box for QLD
+```{r}
+NQLD_bbox <- sf::st_bbox(c(xmin = 142, xmax = 148,
+                             ymin = -10.5, ymax = -18),
+                           crs = 4326)
+NQLD_bbox_sf <- sf::st_as_sfc(NQLD_bbox)
+
+NQLD_tiles <- get_tiles(
+  x = NQLD_bbox_sf,
+  provider = "Esri.WorldImagery",
+  crop = TRUE,
+  zoom = 5
+)
+
+
+NQLD_df <- as.data.frame(NQLD_tiles, xy = TRUE)        # Convert to data frame for ggplot
+
+# Take columns 3, 4, and 5, and divide values by 255 (values in them range from 0 to 255 because they're RGB values). This turns values into a scale 0-1
+NQLD_df$fill <- rgb(NQLD_df[,3] / 255,
+                      NQLD_df[,4] / 255,
+                      NQLD_df[,5] / 255)
+
+
+NGBR_rect <- data.frame(
+  xmin = 144.95,
+  xmax = 145.6,
+  ymin = -14.95,
+  ymax = -14.4
+)
+```
+
+```{r}
+NQLD_plot <- ggplot() +
+  geom_raster(
+    data = NQLD_df,
+    aes(x = x, y = y, fill = fill)
+  ) +
+  
+  geom_rect(
+    data = NGBR_rect,
+    aes(xmin = xmin, xmax = xmax,
+        ymin = ymin, ymax = ymax),
+    fill = NA,
+    colour = "white",
+    linewidth = 1,
+    inherit.aes = FALSE
+  ) +
+  
+  scale_fill_identity() +
+  
+  coord_equal(
+    xlim = c(142, 148),
+    ylim = c(-18, -10.5),
+    expand = FALSE
+  ) +
+  
+  annotation_scale(
+    height = unit(0.15, "cm"),
+    location = "br",
+    width_hint = 0.2,
+    pad_x = unit(0.5, "cm"),
+    pad_y = unit(0.4, "cm"),
+    text_col = "white",
+    text_cex = 0.4,
+    bar_cols = c("white", "black")
+  ) +
+  
+  labs(x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())+
+  theme(
+    plot.margin = margin(5, 5, 5, 5),
+    axis.title.x = element_text(margin = margin(t = 5)),
+    axis.title.y = element_text(margin = margin(r = 5))
+  )
+```
+
+```{r}
+library(readxl)
+#coords <-   read_excel("Approximate_GPS_Study_Sites.xlsx",col_types = c("text", "numeric", "numeric", "text"))
+NGBR_sites_for_coral_settlement_tiles <- read_excel("~/Larval recruitment resources/Maps/NGBR sites for coral settlement tiles.xlsx", 
+                                                    col_types = c("text", "numeric", "numeric", "text", "text"))
+coords <- NGBR_sites_for_coral_settlement_tiles |> 
+  mutate(Lat = -abs(Lat),
+    Site = factor(Site),
+         shelf_pos = factor(Shelf_Position),
+         Reef = factor(Reef))
+#study.sites <- read.csv('Data/Lizard_Island_Sites.csv', header = TRUE)     # import data on study sites
+study.sites <- janitor::clean_names(coords)                           # make all column names lowercase (specify package 'janitor' to avoid conflict with insight::clean_names())
+
+
+# Convert study.sites to sf object with coordinates and assign CRS
+study.sites.sf <- st_as_sf(study.sites, coords = c("long", "lat"), crs = 4326)
+
+study.sites.sf.coords <- st_coordinates(study.sites.sf)
+study.sites.sf$longitude <- study.sites.sf.coords[, 1]
+study.sites.sf$latitude <- study.sites.sf.coords[, 2]
+```
+
+ # Inner Shelf
+```{r}
+# Inner shelf
+inner_bbox <- sf::st_bbox(c(xmin = 145.15, xmax = 145.23,
+                             ymin = -14.76, ymax = -14.68),
+                           crs = 4326)
+inner_bbox_sf <- sf::st_as_sfc(inner_bbox)
+
+inner_tiles <- get_tiles(
+  x = inner_bbox_sf,
+  provider = "Esri.WorldImagery",
+  crop = TRUE,
+  zoom = 5
+)
+                     # Higher = more detail (max ~20)
+
+inner_df <- as.data.frame(inner_tiles, xy = TRUE)        # Convert to data frame for ggplot
+
+# Take columns 3, 4, and 5, and divide values by 255 (values in them range from 0 to 255 because they're RGB values). This turns values into a scale 0-1
+inner_df$fill <- rgb(inner_df[,3] / 255,
+                      inner_df[,4] / 255,
+                      inner_df[,5] / 255)
+
+inner.sites.sf <- study.sites.sf |> 
+  filter(shelf_pos == "Inner")
+
+Inner_shelf <- ggplot() +
+  geom_raster(data = inner_df, aes(x = x, y = y, fill = fill)) +   # display satellite image
+  scale_fill_identity() +
+  new_scale_fill() + # this command from package 'ggnewscale' allows the use of multiple fill scales
+  geom_point(data = inner.sites.sf,                                 # plot study sites
+             aes(x = longitude,                                     # longitude of each site
+                 y = latitude),                                   # fill color based on 'habitat' type
+             size = 2,                                            # size of points (study sites)
+             alpha = 0.8,                                           # transparency (0 = transparent, 1 = opaque)
+             shape = 21,                                            # if shape = 21, it plots a point with a border
+             fill = "#FF5003",
+            color = "grey10",                                      # color of border of points
+             show.legend = TRUE) +                                  # show legend for study sites
+  #scale_fill_manual(values = c("Inner" = "#FF5003","Mid" = "gold", "Outer"= "darkorange"),guide = guide_legend(title = "Shelf Position")) +
+  coord_sf(
+    xlim = c(st_bbox(inner_bbox_sf)$xmin, st_bbox(inner_bbox_sf)$xmax),
+    ylim = c(st_bbox(inner_bbox_sf)$ymin, st_bbox(inner_bbox_sf)$ymax),
+    expand = FALSE
+  )+
+  annotation_scale(height = unit(0.15, "cm"), 
+                   location = "br", 
+                   width_hint = 0.2, 
+                   pad_x = unit(0.5, "cm"),
+                   pad_y = unit(0.4, "cm"),
+                   text_col = "white",
+                   text_cex = 0.4,
+                   bar_cols = c("white", "black")) +
+  scale_x_continuous(labels = seq(from=145.1, to= 145.3, by = 0.1),
+                     breaks = seq(from=145.1, to= 145.3, by = 0.1))+
+  scale_y_continuous(labels = seq(from=-14.5, to= -14.8, by = -0.1),
+                     breaks =seq(from=-14.5, to= -14.8, by = -0.1))+
+  labs(x = "Longitude", 
+       y = "Latitude") +
+  theme_minimal() +
+  guides(fill = guide_legend(title = "Shelf Position", 
+                             title.position = "top", 
+                             label.position = "left", 
+                             label.theme = element_text(size = 6)))
+```
+
+ # Mid Shelf
+ 
+```{r}
+# Mid Shelf
+mid_bbox <- sf::st_bbox(c(xmin = 145.42, xmax = 145.51,
+                            ymin = -14.63, ymax = -14.72),
+                          crs = 4326)
+mid_bbox_sf <- sf::st_as_sfc(mid_bbox)
+
+mid_tiles <- get_tiles(
+  x = mid_bbox_sf,
+  provider = "Esri.WorldImagery",
+  crop = TRUE,
+  zoom = 14
+)
+
+mid_df <- as.data.frame(mid_tiles, xy = TRUE)        # Convert to data frame for ggplot
+
+# Take columns 3, 4, and 5, and divide values by 255 (values in them range from 0 to 255 because they're RGB values). This turns values into a scale 0-1
+mid_df$fill <- rgb(mid_df[,3] / 255,
+                     mid_df[,4] / 255,
+                     mid_df[,5] / 255)
+
+# Filter study sites for mid-shelf
+mid.sites.sf <- study.sites.sf |> 
+  filter(shelf_pos == "Mid")
+
+# ---- Plot Mid Shelf ----
+Mid_shelf <- ggplot() +
+  geom_raster(data = mid_df, aes(x = x, y = y, fill = fill)) +   # satellite imagery
+  scale_fill_identity() +
+  new_scale_fill() + 
+  geom_point(data = mid.sites.sf,
+             aes(x = longitude, 
+                 y = latitude),
+             size = 2,
+             alpha = 0.8,
+             shape = 21,
+             fill = "gold",
+             color = "grey10",
+             show.legend = TRUE) +
+  coord_sf(
+    xlim = c(st_bbox(mid_bbox_sf)$xmin, st_bbox(mid_bbox_sf)$xmax),
+    ylim = c(st_bbox(mid_bbox_sf)$ymin, st_bbox(mid_bbox_sf)$ymax),
+    expand = FALSE
+  ) +
+  annotation_scale(height = unit(0.15, "cm"), 
+                   location = "br", 
+                   width_hint = 0.2, 
+                   pad_x = unit(0.5, "cm"),
+                   pad_y = unit(0.4, "cm"),
+                   text_col = "white",
+                   text_cex = 0.4,
+                   bar_cols = c("white", "black")) +
+  scale_x_continuous(labels = seq(from=145.4, to= 145.5, by = 0.1),
+                     breaks = seq(from=145.4, to= 145.5, by = 0.1))+
+  scale_y_continuous(labels = seq(from=-14.6, to= -14.8, by = -0.1),
+                     breaks =seq(from=-14.6, to= -14.8, by = -0.1))+
+  #annotation_north_arrow(height = unit(0.6, "cm"), 
+                       #  width = unit(0.4, "cm"), 
+                       #  location = "tr", 
+                       #  which_north = "true", 
+                       #  style = north_arrow_orienteering(
+                       #    text_size = 8,
+                       #    line_col = "white",
+                       #    text_col = "white"
+                       #  ),
+                       #  pad_x = unit(0.5, "cm"), 
+                       #  pad_y = unit(0.5, "cm")) +
+  labs(x = "Longitude", 
+       y = "Latitude") +
+  theme_minimal() +
+  theme(
+    #axis.text.x = element_text(size = 6),
+        #axis.text.y = element_text(size = 6),
+        #axis.title.x = element_text(size = 7.5, margin = margin(t = 10)),
+        #axis.title.y = element_text(size = 7.5, margin = margin(r = 6)),
+        #legend.position = "bottom",
+        #legend.background = element_rect(fill = "white"),
+        #legend.margin = margin(l = 0.2, r = 0.2, t = 0.2, b = 0.2, unit = 'cm'),
+        #legend.title = element_text(size = 6.5, face = "bold"),
+        #legend.text = element_text(size = 5.5),
+        #legend.key.spacing.y = unit(0.12, 'cm'),
+        #legend.key.size = unit(0.12, 'cm')
+  ) + 
+  guides(fill = guide_legend(title = "Shelf Position", 
+                             title.position = "top", 
+                             label.position = "left", 
+                             label.theme = element_text(size = 6)))
+
+```
+ 
+ # Outer Shelf
+```{r}
+# Outer Shelf
+outer_bbox <- sf::st_bbox(c(xmin = 145.44, xmax = 145.56,
+                          ymin = -14.42, ymax = -14.54),
+                        crs = 4326)
+outer_bbox_sf <- sf::st_as_sfc(outer_bbox)
+
+outer_tiles <- get_tiles(
+  x = outer_bbox_sf,
+  provider = "Esri.WorldImagery",
+  crop = TRUE,
+  zoom = 14
+)
+
+outer_df <- as.data.frame(outer_tiles, xy = TRUE)        # Convert to data frame for ggplot
+
+# Take columns 3, 4, and 5, and divide values by 255 (values in them range from 0 to 255 because they're RGB values). This turns values into a scale 0-1
+outer_df$fill <- rgb(outer_df[,3] / 255,
+                   outer_df[,4] / 255,
+                   outer_df[,5] / 255)
+
+# Filter study sites for the outer shelf
+outer.sites.sf <- study.sites.sf |>
+  filter(shelf_pos == "Outer")
+
+# ---- Plot Outer Shelf ----
+Outer_shelf <- ggplot() +
+  geom_raster(data = outer_df, aes(x = x, y = y, fill = fill)) +
+  scale_fill_identity() +
+  new_scale_fill() +
+  geom_point(data = outer.sites.sf,
+             aes(x = longitude, y = latitude),
+             size = 2,
+             alpha = 0.8,
+             shape = 21,
+             fill = "darkorange",
+             color = "grey10",
+             show.legend = TRUE) +
+  coord_sf(
+    xlim = c(st_bbox(outer_bbox_sf)$xmin, st_bbox(outer_bbox_sf)$xmax),
+    ylim = c(st_bbox(outer_bbox_sf)$ymin, st_bbox(outer_bbox_sf)$ymax),
+    expand = FALSE
+  ) +
+  annotation_scale(height = unit(0.15, "cm"), 
+                   location = "br", 
+                   width_hint = 0.2, 
+                   pad_x = unit(0.5, "cm"),
+                   pad_y = unit(0.4, "cm"),
+                   text_col = "white",
+                   text_cex = 0.4,
+                   bar_cols = c("white", "black")) +
+  scale_x_continuous(labels = seq(from=145.4, to= 145.6, by = 0.1),
+                     breaks = seq(from=145.4, to= 145.6, by = 0.1))+
+  scale_y_continuous(labels = seq(from=-14.3, to= -14.6, by = -0.1),
+                     breaks =seq(from=-14.3, to= -14.6, by = -0.1))+
+  #annotation_north_arrow(height = unit(0.6, "cm"), 
+                         #width = unit(0.4, "cm"), 
+                         #location = "tr", 
+                         #which_north = "true", 
+                         #style = north_arrow_orienteering(
+                           #text_size = 8,
+                           #line_col = "white",
+                           #text_col = "white"
+                        # ),
+  #                       pad_x = unit(0.5, "cm"), 
+   #                      pad_y = unit(0.5, "cm")) +
+  labs(x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme() +
+  guides(fill = guide_legend(title = "Shelf Position", 
+                             title.position = "top", 
+                             label.position = "left", 
+                             label.theme = element_text(size = 6)))
+```
+ 
+ 
+```{r}
+NGBR_b_box <- sf::st_bbox(c(
+  xmin = 144.95, xmax = 145.65,
+  ymin = -14.95, ymax = -14.35
+), crs = 4326)
+
+
+NGBR_bbox_sf <- sf::st_as_sfc(NGBR_b_box)
+
+NGBR_tiles <- get_tiles(
+  x = NGBR_bbox_sf,
+  provider = "Esri.WorldImagery",
+  crop = TRUE,
+  zoom = 14
+)
+
+NGBR_df <- as.data.frame(NGBR_tiles, xy = TRUE)        # Convert to data frame for ggplot
+
+# Take columns 3, 4, and 5, and divide values by 255 (values in them range from 0 to 255 because they're RGB values). This turns values into a scale 0-1
+NGBR_df$fill <- rgb(NGBR_df[,3] / 255,
+                    NGBR_df[,4] / 255,
+                    NGBR_df[,5] / 255)
+
+Inner_rect <- data.frame(
+  xmin = 145.15, 
+  xmax = 145.23,
+  ymin = -14.76, 
+  ymax = -14.68)
+
+Mid_rect <- data.frame(
+ xmin = 145.42,
+ xmax = 145.51,
+ ymin = -14.63,
+ ymax = -14.72 
+)
+
+Outer_rect <- data.frame(
+  xmin = 145.44,
+  xmax = 145.56,
+  ymin = -14.42,
+  ymax = -14.54
+)
+
+NGBR_plot <- ggplot() +
+  geom_raster(
+    data = NGBR_df,
+    aes(x = x, y = y, fill = fill)
+  ) +
+  geom_rect(
+    data = Inner_rect,
+    aes(xmin = xmin, xmax = xmax,
+        ymin = ymin, ymax = ymax),
+    fill = NA,
+    colour = "#FF5003",
+    linewidth = 1,
+    inherit.aes = FALSE
+  ) +
+  geom_rect(
+    data = Mid_rect,
+    aes(xmin = xmin, xmax = xmax,
+        ymin = ymin, ymax = ymax),
+    fill = NA,
+    colour = "gold",
+    linewidth = 1,
+    inherit.aes = FALSE
+  ) +
+  geom_rect(
+    data = Outer_rect,
+    aes(xmin = xmin, xmax = xmax,
+        ymin = ymin, ymax = ymax),
+    fill = NA,
+    colour = "darkorange",
+    linewidth = 1,
+    inherit.aes = FALSE
+  ) +
+  scale_fill_identity() +
+  coord_equal(
+    xlim = c(144.95,145.6),
+    ylim = c(-14.95, -14.4),
+    expand = FALSE
+  ) +
+  
+  annotation_scale(
+    height = unit(0.15, "cm"),
+    location = "br",
+    width_hint = 0.2,
+    pad_x = unit(0.5, "cm"),
+    pad_y = unit(0.4, "cm"),
+    text_col = "white",
+    text_cex = 0.4,
+    bar_cols = c("white", "black")
+  ) +
+  
+  labs(x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())+
+  theme(
+    plot.margin = margin(5, 5, 5, 5),
+    axis.title.x = element_text(margin = margin(t = 5)),
+    axis.title.y = element_text(margin = margin(r = 5))
+  )
+
+
+NGBR_plot
+```
+ 
+ 
+```{r}
+NQLD_plot
+
+NGBR_plot
+
+Outer_shelf
+
+Inner_shelf
+
+Mid_shelf
+# ggarrange(NQLD_plot, Outer_shelf, Inner_shelf, Mid_shelf)
+```
+
+```{r}
+top_map <- ggarrange(NQLD_plot, NGBR_plot)
+bottom_map <- ggarrange(Inner_shelf, Mid_shelf, Outer_shelf)
+
+map <- ggarrange(top_map, bottom_map, ncol=1)
+```
+
