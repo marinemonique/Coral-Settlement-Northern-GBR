@@ -494,9 +494,18 @@ Mid_shelf
 ```
 
 ```{r}
-top_map <- ggarrange(NQLD_plot, NGBR_plot)
-bottom_map <- ggarrange(Inner_shelf, Mid_shelf, Outer_shelf)
+top_map <- ggarrange(NQLD_plot, NGBR_plot, widths = c(1,2))
+bottom_map <- ggarrange(Inner_shelf, Mid_shelf, Outer_shelf, ncol = 3)
 
-map <- ggarrange(top_map, bottom_map, ncol=1)
+map <- ggarrange(top_map, bottom_map, ncol=1, heights = c(1.5, 1))
+```
+
+```{r}
+ggsave(filename = "Thesis_Map.png",
+       plot = map,
+       width = 9.1,
+       height = 9,
+       units = "in",
+       dpi = 300)
 ```
 
