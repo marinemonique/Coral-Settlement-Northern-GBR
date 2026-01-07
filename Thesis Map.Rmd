@@ -42,7 +42,7 @@ library(ggpubr)
 # Define bounding box for QLD
 ```{r}
 NQLD_bbox <- sf::st_bbox(c(xmin = 142, xmax = 148,
-                             ymin = -10.5, ymax = -18),
+                             ymin = -20, ymax = -10.5),
                            crs = 4326)
 NQLD_bbox_sf <- sf::st_as_sfc(NQLD_bbox)
 
@@ -91,7 +91,7 @@ NQLD_plot <- ggplot() +
   
   coord_equal(
     xlim = c(142, 148),
-    ylim = c(-18, -10.5),
+    ylim = c(-20, -10.5),
     expand = FALSE
   ) +
   
@@ -386,7 +386,7 @@ NGBR_tiles <- get_tiles(
   x = NGBR_bbox_sf,
   provider = "Esri.WorldImagery",
   crop = TRUE,
-  zoom = 14
+  zoom = 10
 )
 
 NGBR_df <- as.data.frame(NGBR_tiles, xy = TRUE)        # Convert to data frame for ggplot
@@ -503,7 +503,7 @@ map <- ggarrange(top_map, bottom_map, ncol=1, heights = c(1.5, 1))
 ```{r}
 ggsave(filename = "Thesis_Map.png",
        plot = map,
-       width = 9.1,
+       width = 9.5,
        height = 9,
        units = "in",
        dpi = 300)
