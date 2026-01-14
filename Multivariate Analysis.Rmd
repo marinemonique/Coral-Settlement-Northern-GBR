@@ -58,6 +58,7 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR |>
 
 Coral_settlement_nGBR$Year_Collected <- factor(Coral_settlement_nGBR$Year_Collected)
 ```
+
 Notes from Victor email: Regarding the PERMANOVA: you start with a community matrix (sites x coral taxa). A PERMANOVA tests whether community composition differs among groups, using a distance matrix derived from your multivariate raw data. The inputs are a dissimilarity (distance) matrix, and a grouping factor (i.e., a categorical variable you want to test, like “reef”, “shelf.position”, or “year”). In your case, I'd suggest calculating a Bray-Curtis distance matrix and then running a PERMANOVA with the vegan package. 
 
 
@@ -78,9 +79,7 @@ environment_data <- Coral_settlement_nGBR %>%
 
 ## PERMANOVA
 ```{r}
-
 # Filtered recruit data
-
 Recruits_sqrt <- sqrt(Recruits)
 
 # Bray–Curtis PERMANOVA
@@ -104,6 +103,7 @@ adonis2(
 ## inspect dispersion (PERMDISP)
 ```{r}
 bray <- vegdist(Recruits_sqrt, method = "bray")
+
 betadisper(bray, environment_data$Shelf_Position)
 anova(betadisper(bray, environment_data$Shelf_Position))
 ```
@@ -122,8 +122,6 @@ nmds$stress
 # Extract NMDS for plot
 site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
 scores <- cbind(site_scores, environment_data[, c("Year_Collected", "Shelf_Position", "Reef", "Site")])
-
-
 ```
 
 Your stress = 0.154 sits comfortably in the:
@@ -174,16 +172,12 @@ p <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = 
 
 ```
 
-
 ## NMDS
 
 Asking the question: how does the coral recruitment composition differ in vegetated tiles...
 
 ```{r}
-library(vegan)
-
 #Create a site-by-species matrix which includes year and reef as the "site"
-
 
 # Step 1: Create Site column and keep only species data
 site_by_species <- Coral_settlement_nGBR %>% 
