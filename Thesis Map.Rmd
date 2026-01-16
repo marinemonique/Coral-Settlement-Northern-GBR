@@ -94,26 +94,30 @@ NQLD_plot <- ggplot() +
     ylim = c(-20, -10.5),
     expand = FALSE
   ) +
-  
-  annotation_scale(
-    height = unit(0.15, "cm"),
-    location = "br",
-    width_hint = 0.2,
-    pad_x = unit(0.5, "cm"),
-    pad_y = unit(0.4, "cm"),
-    text_col = "white",
-    text_cex = 0.4,
-    bar_cols = c("white", "black")
-  ) +
-  
+  # annotation_scale(
+  #   height = unit(0.15, "cm"),
+  #   location = "br",
+  #   width_hint = 0.2,
+  #   pad_x = unit(0.5, "cm"),
+  #   pad_y = unit(0.4, "cm"),
+  #   text_col = "white",
+  #   text_cex = 0.4,
+  #   bar_cols = c("white", "black")
+  # ) +
   labs(x = "Longitude", y = "Latitude") +
   theme_minimal() +
   theme(panel.grid = element_blank())+
   theme(
     plot.margin = margin(5, 5, 5, 5),
-    axis.title.x = element_text(margin = margin(t = 5)),
-    axis.title.y = element_text(margin = margin(r = 5))
+    # axis.title.x = element_text(margin = margin(t = 5)),
+    # axis.title.y = element_text(margin = margin(r = 5)),
+    axis.title = element_blank(),
+    axis.text = element_blank()
   )
+```
+
+```{r}
+NQLD_plot
 ```
 
 ```{r}
@@ -171,7 +175,7 @@ Inner_shelf <- ggplot() +
   geom_point(data = inner.sites.sf,                                 # plot study sites
              aes(x = longitude,                                     # longitude of each site
                  y = latitude),                                   # fill color based on 'habitat' type
-             size = 2,                                            # size of points (study sites)
+             size = 2.5,                                            # size of points (study sites)
              alpha = 0.8,                                           # transparency (0 = transparent, 1 = opaque)
              shape = 21,                                            # if shape = 21, it plots a point with a border
              fill = "#FF5003",
@@ -239,7 +243,7 @@ Mid_shelf <- ggplot() +
   geom_point(data = mid.sites.sf,
              aes(x = longitude, 
                  y = latitude),
-             size = 2,
+             size = 2.5,
              alpha = 0.8,
              shape = 21,
              fill = "gold",
@@ -296,6 +300,11 @@ Mid_shelf <- ggplot() +
 
 ```
  
+```{r}
+Mid_shelf
+```
+ 
+ 
  # Outer Shelf
 ```{r}
 # Outer Shelf
@@ -329,7 +338,7 @@ Outer_shelf <- ggplot() +
   new_scale_fill() +
   geom_point(data = outer.sites.sf,
              aes(x = longitude, y = latitude),
-             size = 2,
+             size = 2.5,
              alpha = 0.8,
              shape = 21,
              fill = "darkorange",
@@ -352,17 +361,6 @@ Outer_shelf <- ggplot() +
                      breaks = seq(from=145.4, to= 145.6, by = 0.1))+
   scale_y_continuous(labels = seq(from=-14.3, to= -14.6, by = -0.1),
                      breaks =seq(from=-14.3, to= -14.6, by = -0.1))+
-  #annotation_north_arrow(height = unit(0.6, "cm"), 
-                         #width = unit(0.4, "cm"), 
-                         #location = "tr", 
-                         #which_north = "true", 
-                         #style = north_arrow_orienteering(
-                           #text_size = 8,
-                           #line_col = "white",
-                           #text_col = "white"
-                        # ),
-  #                       pad_x = unit(0.5, "cm"), 
-   #                      pad_y = unit(0.5, "cm")) +
   labs(x = "Longitude", y = "Latitude") +
   theme_minimal() +
   theme() +
@@ -375,9 +373,8 @@ Outer_shelf <- ggplot() +
  
 ```{r}
 NGBR_b_box <- sf::st_bbox(c(
-  xmin = 144.95, xmax = 145.65,
-  ymin = -14.95, ymax = -14.35
-), crs = 4326)
+  xmin = 144.85, xmax = 145.7,
+  ymin = -14.95, ymax = -14.35), crs = 4326)
 
 
 NGBR_bbox_sf <- sf::st_as_sfc(NGBR_b_box)
@@ -421,6 +418,16 @@ NGBR_plot <- ggplot() +
     data = NGBR_df,
     aes(x = x, y = y, fill = fill)
   ) +
+    annotation_scale(
+    height = unit(0.15, "cm"),
+    location = "br",
+    width_hint = 0.2,
+    pad_x = unit(0.5, "cm"),
+    pad_y = unit(0.4, "cm"),
+    text_col = "white",
+    text_cex = 0.4,
+    bar_cols = c("white", "black")
+  ) +
   geom_rect(
     data = Inner_rect,
     aes(xmin = xmin, xmax = xmax,
@@ -450,27 +457,15 @@ NGBR_plot <- ggplot() +
   ) +
   scale_fill_identity() +
   coord_equal(
-    xlim = c(144.95,145.6),
-    ylim = c(-14.95, -14.4),
+    xlim = c(144.85,145.7),
+    ylim = c(-14.95, -14.35),
     expand = FALSE
   ) +
-  
-  annotation_scale(
-    height = unit(0.15, "cm"),
-    location = "br",
-    width_hint = 0.2,
-    pad_x = unit(0.5, "cm"),
-    pad_y = unit(0.4, "cm"),
-    text_col = "white",
-    text_cex = 0.4,
-    bar_cols = c("white", "black")
-  ) +
-  
   labs(x = "Longitude", y = "Latitude") +
   theme_minimal() +
   theme(panel.grid = element_blank())+
   theme(
-    plot.margin = margin(5, 5, 5, 5),
+    #plot.margin = margin(5, 5, 5, 5),
     axis.title.x = element_text(margin = margin(t = 5)),
     axis.title.y = element_text(margin = margin(r = 5))
   )
@@ -479,6 +474,147 @@ NGBR_plot <- ggplot() +
 NGBR_plot
 ```
  
+Need to fix the scale on these ones..
+```{r}
+library(sf)
+library(ggplot2)
+library(ggspatial)
+library(dplyr)
+
+# ----------------------------
+# 1. Define bbox in lon/lat
+# ----------------------------
+NGBR_b_box <- st_bbox(
+  c(
+    xmin = 144.85, xmax = 145.7,
+    ymin = -14.95, ymax = -14.35
+  ),
+  crs = 4326
+)
+
+NGBR_bbox_sf <- st_as_sfc(NGBR_b_box)
+
+# ----------------------------
+# 2. Project bbox to UTM 55S
+# (correct for ~145E, 15S)
+# ----------------------------
+utm_crs <- 32755  # WGS84 / UTM zone 55S
+
+NGBR_bbox_utm <- st_transform(NGBR_bbox_sf, crs = utm_crs)
+
+# ----------------------------
+# 3. Get imagery tiles (projected)
+# ----------------------------
+NGBR_tiles <- get_tiles(
+  x = NGBR_bbox_utm,
+  provider = "Esri.WorldImagery",
+  crop = TRUE,
+  zoom = 10
+)
+
+# Convert tiles to dataframe for ggplot
+NGBR_df <- as.data.frame(NGBR_tiles, xy = TRUE)
+
+# RGB → hex colour
+NGBR_df$fill <- rgb(
+  NGBR_df[, 3] / 255,
+  NGBR_df[, 4] / 255,
+  NGBR_df[, 5] / 255
+)
+
+# ----------------------------
+# 4. Define rectangles in lon/lat
+# ----------------------------
+Inner_rect <- st_as_sfc(st_bbox(
+  c(xmin = 145.15, xmax = 145.23,
+    ymin = -14.76, ymax = -14.68),
+  crs = 4326
+))
+
+Mid_rect <- st_as_sfc(st_bbox(
+  c(xmin = 145.42, xmax = 145.51,
+    ymin = -14.72, ymax = -14.63),
+  crs = 4326
+))
+
+Outer_rect <- st_as_sfc(st_bbox(
+  c(xmin = 145.44, xmax = 145.56,
+    ymin = -14.54, ymax = -14.42),
+  crs = 4326
+))
+
+# Project rectangles to UTM
+Inner_rect_utm <- st_transform(Inner_rect, utm_crs)
+Mid_rect_utm   <- st_transform(Mid_rect, utm_crs)
+Outer_rect_utm <- st_transform(Outer_rect, utm_crs)
+
+# ----------------------------
+# 5. Plot
+# ----------------------------
+NGBR_plot <- ggplot() +
+  
+  # Satellite imagery
+  geom_raster(
+    data = NGBR_df,
+    aes(x = x, y = y, fill = fill)
+  ) +
+  
+  scale_fill_identity() +
+  
+  # Rectangles
+  geom_sf(
+    data = Inner_rect_utm,
+    fill = NA,
+    colour = "#FF5003",
+    linewidth = 1
+  ) +
+  geom_sf(
+    data = Mid_rect_utm,
+    fill = NA,
+    colour = "gold",
+    linewidth = 1
+  ) +
+  geom_sf(
+    data = Outer_rect_utm,
+    fill = NA,
+    colour = "darkorange",
+    linewidth = 1
+  ) +
+  
+  # Correct scale bar (metres!)
+  annotation_scale(
+    location = "br",
+    height = unit(0.15, "cm"),
+    width_hint = 0.2,
+    pad_x = unit(0.5, "cm"),
+    pad_y = unit(0.4, "cm"),
+    text_col = "white",
+    text_cex = 0.4,
+    bar_cols = c("white", "black")
+  ) +
+  
+  # Use coord_sf (NOT coord_equal)
+  coord_sf(
+    crs = utm_crs,
+    expand = FALSE
+  ) +
+  
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.title.x = element_text(margin = margin(t = 5)),
+    axis.title.y = element_text(margin = margin(r = 5))
+  )
+
+NGBR_plot
+
+```
+
  
 ```{r}
 NQLD_plot
