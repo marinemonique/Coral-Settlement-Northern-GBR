@@ -63,6 +63,7 @@ sample_design <- Coral_settlement_nGBR |>
   summarise(n = n()) |> 
   arrange(desc(n)) 
 ```
+
 ```{r}
 PIT <- read_csv("PIT_50m.csv") %>%
   mutate(across(8:50, ~replace_na(.x, 0)))# Read in data
