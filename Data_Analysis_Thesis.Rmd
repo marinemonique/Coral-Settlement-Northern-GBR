@@ -70,8 +70,34 @@ mutate(
 
 ```
 
+# Determining if loose or dettached tiles are significantly different to other tiles within a site.
+
 ```{r}
-# remove dislodged
+Coral_settlement_nGBR |> 
+  group_by(Reef,notes) |> summarise(n= n())
+
+Coral_settlement_nGBR |> 
+  ggplot(aes(x=Year, y=total, colour = notes))+
+  geom_jitter()+
+  geom_boxplot()+
+  facet_wrap(~Site, scale = "free_y", ncol = 3)
+```
+
+```{r}
+dettached_mod <- glmmTMB(total ~ notes + Year_Collected + (1 | Reef/Site), 
+      family = "nbinom2", data = Coral_settlement_nGBR)
+
+sim_mod <- simulateResiduals(dettached_mod)
+testResiduals(sim_mod)
+
+summary(dettached_mod)
+```
+
+Does appear that dislodged tiles are significantly lower than other tiles when reef and site are a random effect.. maybe they need to be a fixed effect.
+
+The ones 
+```{r}
+#remove dislodged
 Coral_settlement_nGBR <- Coral_settlement_nGBR |>
   filter(is.na(notes) | trimws(notes) == "") |>
   group_by(Year..Jan., Reef, Site) |>
@@ -233,7 +259,7 @@ Coral_settlement_nGBR %>% count(Reef, Site)
 All reefs have multiple sites, so nesting should work.
 
 ```{r warning=FALSE, echo=TRUE}
-pois_total_yr <- glmer(total ~ Shelf + Year_Collected + (1 | Reef/Site), 
+pois_total_yr <- glmmTMB(total ~ Shelf + Year_Collected + (1 | Reef/Site), 
       family = "poisson", data = Coral_settlement_nGBR)
 
 nbin_total_yr <- glmmTMB(total ~ Shelf + Year_Collected + (1 | Reef/Site), 
@@ -298,7 +324,7 @@ Because the simulation suggests not overdispersed, that means I can either do Wa
 Attempting without seperating families and using family as a fixed effect
 
 ```{r}
-pois_Family_yr <- glmer(Total ~ Family * Shelf + Year_Collected + (1 | Reef/Site), 
+pois_Family_yr <- glmmTMB(Total ~ Family * Shelf + Year_Collected + (1 | Reef/Site), 
       family = "poisson", data = total_recruits)
 
 sim2 <- simulateResiduals(pois_Family_yr)
@@ -573,7 +599,7 @@ anova.cca(rda(recruit_hellinger, env_year, env_shelf))
 Importing benthic data
 ```{r}
 PIT <- read_csv("PIT_50m.csv") %>%
-  mutate(across(8:50, ~replace_na(.x, 0)))# Read in data
+  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
 
 PIT <- PIT %>% 
   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
@@ -635,9 +661,38 @@ PIT |>
     count = n_distinct(Transect)
   ) #the number of transects per year differs among sites, so not sure whether calculating mean and standard error is appropriate or not.
 
+
 ```
 
 ## is the total number of recruits related to the number proportion of coral in PIT?
+
+
+```{r}
+library(mvabund)
+
+PIT_abund <- mvabund(PIT[,95:103])
+boxplot(PIT[, 95:103], horizontal = TRUE, las = 2, main = "Abundance")
+
+pit_long <- PIT |> 
+  pivot_longer(cols = 95:103, names_to = "Benthos", values_to = "Proportion")
+
+pit_long |> 
+  ggplot(aes(x=Year, y=Proportion, colour = Site))+
+  geom_boxplot()+
+  facet_wrap(~Benthos)
+
+pit_long |> 
+  group_by(Year, Site, `Depth/Zone`, Benthos) |> 
+  summarise(
+    mean = mean(Proportion),
+    se = sd(Proportion)/(n()^0.5),
+    mad = mad(Proportion),
+    min = min(Proportion),
+    max = max(Proportion),
+    n = n(),
+    range = max(Proportion)- min(Proportion)
+  )
+```
 
 I am going to have to make a decision if I just keep the January or October, and then will need to change the year to facilitate an inner join.
 
