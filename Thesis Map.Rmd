@@ -645,3 +645,235 @@ ggsave(filename = "Thesis_Map.png",
        dpi = 300)
 ```
 
+```{r}
+library(sf)
+library(ggplot2)
+library(ggspatial)
+library(dplyr)
+
+# ----------------------------
+# 1. Define Inner shelf bbox (lon/lat)
+# ----------------------------
+inner_bbox <- st_bbox(
+  c(
+    xmin = 145.15, xmax = 145.23,
+    ymin = -14.76, ymax = -14.68
+  ),
+  crs = 4326
+)
+
+inner_bbox_sf <- st_as_sfc(inner_bbox)
+
+# ----------------------------
+# 2. Project bbox to UTM 55S
+# ----------------------------
+utm_crs <- 32755  # WGS84 / UTM zone 55S
+
+inner_bbox_utm <- st_transform(inner_bbox_sf, utm_crs)
+
+# ----------------------------
+# 3. Get satellite tiles (projected)
+# ----------------------------
+inner_tiles <- get_tiles(
+  x = inner_bbox_utm,
+  provider = "Esri.WorldImagery",
+  crop = TRUE,
+  zoom = 14        # ↑ use high zoom for small area
+)
+
+# Convert tiles to data frame
+inner_df <- as.data.frame(inner_tiles, xy = TRUE)
+
+# RGB → hex colour
+inner_df$fill <- rgb(
+  inner_df[, 3] / 255,
+  inner_df[, 4] / 255,
+  inner_df[, 5] / 255
+)
+
+# ----------------------------
+# 4. Filter + project study sites
+# ----------------------------
+inner.sites.sf <- study.sites.sf |>
+  filter(shelf_pos == "Inner") |>
+  st_transform(utm_crs)
+
+# ----------------------------
+# 5. Plot
+# ----------------------------
+Inner_shelf <- ggplot() +
+  
+  # Satellite imagery
+  geom_raster(
+    data = inner_df,
+    aes(x = x, y = y, fill = fill)
+  ) +
+  scale_fill_identity() +
+  
+  # Study sites
+  geom_sf(
+    data = inner.sites.sf,
+    shape = 21,
+    size = 2.5,
+    alpha = 0.8,
+    fill = "#FF5003",
+    color = "grey10"
+  ) +
+  
+  # Correct scale bar (metres)
+  annotation_scale(
+    height = unit(0.15, "cm"),
+    location = "br",
+    width_hint = 0.2,
+    pad_x = unit(0.5, "cm"),
+    pad_y = unit(0.4, "cm"),
+    text_col = "white",
+    text_cex = 0.4,
+    bar_cols = c("white", "black")
+  ) +
+  
+  # Projected coordinate system
+  coord_sf(
+    crs = utm_crs,
+    expand = FALSE
+  ) +
+  
+  labs(
+    x = "Easting (m)",
+    y = "Northing (m)"
+  ) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank()
+  )
+
+Inner_shelf
+
+```
+
+```{r}
+library(sf)
+library(ggplot2)
+library(ggspatial)
+library(dplyr)
+
+# ----------------------------
+# 1. Define Mid shelf bbox (lon/lat)
+# ----------------------------
+mid_bbox <- st_bbox(
+  c(
+    xmin = 145.42, xmax = 145.51,
+    ymin = -14.72, ymax = -14.63
+  ),
+  crs = 4326
+)
+
+mid_bbox_sf <- st_as_sfc(mid_bbox)
+
+# ----------------------------
+# 2. Project bbox to UTM 55S
+# ----------------------------
+utm_crs <- 32755  # WGS84 / UTM zone 55S
+
+mid_bbox_utm <- st_transform(mid_bbox_sf, utm_crs)
+
+# ----------------------------
+# 3. Get satellite tiles (projected)
+# ----------------------------
+mid_tiles <- get_tiles(
+  x = mid_bbox_utm,
+  provider = "Esri.WorldImagery",
+  crop = TRUE,
+  zoom = 14
+)
+
+# Convert tiles to data frame
+mid_df <- as.data.frame(mid_tiles, xy = TRUE)
+
+# RGB → hex colour
+mid_df$fill <- rgb(
+  mid_df[, 3] / 255,
+  mid_df[, 4] / 255,
+  mid_df[, 5] / 255
+)
+
+# ----------------------------
+# 4. Filter + project study sites
+# ----------------------------
+mid.sites.sf <- study.sites.sf |>
+  filter(shelf_pos == "Mid") |>
+  st_transform(utm_crs)
+
+# ----------------------------
+# 5. Plot
+# ----------------------------
+Mid_shelf <- ggplot() +
+  
+  # Satellite imagery
+  geom_raster(
+    data = mid_df,
+    aes(x = x, y = y, fill = fill)
+  ) +
+  scale_fill_identity() +
+  
+  # Study sites
+  geom_sf(
+    data = mid.sites.sf,
+    shape = 21,
+    size = 2.5,
+    alpha = 0.8,
+    fill = "gold",
+    color = "grey10"
+  ) +
+  
+  # Correct scale bar (metres)
+  annotation_scale(
+    height = unit(0.15, "cm"),
+    location = "br",
+    width_hint = 0.2,
+    pad_x = unit(0.5, "cm"),
+    pad_y = unit(0.4, "cm"),
+    text_col = "white",
+    text_cex = 0.4,
+    bar_cols = c("white", "black")
+  ) +
+  
+  # Projected coordinates
+  coord_sf(
+    crs = utm_crs,
+    expand = FALSE
+  ) +
+  
+  labs(
+    x = "Easting (m)",
+    y = "Northing (m)"
+  ) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+
+  # Axis text inside the panel
+  axis.text.x = element_text(
+    colour = "white",
+    margin = margin(t = -8)   # move labels upward (inside)
+  ),
+  axis.text.y = element_text(
+    colour = "white",
+    margin = margin(r = -8)   # move labels rightward (inside)
+  ),
+
+  # Optional: keep axis titles readable
+  axis.title.x = element_text(colour = "white"),
+  axis.title.y = element_text(colour = "white")
+)
+
+Mid_shelf
+```
+
+
+```{r}
+
+```
+
