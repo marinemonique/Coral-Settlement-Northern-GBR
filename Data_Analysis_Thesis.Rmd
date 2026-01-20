@@ -1280,10 +1280,10 @@ PIT <- PIT |>
     )
   )
 
-Belt_10m <- read_csv("Belt_10m.csv") %>%
-  mutate(across(8:25, ~replace_na(.x, 0))) # Read in data
-Belt_10m <- Belt_10m %>%
-  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+# Belt_10m <- read_csv("Belt_10m.csv") %>%
+#   mutate(across(8:25, ~replace_na(.x, 0))) # Read in data
+# Belt_10m <- Belt_10m %>%
+#   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
 ```
 
 ```{r}
@@ -1328,6 +1328,123 @@ PIT |>
 ```
 
 ## is the total number of recruits related to the number proportion of coral in PIT?
+
+```{r}
+
+
+
+# Step 1: Create site-by-species matrix with Site_ID
+site_by_PIT <- PIT %>%
+  select(
+    Year, Reef, Shelf, Site, Transect,
+    prop_acro, prop_hard_coral, prop_poci, prop_pori,
+    prop_soft_coral, prop_other_hc,
+    Prop_DC, Prop_Other, Prop_macroalgae
+  ) %>%
+  mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
+
+# Step 2: Metadata (KEEP Site_ID)
+metadata_PIT <- site_by_PIT %>%
+  select(Site_ID, Shelf, Year)
+
+# Step 3: Species matrix
+PIT_matrix <- site_by_PIT %>%
+  select(
+    Site_ID,
+    prop_acro, prop_hard_coral, prop_poci, prop_pori,
+    prop_soft_coral, prop_other_hc,
+    Prop_DC, Prop_Other, Prop_macroalgae
+  )
+
+# Step 4: Remove all-zero rows BEFORE rownames
+PIT_matrix_filtered <- PIT_matrix %>%
+  filter(rowSums(across(-Site_ID)) > 0) %>%
+  column_to_rownames("Site_ID")
+
+# Step 5: Match metadata
+PIT_metadata_filtered <- metadata_PIT %>%
+  filter(Site_ID %in% rownames(PIT_matrix_filtered)) %>%
+  column_to_rownames("Site_ID")
+
+# Step 6: PERMANOVA
+PIT_adonis_result <- adonis2(
+  PIT_matrix_filtered ~ Shelf + Year,
+  data = PIT_metadata_filtered,
+  method = "bray",
+  by = "term",
+  permutations = 999
+)
+
+print(PIT_adonis_result)
+
+set.seed(999)  # reproducibility
+
+PIT_nmds <- metaMDS(
+  PIT_matrix_filtered,
+  distance = "bray",
+  k = 2,            # 2D solution
+  trymax = 100,
+  autotransform = FALSE
+)
+```
+
+```{r}
+PIT_nmds$stress
+```
+ Stress isn't great, but usable.
+ 
+```{r}
+nmds_scores_PIT <- as.data.frame(scores(PIT_nmds, display = "sites"))
+
+nmds_scores_PIT$Site_ID <- rownames(nmds_scores_PIT)
+
+nmds_scores_PIT <- nmds_scores_PIT %>%
+  left_join(
+    PIT_metadata_filtered %>% 
+      rownames_to_column("Site_ID"),
+    by = "Site_ID"
+  )
+
+ggplot(nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf)) +
+  geom_point(size = 3, alpha = 0.8) +
+  stat_ellipse(type = "t") +
+  theme_classic() +
+  coord_equal() +
+  labs(title = "NMDS of PIT benthic composition")
+```
+ 
+```{r}
+PIT_envfit <- envfit(
+  PIT_nmds,
+  PIT_matrix_filtered,
+  permutations = 999
+)
+
+PIT_envfit
+
+plot(PIT_nmds)
+plot(PIT_envfit, p.max = 0.05, col = "black")
+
+```
+
+ 
+ 
+```{r}
+binomial_acro_benthic <- glmmTMB(data = PIT, prop_acro~Year * Shelf+(1|Reef/Site), family = "binomial")
+
+sim_prop_acro <- simulateResiduals(binomial_acro_benthic)
+testResiduals(sim_prop_acro)
+
+summary(binomial_acro_benthic)
+
+
+binomial_poci_benthic <- glmmTMB(data = PIT, prop_poci~Year * Shelf+(1|Reef/Site), family = "binomial")
+sim_prop_poci <- simulateResiduals(binomial_poci_benthic)
+testResiduals(sim_prop_poci)
+summary(binomial_poci_benthic)
+
+PIT_matrix <- PIT[,95:103]
+```
 
 
 ```{r}
