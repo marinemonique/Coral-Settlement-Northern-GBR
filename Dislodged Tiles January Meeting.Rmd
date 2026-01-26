@@ -30,7 +30,7 @@ library(ggpubr)
 
 Clean data
 
-```{r message=FALSE}
+```{r message=FALSE, echo=FALSE}
 Coral_settlement_nGBR_CS <- read.csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
   mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
 
@@ -75,7 +75,14 @@ mutate(
 
 ```{r}
 Coral_settlement_nGBR |> 
-  group_by(Reef,notes) |> summarise(n= n())
+  # group_by(notes, Reef,) |> 
+  summarise(n= n()) |> 
+  summarise(sum = sum(n))
+
+Coral_settlement_nGBR |> 
+  group_by(notes, Reef,) |> 
+  summarise(n= n()) |> 
+  summarise(sum = sum(n))
 ```
 
 ```{r fig.width=10, fig.height=20}
@@ -90,7 +97,6 @@ Coral_settlement_nGBR |>
 Here I want to determine whether the dislodged tiles are significantly different to the tiles in the one position, as I would assume that if they are getting moved in surge, the larvae are less likely to settle on them.
 
 Choose notes and year as fixed factors. Not shelf position because we aren't really interested in that. 
-
 
 ```{r}
 dettached_mod <- glmmTMB(total ~ notes + Year_Collected + (1 | Reef/Site), 
@@ -128,7 +134,130 @@ testResiduals(sim_mod)
 summary(dettached_mod)
 ```
 
-
 Thoughts on this:
 
   1. Perhaps I should remove the tiles that are dislodged, or include the "notes" variable as a random factor or fixed factor in my models - because it does appear to have a significant effect.
+  
+# Check that site or reef are not driving the trends
+Likelihood ratio test in anova?
+
+Doesn't the nesting and having it as a random effect account for this? I just want to ensure I have answered Jenny questions.
+
+
+# Benthic Data question
+
+
+## is the total number of recruits related to the number proportion of coral in PIT?
+
+```{r}
+# Step 1: Create site-by-species matrix with Site_ID
+site_by_PIT <- PIT %>%
+  select(
+    Year, Reef, Shelf, Site, Transect,
+    prop_acro, prop_hard_coral, prop_poci, prop_pori,
+    prop_soft_coral, prop_other_hc,
+    Prop_DC, Prop_Other, Prop_macroalgae
+  ) %>%
+  mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
+
+# Step 2: Metadata (KEEP Site_ID)
+metadata_PIT <- site_by_PIT %>%
+  select(Site_ID, Shelf, Year)
+
+# Step 3: Species matrix
+PIT_matrix <- site_by_PIT %>%
+  select(
+    Site_ID,
+    prop_acro, prop_hard_coral, prop_poci, prop_pori,
+    prop_soft_coral, prop_other_hc,
+    Prop_DC, Prop_Other, Prop_macroalgae
+  )
+
+# Step 4: Remove all-zero rows BEFORE rownames
+PIT_matrix_filtered <- PIT_matrix %>%
+  filter(rowSums(across(-Site_ID)) > 0) %>%
+  column_to_rownames("Site_ID")
+
+# Step 5: Match metadata
+PIT_metadata_filtered <- metadata_PIT %>%
+  filter(Site_ID %in% rownames(PIT_matrix_filtered)) %>%
+  column_to_rownames("Site_ID")
+
+# Step 6: PERMANOVA
+PIT_adonis_result <- adonis2(
+  PIT_matrix_filtered ~ Shelf + Year,
+  data = PIT_metadata_filtered,
+  method = "bray",
+  by = "term",
+  permutations = 999
+)
+
+print(PIT_adonis_result)
+
+set.seed(999)  # reproducibility
+
+PIT_nmds <- metaMDS(
+  PIT_matrix_filtered,
+  distance = "bray",
+  k = 2,            # 2D solution
+  trymax = 100,
+  autotransform = FALSE
+)
+```
+
+```{r}
+PIT_nmds$stress
+```
+ Stress isn't great, but usable.
+ 
+```{r}
+nmds_scores_PIT <- as.data.frame(scores(PIT_nmds, display = "sites"))
+
+nmds_scores_PIT$Site_ID <- rownames(nmds_scores_PIT)
+
+nmds_scores_PIT <- nmds_scores_PIT %>%
+  left_join(
+    PIT_metadata_filtered %>% 
+      rownames_to_column("Site_ID"),
+    by = "Site_ID"
+  )
+
+ggplot(nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf)) +
+  geom_point(size = 3, alpha = 0.8) +
+  stat_ellipse(type = "t") +
+  theme_classic() +
+  coord_equal() +
+  labs(title = "NMDS of PIT benthic composition")
+```
+
+```{r}
+PIT_envfit <- envfit(
+  PIT_nmds,
+  PIT_matrix_filtered,
+  permutations = 999
+)
+
+PIT_envfit
+
+plot(PIT_nmds)
+plot(PIT_envfit, p.max = 0.05, col = "black")
+```
+
+*I thought about potentially doing a model of the prop_X, and then saying that the results could be due to that.*
+However the issue is that proportional data is [0,1], so therefore I needed to use a binomial model. And the result was terrible
+
+```{r}
+binomial_acro_benthic <- glmmTMB(data = PIT, prop_acro~Year * Shelf+(1|Reef/Site), family = "binomial")
+
+sim_prop_acro <- simulateResiduals(binomial_acro_benthic)
+testResiduals(sim_prop_acro)
+
+summary(binomial_acro_benthic)
+
+
+binomial_poci_benthic <- glmmTMB(data = PIT, prop_poci~Year * Shelf+(1|Reef/Site), family = "binomial")
+sim_prop_poci <- simulateResiduals(binomial_poci_benthic)
+testResiduals(sim_prop_poci)
+summary(binomial_poci_benthic)
+
+```

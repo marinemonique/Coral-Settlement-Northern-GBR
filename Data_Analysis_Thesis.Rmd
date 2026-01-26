@@ -130,6 +130,7 @@ total_recruits <- Coral_settlement_nGBR %>%
   select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
   pivot_longer(cols = 6:9, names_to = "Family", values_to = "Total") %>%
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
+
 ```
 
 ```{r}
@@ -139,14 +140,14 @@ total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
 ## Exploratory analysis
 
 ```{r}
-Fig.1<-  Coral_settlement_nGBR |>  
+Coral_settlement_nGBR |>  
   ggplot(aes(x=Year_Collected, y=total, colour = Shelf))+
   geom_boxplot(position = "dodge")+
   theme_classic()+
   labs(
-  y = expression("Recruits (" * tile^{-1}*")" ),
+  y = expression("Total recruits (" * tile^{-1}*")" ),
   x = "Deployment",
-  colour = "Shelf position")+
+  colour = "Shelf")+
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
   facet_wrap(~Shelf)+
   scale_x_discrete(
@@ -156,10 +157,72 @@ Fig.1<-  Coral_settlement_nGBR |>
                "2024" = "23/24",
                "2025" = "24/25",
                "2026" = "25/26")
+    )+
+  geom_jitter(size = 0.35, alpha = 0.5)
+
+Fig.1 <- Coral_settlement_nGBR |>  
+  ggplot(aes(x=Year_Collected, y=total, colour = Shelf))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression("Recruits (" * tile^{-1}*")" ),
+  x = "Year",
+  colour = "Shelf position")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  #facet_wrap(~Shelf_Position)+
+  theme(legend.position = c(1,1), legend.justification = c(1,1))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25")
+  )+
+  geom_jitter(size = 0.35, alpha = 0.5)
+
+Fig.1 <- Coral_settlement_nGBR |>
+  ggplot(aes(x = Year_Collected, y = total, colour = Shelf)) +
+  geom_boxplot(position = position_dodge(width = 0.75)) +
+  geom_jitter(
+    aes(group = Shelf),
+    position = position_jitterdodge(
+      jitter.width = 0.35,
+      dodge.width  = 0.75
+    ),
+    size = 0.35,
+    alpha = 0.5
+  ) +
+  theme_classic() +
+  labs(
+    y = expression("Recruits (" * tile^{-1} * ")"),
+    x = "Year",
+    colour = "Shelf position"
+  ) +
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+  theme(legend.position = c(1,1), legend.justification = c(1,1)) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c(
+      "2022" = "21/22",
+      "2023" = "22/23",
+      "2024" = "23/24",
+      "2025" = "24/25"
     )
+  )
+
+
+Fig.1
 ```
 
 Fig 1
+```{r}
+ggsave(filename = "Figure_1.png",
+       plot = Fig.1,
+       width = 169,
+       height = 120,
+       units = "mm")
+```
+
 
 ```{r}
 Coral_settlement_nGBR |>  
@@ -181,47 +244,114 @@ Coral_settlement_nGBR |>
     )
 ```
 
-
-```{r Detect Outliers, echo=FALSE, fig.height=8, fig.width=6.5}
-p.1 <- total_recruits %>% 
-  group_by(Year_Collected, Reef, Family, Shelf)  %>% 
-  ggplot(aes(x=Family, y=Total, colour = Shelf))+
+```{r}
+total_recruits |> 
+group_by(Year_Collected, Reef, Family, Shelf)  %>% 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
   geom_boxplot(position = "dodge")+
   theme_classic()+
   labs(
   y = expression("Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
-  x = "Family",
-  colour = "Shelf Position")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+  x = "Year",
+  colour = "Shelf")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_wrap(~Family)
 
-p.2 <- total_recruits %>% 
-  group_by(Year_Collected, Reef, Family, Shelf) %>%
-  summarise(average_no_recruits = mean(Total)) %>% 
-  ggplot(aes(x=Family, y=(average_no_recruits), colour = Shelf))+
+Figure.2 <- total_recruits |> 
+group_by(Year_Collected, Reef, Family, Shelf)  %>% 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
   geom_boxplot(position = "dodge")+
   theme_classic()+
   labs(
-  y = expression("Mean Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
-  x = "Family",
-  colour = "Shelf Position"
-) +
-scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+  y = expression("Recruits (" *tile^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_wrap(~Family, scales = "free_y", ncol =1)+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  geom_jitter(
+    aes(group = Shelf),
+    position = position_jitterdodge(
+      jitter.width = 0.35,
+      dodge.width  = 0.75
+    ),
+    size = 0.35,
+    alpha = 0.5
+  )
 
-ggarrange(p.1, p.2, ncol = 1)
+ggsave(filename = "Figure 2.png",
+       plot = Figure.2,
+       height = 200,
+       width = 125,
+       unit = "mm")
+```
+
+
+## Position on tiles
+
+```{r}
+position_total_recruits <- Coral_settlement_nGBR %>%
+  select(2:9, 15:29) %>% 
+  pivot_longer(cols = 21:23, names_to = "Pos", values_to = "Total")
+
+position_total_recruits <- position_total_recruits |> 
+  mutate(Pos = case_when(
+      Pos == "Top.Total" ~ "Top",
+      Pos == "Side.Total" ~ "Side",
+      Pos == "Under.Total" ~ "Bottom"
+  ))
+ 
+position_total_recruits <- position_total_recruits |>                           
+mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")))
+```
+
+```{r Detect Outliers, echo=FALSE, fig.height=8, fig.width=6.5}
+# p.1 <- total_recruits %>% 
+#   group_by(Year_Collected, Reef, Family, Shelf)  %>% 
+#   ggplot(aes(x=Family, y=Total, colour = Shelf))+
+#   geom_boxplot(position = "dodge")+
+#   theme_classic()+
+#   labs(
+#   y = expression("Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
+#   x = "Family",
+#   colour = "Shelf Position")+
+#   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+# 
+# p.2 <- total_recruits %>% 
+#   group_by(Year_Collected, Reef, Family, Shelf) %>%
+#   summarise(average_no_recruits = mean(Total)) %>% 
+#   ggplot(aes(x=Family, y=(average_no_recruits), colour = Shelf))+
+#   geom_boxplot(position = "dodge")+
+#   theme_classic()+
+#   labs(
+#   y = expression("Mean Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
+#   x = "Family",
+#   colour = "Shelf Position"
+# ) +
+# scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+# 
+# ggarrange(p.1, p.2, ncol = 1)
 ```
 
 ```{r}
-total_recruits %>% 
-  group_by(Year_Collected, Reef, Family, Shelf)  %>% 
-  ggplot(aes(x=Family, y=Total, colour = Shelf))+
-  geom_boxplot(position = "dodge")+
-  theme_classic()+
-  labs(
-  y = expression("Recruits (" *Tile^{-1} ~ Year^{-1} * ")"),
-  x = "Family",
-  colour = "Shelf Position")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
-  facet_wrap(~Year_Collected, scales = "free_y")
+# total_recruits %>% 
+#   group_by(Year_Collected, Reef, Family, Shelf)  %>% 
+#   ggplot(aes(x=Family, y=Total, colour = Shelf))+
+#   geom_boxplot(position = "dodge")+
+#   theme_classic()+
+#   labs(
+#   y = expression("Recruits (" *Tile^{-1} ~ Year^{-1} * ")"),
+#   x = "Family",
+#   colour = "Shelf Position")+
+#   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  # facet_wrap(~Year_Collected, scales = "free_y")
 ```
 
 
@@ -237,6 +367,109 @@ total_recruits %>%
   print(n=20)
 ```
 
+```{r}
+Figure.3 <- position_total_recruits |> 
+group_by(Year_Collected, Reef, Pos, Shelf)  %>% 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression("Recruits (" *tile^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_wrap(~Pos, scales = "free_y", ncol =1)+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  geom_jitter(
+    aes(group = Shelf),
+    position = position_jitterdodge(
+      jitter.width = 0.35,
+      dodge.width  = 0.75
+    ),
+    size = 0.35,
+    alpha = 0.5
+  )
+
+Figure.3
+
+ggsave(filename = "Figure 3.png",
+       plot = Figure.3,
+       height = 275,
+       width = 125,
+       unit = "mm")
+```
+
+# Composition on tile
+
+```{r}
+position_family_recruits <- Coral_settlement_nGBR %>%
+  select(2:9, 15:29) %>% 
+  pivot_longer(cols = 9:20, names_to = "Pos", values_to = "Total")
+
+position_family_recruits <- position_family_recruits |> 
+  mutate(Family = case_when(
+      Pos %in% c("Top_Acr", "Side_Acr", "Under_Acr") ~ "Acroporidae",
+      Pos %in% c("Top_Pocil", "Side_Pocil", "Under_Pocil") ~ "Pocilloporidae",
+      Pos %in% c("Top_Por", "Side_Por", "Under_Por") ~ "Poritidae",
+     Pos %in% c("Top_other", "Side_other", "Under_oth") ~ "Other"
+  ))
+
+position_family_recruits <- position_family_recruits |> 
+  mutate(Pos = case_when(
+      Pos %in% c("Top_Acr","Top_Pocil", "Top_Por", "Top_other") ~ "Top",
+      Pos %in% c("Side_Pocil", "Side_Acr", "Side_Por","Side_other") ~ "Side",
+      Pos %in% c("Under_Acr", "Under_Pocil", "Under_Por", "Under_oth") ~ "Bottom"
+  ))
+ 
+position_family_recruits <- position_family_recruits |>                           
+mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")),
+       Family = factor(Family, levels = c("Acroporidae", "Pocilloporidae","Poritidae", "Other")))
+```
+
+```{r}
+Figure.4 <- position_family_recruits |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression("Recruits (" * surface^{-1}~tile^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_wrap(Family~Pos, scales = "free_y", ncol =3)+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  geom_jitter(
+    aes(group = Shelf),
+    position = position_jitterdodge(
+      jitter.width = 0.35,
+      dodge.width  = 0.75
+    ),
+    size = 0.35,
+    alpha = 0.5
+  )+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8))
+
+ggsave(filename = "Figure 4.png",
+       plot = Figure.4,
+       height = 170,
+       width = 155,
+       unit = "mm")
+```
 
 # Models
 
@@ -259,11 +492,20 @@ Coral_settlement_nGBR |>
             total_acro = sum(Acroporidae),
             total_poci = sum(Pocilloporidae),
             total_poritidae = sum(Poritid),
-            total_bottom = sum(`Under Total`),
-            total_side = sum(`Side Total`),
-            total_top = sum(`Top Total`)) |> 
+            total_other = sum(Other),
+            total_bottom = sum(Under.Total),
+            total_side = sum(Side.Total),
+            total_top = sum(Top.Total)) |> 
   knitr::kable()
 ```
+
+```{r}
+Coral_settlement_nGBR |> 
+  group_by(Year_Collected,Reef, Site) |> 
+  summarise(total_tiles = n(),
+            total_recruits = sum(total))
+```
+
 Temporal statistics
 
 ```{r echo=FALSE}
@@ -1330,9 +1572,6 @@ PIT |>
 ## is the total number of recruits related to the number proportion of coral in PIT?
 
 ```{r}
-
-
-
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
   select(
