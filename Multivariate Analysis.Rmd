@@ -7,16 +7,9 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
-```
-
-```{r eval=TRUE, message=FALSE, echo=FALSE}
 library(tidyverse)
-library(readr)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(lme4)
-library(lmerTest)
+#library(lme4)
+#library(lmerTest)
 library(car)
 library(emmeans)
 library("FactoMineR")
@@ -29,6 +22,7 @@ library(ggfortify)
 library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
 library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
 library(ggpubr)
+library(data.table) #not sure if required at this point
 ```
 
 Clean data
@@ -45,7 +39,7 @@ Coral_settlement_nGBR |>
   filter(notes != "NA")
 
 Coral_settlement_nGBR <- Coral_settlement_nGBR %>% 
-  rename("Shelf_Position"= `Shelf posn`,
+  rename("Shelf"= `Shelf posn`,
          "Year_Collected"= `Year (Jan)`,
          "Site_#"= `Site #`,
          "Acroporidae" =Acropora,
@@ -54,7 +48,7 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR %>%
   mutate(Year_Collected = factor(Year_Collected))
 
 Coral_settlement_nGBR <- Coral_settlement_nGBR |>
-  filter(Shelf_Position == "Outer" | (Shelf_Position %in% c("Inner", "Mid") & Tile %in% as.character(1:10)))
+  filter(Shelf == "Outer" | (Shelf %in% c("Inner", "Mid") & Tile %in% as.character(1:10)))
 
 Coral_settlement_nGBR$Year_Collected <- factor(Coral_settlement_nGBR$Year_Collected)
 ```
@@ -64,36 +58,36 @@ Notes from Victor email: Regarding the PERMANOVA: you start with a community mat
 
 
 ```{r}
-library(data.table)
 Recruits <- Coral_settlement_nGBR %>%
   filter(total >0) |> 
   select(Acroporidae, Pocilloporidae, Poritid, Other)
 recruit_hellinger <- decostand(Recruits, method = "hellinger")
 
-
-
 environment_data <- Coral_settlement_nGBR %>%
   filter(total >0) |> 
-  select(Year_Collected, Site, Reef, Shelf_Position) #worried because environment data is nested here.
+  select(Year_Collected, Site, Reef, Shelf) #worried because environment data is nested here.
 ```
 
-## PERMANOVA
+# PERMANOVA
+
+## Sqrt
+
 ```{r}
 # Filtered recruit data
 Recruits_sqrt <- sqrt(Recruits)
 
 # Bray–Curtis PERMANOVA
-adonis2(Recruits_sqrt ~ Year_Collected * Shelf_Position, data = environment_data, method = "bray")
+adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray")
 
 #Nested PERMANOVA
-adonis2(Recruits_sqrt ~ Year_Collected * Shelf_Position, data = environment_data, method = "bray",  strata = environment_data$Reef )
+adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef )
 ```
 
 Example: test effects with full nested structure explicitly:
 
 ```{r}
 adonis2(
-  Recruits_sqrt ~ Year_Collected + Shelf_Position + Reef %in% Shelf_Position + Site %in% Reef,
+  Recruits_sqrt ~ Year_Collected + Shelf + Reef %in% Shelf + Site %in% Reef,
   data = environment_data,
   method = "bray"
 )
@@ -104,24 +98,23 @@ adonis2(
 ```{r}
 bray <- vegdist(Recruits_sqrt, method = "bray")
 
-betadisper(bray, environment_data$Shelf_Position)
-anova(betadisper(bray, environment_data$Shelf_Position))
+betadisper(bray, environment_data$Shelf)
+anova(betadisper(bray, environment_data$Shelf))
 ```
 
 ```{r}
-library(vegan)
 bray <- vegdist(Recruits_sqrt, method = "bray")
 
 set.seed(999)     # for reproducibility
 
-nmds <- metaMDS(Recruits_sqrt, distance = "bray", k = 2, trymax = 200)
+nmds <- metaMDS(Recruits_sqrt, distance = "bray", k = 2, trymax = 100)
 
 #Check the Stress Value
 nmds$stress
 
 # Extract NMDS for plot
 site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
-scores <- cbind(site_scores, environment_data[, c("Year_Collected", "Shelf_Position", "Reef", "Site")])
+scores <- cbind(site_scores, environment_data[, c("Year_Collected", "Shelf", "Reef", "Site")])
 ```
 
 Your stress = 0.154 sits comfortably in the:
@@ -131,10 +124,7 @@ Your stress = 0.154 sits comfortably in the:
 
 Especially because:
 
-Coral recruit data are sparse, zero-heavy, and nonlinear
-
-Bray–Curtis on square-root transformed data is typical
-
+Coral recruit data are sparse, zero-heavy, and nonlinear Bray–Curtis on square-root transformed data is typical.
 nMDS often struggles with noisy ecological count data
 
 So 0.15 is strong.
@@ -146,10 +136,10 @@ The 2D ordination is capturing the major differences in assemblages
 Patterns you see between groups (Shelf, Year, Reef) are trustworthy
 
 ```{r}
-p <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf_Position,
+p <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
                          shape = Year_Collected)) +
      geom_point(size = 3, alpha = 0.9) +
-    stat_ellipse(aes(group = Shelf_Position, colour = Shelf_Position),
+    stat_ellipse(aes(group = Shelf, colour = Shelf),
                  level = 0.75, linewidth = 1) +
      theme_bw(base_size = 14) +
      theme(
@@ -160,8 +150,7 @@ p <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = 
      labs(
          x = "nMDS1",
         y = "nMDS2",
-         title = "nMDS of Coral Recruit Assemblages (Bray–Curtis)",
-        colour = "Shelf Position",
+         colour = "Shelf Position",
         shape = "Year Collected"
     ) +
     annotate("text",
@@ -169,10 +158,206 @@ p <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = 
              y = min(scores$MDS2),              label = paste0("Stress = ", round(nmds$stress, 3)),
               hjust = 0, vjust = 0, size = 5)
  p
-
 ```
 
-## NMDS
+
+## Hellinger transformed
+```{r}
+# Bray–Curtis PERMANOVA
+adonis2(recruit_hellinger ~ Year_Collected * Shelf, data = environment_data, method = "bray")
+
+#Nested PERMANOVA
+adonis2(recruit_hellinger ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef )
+```
+
+### inspect dispersion (PERMDISP) on Hellinger transformed
+```{r}
+bray_hellinger <- vegdist(recruit_hellinger, method = "bray")
+
+betadisper(bray_hellinger, environment_data$Shelf)
+anova(betadisper(bray_hellinger, environment_data$Shelf))
+```
+
+```{r}
+set.seed(999)     # for reproducibility
+
+nmds_hellinger <- metaMDS(recruit_hellinger, distance = "bray", k = 2, trymax = 100)
+
+#Check the Stress Value
+nmds_hellinger$stress
+
+# Extract NMDS for plot
+site_scores_hellinger <- as.data.frame(vegan::scores(nmds_hellinger, display = "sites"))
+scores_hellinger <- cbind(site_scores_hellinger, environment_data[, c("Year_Collected", "Shelf", "Reef", "Site")])
+```
+
+```{r}
+p_h <- ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
+                         shape = Year_Collected)) +
+     geom_point(size = 3, alpha = 0.9) +
+    stat_ellipse(aes(group = Shelf, colour = Shelf),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         colour = "Shelf Position",
+        shape = "Year Collected"
+    ) +
+    annotate("text",
+             x = min(scores_hellinger$NMDS1),
+             y = min(scores_hellinger$NMDS2),              
+             label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
+              hjust = 0, vjust = 0, size = 5)
+ p_h
+```
+
+The issue with the hellinger transformed nMDS is that there is like an outline of triangle. Not sure what that means.
+
+## Zero_adj hellinger
+```{r}
+Recruit_adj <- Coral_settlement_nGBR |> 
+   select(Acroporidae, Pocilloporidae, Poritid, Other) #|> 
+  # mutate(
+  #   adj = 1
+  # )
+recruit_h_adj <- decostand(Recruit_adj, method = "hellinger")
+
+recruit_h_adj <- recruit_h_adj |> 
+  mutate(
+    adj = 0.01
+  )
+
+environment_data <- Coral_settlement_nGBR|> 
+  select(Year_Collected, Site, Reef, Shelf)
+```
+
+```{r}
+# Bray–Curtis PERMANOVA
+adonis2(recruit_h_adj ~ Year_Collected * Shelf, data = environment_data, method = "bray")
+
+#Nested PERMANOVA
+adonis2(recruit_h_adj ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef )
+```
+
+### inspect dispersion (PERMDISP) on Hellinger transformed
+```{r}
+bray_h_adj <- vegdist(recruit_h_adj, method = "bray")
+
+betadisper(bray_h_adj, environment_data$Shelf)
+anova(betadisper(bray_h_adj, environment_data$Shelf))
+```
+
+```{r}
+set.seed(999)     # for reproducibility
+
+nmds_h_adj <- metaMDS(recruit_h_adj, distance = "bray", k = 2, trymax = 100)
+
+#Check the Stress Value
+nmds_h_adj$stress
+
+# Extract NMDS for plot
+site_scores_h_adj <- as.data.frame(vegan::scores(nmds_h_adj, display = "sites"))
+scores_h_adj <- cbind(site_scores_h_adj, environment_data[, c("Year_Collected", "Shelf", "Reef", "Site")])
+```
+
+```{r}
+p_h_adj <- ggplot(scores_h_adj, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
+                         shape = Year_Collected)) +
+     geom_point(size = 3, alpha = 0.9) +
+    stat_ellipse(aes(group = Shelf, colour = Shelf),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         colour = "Shelf Position",
+        shape = "Year Collected"
+    ) +
+    annotate("text",
+             x = min(scores_h_adj$MDS1),
+             y = min(scores_h_adj$MDS2),              label = paste0("Stress = ", round(nmds_h_adj$stress, 3)),
+              hjust = 0, vjust = 0, size = 5)
+ p_h_adj
+```
+
+I am going to do the same thing, but do the mutate prior to the transformation.
+```{r}
+Recruit_adj <- Coral_settlement_nGBR |> 
+   select(Acroporidae, Pocilloporidae, Poritid, Other) |> 
+  mutate(
+    adj = 1
+  )
+recruit_h_adj <- decostand(Recruit_adj, method = "hellinger")
+
+
+environment_data <- Coral_settlement_nGBR|> 
+  select(Year_Collected, Site, Reef, Shelf)
+```
+
+```{r}
+# Bray–Curtis PERMANOVA
+adonis2(recruit_h_adj ~ Year_Collected * Shelf, data = environment_data, method = "bray")
+
+#Nested PERMANOVA
+adonis2(recruit_h_adj ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef )
+```
+
+```{r}
+bray_h_adj <- vegdist(recruit_h_adj, method = "bray")
+
+betadisper(bray_h_adj, environment_data$Shelf)
+anova(betadisper(bray_h_adj, environment_data$Shelf))
+```
+
+```{r}
+set.seed(999)     # for reproducibility
+
+nmds_h_adj <- metaMDS(recruit_h_adj, distance = "bray", k = 2, trymax = 100)
+
+#Check the Stress Value
+nmds_h_adj$stress
+
+# Extract NMDS for plot
+site_scores_h_adj <- as.data.frame(vegan::scores(nmds_h_adj, display = "sites"))
+scores_h_adj <- cbind(site_scores_h_adj, environment_data[, c("Year_Collected", "Shelf", "Reef", "Site")])
+```
+```{r}
+p_h_adj <- ggplot(scores_h_adj, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
+                         shape = Year_Collected)) +
+     geom_point(size = 3, alpha = 0.9) +
+    stat_ellipse(aes(group = Shelf, colour = Shelf),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         colour = "Shelf Position",
+        shape = "Year Collected"
+    ) +
+    annotate("text",
+             x = min(scores_h_adj$MDS1),
+             y = min(scores_h_adj$MDS2),              label = paste0("Stress = ", round(nmds_h_adj$stress, 3)),
+              hjust = 0, vjust = 0, size = 5)
+ p_h_adj
+```
+
+# NMDS
 
 Asking the question: how does the coral recruitment composition differ in vegetated tiles...
 
@@ -196,7 +381,6 @@ NMDS <- metaMDS(species_matrix_filtered, distance = "bray", autotransform = FALS
 
 #NMDS_3 <- metaMDS(species_matrix_filtered, distance = "bray", autotransform = FALSE, k = 3, trymax = 100)
 
-
 print(NMDS)
 #print(NMDS_3)
 
@@ -205,7 +389,7 @@ NMDS$stress
 #the stress score is 0.118
 ```
 
-## Zero-adjusted Bray-curtis following methids in Harrison and dela crus, 2024
+## Zero-adjusted Bray-curtis following methods in Harrison and dela cruz, 2024
 
 ```{r}
 za_recruits <- Coral_settlement_nGBR |> 
@@ -217,14 +401,14 @@ za_recruits <- Coral_settlement_nGBR |>
 za_sqrt <- sqrt(za_recruits)
 
 za_env <- Coral_settlement_nGBR |> 
-  select(Year_Collected, Site, Reef, Shelf_Position)
+  select(Year_Collected, Site, Reef, Shelf)
 
 ```
 
 Transformation
 ```{r}
 # Bray–Curtis PERMANOVA
-adonis2(za_sqrt ~ Year_Collected * Shelf_Position, data = za_env, method = "bray")
+adonis2(za_sqrt ~ Year_Collected * Shelf, data = za_env, method = "bray")
 ```
 
 ```{r}
@@ -237,18 +421,17 @@ za_nmds <- metaMDS(za_sqrt, distance = "bray", k = 2, trymax = 100)
 ```{r}
 print(za_nmds)
 
-
 za_nmds$stress
 
 za_site_scores <- as.data.frame(vegan::scores(za_nmds, display = "sites"))
-za_scores <- cbind(za_site_scores, za_env[, c("Year_Collected", "Shelf_Position", "Reef", "Site")])
+za_scores <- cbind(za_site_scores, za_env[, c("Year_Collected", "Shelf", "Reef", "Site")])
 ```
 
 ```{r}
-za_nmds_plot <- ggplot(za_scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf_Position,
+za_nmds_plot <- ggplot(za_scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
                          shape = Year_Collected)) +
      geom_point(size = 3, alpha = 0.9) +
-    stat_ellipse(aes(group = Shelf_Position, colour = Shelf_Position),
+    stat_ellipse(aes(group = Shelf, colour = Shelf),
                  level = 0.75, linewidth = 1) +
      theme_bw(base_size = 14) +
      theme(
@@ -264,20 +447,92 @@ za_nmds_plot <- ggplot(za_scores, aes(x = NMDS1, y = NMDS2,                     
         shape = "Year Collected"
     ) +
     annotate("text",
-             x = min(scores$MDS1),
-             y = min(scores$MDS2),              label = paste0("Stress = ", round(nmds$stress, 3)),
+             x = min(za_scores$NMDS1),
+             y = min(za_scores$NMDS2),              label = paste0("Stress = ", round(za_nmds$stress, 3)),
               hjust = 0, vjust = 0, size = 5)
  za_nmds_plot
 ```
 
 Oh dear oh dear, when I do the zero-adjust and keep in the tiles that had no recruits, the solution did not repeat and the nmds shows more overlap
 
+### 0.01
+Including all tiles.
+```{r}
+za2_recruits <- Coral_settlement_nGBR |> 
+  select(Acroporidae, Pocilloporidae, Poritid, Other) |> 
+  mutate(
+    adj = 0.01
+  )
+
+za2_sqrt <- sqrt(za2_recruits)
+
+za2_env <- Coral_settlement_nGBR |> 
+  select(Year_Collected, Site, Reef, Shelf)
+
+```
+
+Transformation
+```{r}
+# Bray–Curtis PERMANOVA
+adonis2(za2_sqrt ~ Year_Collected * Shelf, data = za2_env, method = "bray")
+#not sure why i do sqrt here, need to determine that.
+
+adonis2(za2_recruits ~ Year_Collected * Shelf, data = za2_env, method = "bray")
+```
+
+```{r}
+set.seed(999)     # for reproducibility
+
+za2_nmds <- metaMDS(za2_sqrt, distance = "bray", k = 2, trymax = 100)
+
+za2_nmds <- metaMDS(za2_recruits, distance = "bray", k = 2, trymax = 100)
+
+```
+
+```{r}
+print(za2_nmds)
+
+
+za2_nmds$stress
+
+za2_site_scores <- as.data.frame(vegan::scores(za2_nmds, display = "sites"))
+za2_scores <- cbind(za2_site_scores, za2_env[, c("Year_Collected", "Shelf", "Reef", "Site")])
+```
+
+```{r}
+za2_nmds_plot <- ggplot(za2_scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
+                         shape = Year_Collected)) +
+     geom_point(size = 3, alpha = 0.9) +
+    stat_ellipse(aes(group = Shelf, colour = Shelf),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         title = "nMDS of Coral Recruit Assemblages (Bray–Curtis)",
+        colour = "Shelf Position",
+        shape = "Year Collected"
+    ) +
+    annotate("text",
+             x = min(za2_scores$NMDS1),
+             y = min(za2_scores$NMDS2),              label = paste0("Stress = ", round(za2_nmds$stress, 3)),
+              hjust = 0, vjust = 0, size = 5)
+
+za2_nmds_plot
+```
+
+
 ## Trying to weight by dispersion... 
 So I will need to group by site x reef x year for a given family, calculate the var and mean. (based on https://www.int-res.com/articles/meps2006/320/m320p011.pdf)
 
 ```{r}
 dispersion_weighting <- Coral_settlement_nGBR |> 
-  group_by(Year_Collected, Shelf_Position, Reef, Site) |> 
+  group_by(Year_Collected, Shelf, Reef, Site) |> 
   summarise(
     acro_var = var(Acroporidae),
     acro_mean = mean(Acroporidae),
@@ -296,7 +551,7 @@ dispersion_weighting <- dispersion_weighting |>
     "pori_dispersion_index" = pori_var/pori_mean
   )
 
-dw_recruits <- left_join(Coral_settlement_nGBR, dispersion_weighting, by = c("Year_Collected", "Shelf_Position" , "Reef", "Site"))
+dw_recruits <- left_join(Coral_settlement_nGBR, dispersion_weighting, by = c("Year_Collected", "Shelf" , "Reef", "Site"))
 
 #XiDW = Xij/D actually d with the hat, which is caculated as (x^2/df); and I am not sure what the degrtee of freedom is here
 dw_recruits <- dw_recruits |> 
@@ -305,6 +560,42 @@ dw_recruits <- dw_recruits |>
     "poci_value_over_dispersion_index" = Pocilloporidae/poci_dispersion_index,
     "pori_value_over_dispersion_index" = Poritid/pori_dispersion_index
   )
+```
+
+
+# Benthic data PERMANOVA
+
+```{r}
+PIT <- read_csv("PIT_50m.csv") %>%
+  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    )
+  )
+```
+
+
+```{r}
+environment_data <- Coral_settlement_nGBR %>%
+  filter(total >0) |> 
+  select(Year_Collected, Site, Reef, Shelf) #worried because environment data is nested here.
+# Bray–Curtis PERMANOVA
+adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray")
+
+#Nested PERMANOVA
+adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef )
 ```
 
 
@@ -322,11 +613,11 @@ Recruits <- Coral_settlement_nGBR %>%
 recruit_hellinger <- decostand(Recruits, method = "hellinger")
 
 environment_data <- Coral_settlement_nGBR %>%
-  select(Year_Collected, Site, Reef, Shelf_Position) #worried because environment data is nested here.
+  select(Year_Collected, Site, Reef, Shelf) #worried because environment data is nested here.
 ```
 
 ```{r}
-my_rda <- rda(recruit_hellinger~Year_Collected + Shelf_Position+ (Reef/Site), data = environment_data)
+my_rda <- rda(recruit_hellinger~Year_Collected + Shelf+ (Reef/Site), data = environment_data)
 
 summary(my_rda)
 ```
@@ -382,7 +673,7 @@ Not sure what the go is with some being NA. "As a rule of thumb, if sqrt vif >2,
 
 I will remove reef and site.
 ```{r}
-my_rda2 <- rda(recruit_hellinger~Year_Collected + Shelf_Position, data = environment_data)
+my_rda2 <- rda(recruit_hellinger~Year_Collected + Shelf, data = environment_data)
 
 summary(my_rda2)
 ```
@@ -417,7 +708,7 @@ This analysis allows to display the patterns of the response data (Y) uniquely e
 Model the effect of shelf position on coral recruit family abundances once the effect of year is removed
 
 ```{r}
-partial_rda <- rda(recruit_hellinger~ Shelf_Position + Condition(Year_Collected), data = environment_data)
+partial_rda <- rda(recruit_hellinger~ Shelf + Condition(Year_Collected), data = environment_data)
 ```
 
 ```{r}
@@ -435,7 +726,7 @@ RsquareAdj(partial_rda)
 Model the effect of year on coral recruit family abundances once the effect of shelf position is removed
 
 ```{r}
-partial_rda2 <- rda(recruit_hellinger~ Year_Collected + Condition(Shelf_Position), data = environment_data)
+partial_rda2 <- rda(recruit_hellinger~ Year_Collected + Condition(Shelf), data = environment_data)
 ```
 
 ```{r}
@@ -457,19 +748,22 @@ plot(partial_rda2, scaling = 1)
 ```
 
 ## Variance partitioning
-```{r}
-env_shelf <- environment_data[,"Shelf_Position"]
+```{r eval=FALSE}
+env_shelf <- environment_data[,"Shelf"]
 
 env_year <- environment_data[,"Year_Collected"]
 vp <- varpart(recruit_hellinger, env_shelf, env_year)
 vp
 
 plot(vp)
+
 ```
+having an error in colMeans(x, na.rm = TRUE), 'x' must be numeric for this.Not sure why because recruit_hellinger is a table of values, but the other two are categorical?
+
 
 ### Need to do test of significance of fractions
 
-```{r}
+```{r eval = FALSE}
 anova.cca(rda(recruit_hellinger, env_shelf))
 
 anova.cca(rda(recruit_hellinger, env_year))
