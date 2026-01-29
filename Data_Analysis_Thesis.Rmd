@@ -1500,16 +1500,39 @@ nbin_Poritid_interaction|>
 # Q3 Composition and Orientation
 *to do*
 
+## Acroporidae
+raw data
+```{r echo=FALSE}
+Acroporidae_orientation |> 
+  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+               position = position_dodge(width = 0.8),
+               alpha = 0.6) +
+  facet_grid(Shelf~Tile_Surface, scale = "free_y")
+```
+
+models
+
 ```{r}
-nb_Orientation_Acroporidae <- glmmTMB(Recruits ~ 0+Shelf* Tile_Surface + (1 | Reef/Site), 
+nb_Orientation_Acroporidae <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site), 
         family = "nbinom2", data = Acroporidae_orientation)
 
-pois_Orientation_Acro <- glmmTMB(Recruits ~ 0+Shelf* Tile_Surface + (1 | Reef/Site), 
+pois_Orientation_Acro <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site), 
         family = "poisson", data = Acroporidae_orientation)
 
-zi_orientation_Acro <- glmmTMB(Recruits ~ 0+Shelf* Tile_Surface + (1 | Reef/Site),
+zi_orientation_Acro <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site),
                                ziformula = ~1,
         family = "nbinom2", data = Acroporidae_orientation)
+```
+
+```{r echo=FALSE}
+sim5 <- simulateResiduals(nb_Orientation_Acroporidae)
+testResiduals(sim5)
+```
+
+```{r}
+sim5.1 <- simulateResiduals(pois_Orientation_Acro)
+testResiduals(sim5.1)
 ```
 
 AIC to determine model of best fit
@@ -1523,16 +1546,34 @@ nb_Orientation_Acroporidae |>
   summary()
 ```
 
+Emmeans of the Acroporidae orientation
+
+## Pocilloporidae
+
+Raw abundances
+
 ```{r echo=FALSE}
-sim5 <- simulateResiduals(nb_Orientation_Acroporidae)
-testResiduals(sim5)
+Pocilloporidae_orientation |> 
+  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+               position = position_dodge(width = 0.8),
+               alpha = 0.6) +
+  facet_grid(Shelf~Tile_Surface, scale = "free_y")+
+  theme_bw()
 ```
+
+
+## Poritidae
 
 ```{r}
-sim5.1 <- simulateResiduals(pois_Orientation_Acro)
-testResiduals(sim5.1)
+Poritid_orientation |> 
+  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+               position = position_dodge(width = 0.8),
+               alpha = 0.6) +
+  facet_grid(Shelf~Tile_Surface, scale = "free_y")+
+  theme_bw()
 ```
-
 
 
 # Brood Stock Analysis
@@ -1723,44 +1764,6 @@ p + geom_point()
 ```
 
 
-
-## Acroporidae
-
-```{r echo=FALSE}
-Acroporidae_orientation |> 
-  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
-  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
-               position = position_dodge(width = 0.8),
-               alpha = 0.6) +
-  facet_grid(Shelf~Tile_Surface, scale = "free_y")
-```
-
-## Pocilloporidae
-
-```{r echo=FALSE}
-Pocilloporidae_orientation |> 
-  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
-  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
-               position = position_dodge(width = 0.8),
-               alpha = 0.6) +
-  facet_grid(Shelf~Tile_Surface, scale = "free_y")+
-  theme_bw()
-```
-
-
-## Poritidae
-
-```{r}
-Poritid_orientation |> 
-  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
-  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
-               position = position_dodge(width = 0.8),
-               alpha = 0.6) +
-  facet_grid(Shelf~Tile_Surface, scale = "free_y")+
-  theme_bw()
-```
-
-***Check the levels of grouping variables***
 
 ```{r}
 library(parameters)
