@@ -26,11 +26,9 @@ library(ggfortify)
 library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
 library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
 library(ggpubr)
-```
+library(ggeffects) #to be able to do ggpredict
 
-Clean data
-
-```{r message=FALSE}
+# Clean data
 Coral_settlement_nGBR_CS <- read.csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
   mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
 
@@ -70,6 +68,7 @@ mutate(
 
 ```
 
+
 # Determining if loose or dettached tiles are significantly different to other tiles within a site.
 
 ```{r}
@@ -81,6 +80,27 @@ Coral_settlement_nGBR |>
   geom_jitter()+
   geom_boxplot()+
   facet_wrap(~Site, scale = "free_y", ncol = 3)
+```
+
+
+```{r}
+Coral_settlement_nGBR |>  
+  ggplot(aes(x=Year_Collected, y=total, colour = notes))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression("Recruits (" * tile^{-1}*")" ),
+  x = "Deployment",
+  colour = "Notes")+
+  facet_wrap(~Shelf)+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )
 ```
 
 ```{r}
@@ -95,21 +115,114 @@ summary(dettached_mod)
 
 Does appear that dislodged tiles are significantly lower than other tiles when reef and site are a random effect.. maybe they need to be a fixed effect.
 
-The ones 
 ```{r}
-#remove dislodged
-Coral_settlement_nGBR <- Coral_settlement_nGBR |>
-  filter(is.na(notes) | trimws(notes) == "") |>
-  group_by(Year..Jan., Reef, Site) |>
-  mutate(
-    Tile = row_number()
-  ) |>
-  filter(Tile <= 10) |>
-  ungroup()
+plot(ggpredict(dettached_mod, terms = "notes"))+
+  labs(y= expression("Predicted no. recruits (" * tile^{-1}*")" ), x= "Notes")+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        text = element_text(size=8),
+        title = element_blank())
 
-# When I do this and summarise I have 71 sites, not 72. Unsure if one whole site was completely dislodged.
-
+d_tukey <- emmeans(dettached_mod, ~notes)
+pairs(d_tukey, adjust = "tukey")
 ```
+The dislodged tiles have 2.5 recruits less than attached tiles, when reef and site are held constant as a random effect, and this difference is significant at P<0.05.
+The tiles with lots of tube worms were slightly lower than those without lots of tube worms. p<0.1
+
+*also run with year as a random variable*
+```{r}
+dettached_mod <- glmmTMB(total ~ notes + (1 | Reef/Site) + (1| Year_Collected), 
+      family = "nbinom2", data = Coral_settlement_nGBR)
+```
+
+```{r}
+sim_mod <- simulateResiduals(dettached_mod)
+testResiduals(sim_mod)
+
+plot(ggpredict(dettached_mod, terms = "notes"))
+
+d_tukey <- emmeans(dettached_mod, ~notes)
+pairs(d_tukey, adjust = "tukey")
+```
+
+# Remove dislodged tiles
+
+```{r}
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  filter(notes != "dislodged")
+```
+
+# Summary Statistics
+
+```{r echo=FALSE}
+Coral_settlement_nGBR |> 
+  summarise(total_tiles = n(),
+            total_recruits = sum(total),
+            total_acro = sum(Acroporidae),
+            total_poci = sum(Pocilloporidae),
+            total_poritidae = sum(Poritid),
+            total_other = sum(Other),
+            total_bottom = sum(Under.Total),
+            total_side = sum(Side.Total),
+            total_top = sum(Top.Total)) |> 
+  knitr::kable()
+```
+
+```{r echo=FALSE}
+Coral_settlement_nGBR |> 
+  group_by(Year_Collected,Reef, Site) |> 
+  summarise(total_tiles = n(),
+            total_recruits = sum(total))
+```
+
+Temporal statistics
+
+```{r echo=FALSE}
+Coral_settlement_nGBR |> 
+  group_by(Year_Collected) |> 
+  summarise(total_tiles = n(),
+            total_recruits = sum(total),
+            total_acro = sum(Acroporidae),
+            total_poci = sum(Pocilloporidae),
+            total_poritidae = sum(Poritid),
+            total_bottom = sum(Under.Total),
+            total_side = sum(Side.Total),
+            total_top = sum(Top.Total)) |> 
+  knitr::kable()
+```
+
+
+
+## Summary statistics
+```{r}
+Coral_settlement_nGBR |> 
+  summarise(
+    mean = mean(total),
+    se = sd(total)/(n()^0.5),
+    n= n()
+  )
+
+Coral_settlement_nGBR |> 
+  group_by(Year) |> 
+  summarise(
+    mean = mean(total),
+    se = sd(total)/(n()^0.5),
+    n= n()
+  )
+```
+
+### By Shelf Position
+
+```{r}
+Coral_settlement_nGBR |> 
+  group_by(Shelf) |> 
+  summarise(
+    mean = mean(total),
+    se = sd(total)/(n()^0.5),
+    n= n()
+  )
+```
+
 
 
 ```{r echo=FALSE}
@@ -131,13 +244,10 @@ total_recruits <- Coral_settlement_nGBR %>%
   pivot_longer(cols = 6:9, names_to = "Family", values_to = "Total") %>%
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 
-```
-
-```{r}
 total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
 ```
 
-## Exploratory analysis
+#Figure 1
 
 ```{r}
 Coral_settlement_nGBR |>  
@@ -167,9 +277,9 @@ Fig.1 <- Coral_settlement_nGBR |>
   labs(
   y = expression("Recruits (" * tile^{-1}*")" ),
   x = "Year",
-  colour = "Shelf position")+
+  colour = "Shelf")+
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
-  #facet_wrap(~Shelf_Position)+
+  #facet_wrap(~Shelf)+
   theme(legend.position = c(1,1), legend.justification = c(1,1))+
   scale_x_discrete(
     "Deployment",
@@ -180,15 +290,60 @@ Fig.1 <- Coral_settlement_nGBR |>
   )+
   geom_jitter(size = 0.35, alpha = 0.5)
 
-Fig.1 <- Coral_settlement_nGBR |>
+# Fig.1 <- Coral_settlement_nGBR |>
+#   ggplot(aes(x = Year_Collected, y = total, colour = Shelf)) +
+#   geom_boxplot(position = position_dodge(width = 0.75)) +
+#   geom_jitter(
+#     aes(group = Shelf),
+#     position = position_jitterdodge(
+#       jitter.width = 0.35,
+#       dodge.width  = 0.75
+#     ),
+#     size = 0.35,
+#     alpha = 0.5
+#   ) +
+#   theme_classic() +
+#   labs(
+#     y = expression("Recruits (" * tile^{-1} * ")"),
+#     x = "Year",
+#     colour = "Shelf position"
+#   ) +
+#   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+#   theme(legend.position = c(1,1), legend.justification = c(1,1)) +
+#   scale_x_discrete(
+#     "Deployment",
+#     labels = c(
+#       "2022" = "21/22",
+#       "2023" = "22/23",
+#       "2024" = "23/24",
+#       "2025" = "24/25"
+#     )
+#   )
+
+
+Fig.1
+```
+
+```{r}
+Fig1_mean <- Coral_settlement_nGBR |>  
   ggplot(aes(x = Year_Collected, y = total, colour = Shelf)) +
-  geom_boxplot(position = position_dodge(width = 0.75)) +
+  # Mean points
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2.5
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.2
+  ) +
+  # Raw data
   geom_jitter(
-    aes(group = Shelf),
-    position = position_jitterdodge(
-      jitter.width = 0.35,
-      dodge.width  = 0.75
-    ),
+    position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.6),
     size = 0.35,
     alpha = 0.5
   ) +
@@ -196,10 +351,13 @@ Fig.1 <- Coral_settlement_nGBR |>
   labs(
     y = expression("Recruits (" * tile^{-1} * ")"),
     x = "Year",
-    colour = "Shelf position"
+    colour = "Shelf"
   ) +
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
-  theme(legend.position = c(1,1), legend.justification = c(1,1)) +
+  theme(
+    legend.position = c(1, 1),
+    legend.justification = c(1, 1)
+  ) +
   scale_x_discrete(
     "Deployment",
     labels = c(
@@ -208,55 +366,31 @@ Fig.1 <- Coral_settlement_nGBR |>
       "2024" = "23/24",
       "2025" = "24/25"
     )
-  )
+  )+
+  theme(text = element_text(size =8))
 
-
-Fig.1
 ```
 
 Fig 1
-```{r}
+```{r echo=FALSE, eval=FALSE}
 ggsave(filename = "Figure_1.png",
        plot = Fig.1,
+       width = 169,
+       height = 120,
+       units = "mm")
+
+ggsave(filename = "Figure_1mean.png",
+       plot = Fig1_mean,
        width = 169,
        height = 120,
        units = "mm")
 ```
 
 
-```{r}
-Coral_settlement_nGBR |>  
-  ggplot(aes(x=Year_Collected, y=total, colour = notes))+
-  geom_boxplot(position = "dodge")+
-  theme_classic()+
-  labs(
-  y = expression("Recruits (" * tile^{-1}*")" ),
-  x = "Deployment",
-  colour = "Notes")+
-  facet_wrap(~Shelf)+
-  scale_x_discrete(
-    "Deployment",
-    labels = c("2022" = "21/22",
-               "2023" = "22/23",
-               "2024" = "23/24",
-               "2025" = "24/25",
-               "2026" = "25/26")
-    )
-```
+# Figure 2
+
 
 ```{r}
-total_recruits |> 
-group_by(Year_Collected, Reef, Family, Shelf)  %>% 
-  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
-  geom_boxplot(position = "dodge")+
-  theme_classic()+
-  labs(
-  y = expression("Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
-  x = "Year",
-  colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
-  facet_wrap(~Family)
-
 Figure.2 <- total_recruits |> 
 group_by(Year_Collected, Reef, Family, Shelf)  %>% 
   ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
@@ -285,11 +419,69 @@ group_by(Year_Collected, Reef, Family, Shelf)  %>%
     size = 0.35,
     alpha = 0.5
   )
+```
 
+
+```{r eval = FALSE, echo=FALSE}
 ggsave(filename = "Figure 2.png",
        plot = Figure.2,
        height = 200,
        width = 125,
+       unit = "mm")
+```
+
+```{r}
+Fig2_mean <- total_recruits |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.2
+  ) +
+  # Raw data
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.6),
+    size = 0.35,
+    alpha = 0.3
+  ) +
+  theme_classic() +
+  labs(
+    y = expression("Recruits (" * tile^{-1} * ")"),
+    x = "Year",
+    colour = "Shelf"
+  ) +
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+  theme(
+    # legend.position = c(1, 0.4),
+    # legend.justification = c(1, 1)
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c(
+      "2022" = "21/22",
+      "2023" = "22/23",
+      "2024" = "23/24",
+      "2025" = "24/25"
+    )
+  )+
+  facet_wrap(~Family, scales = "free_y", ncol =2)+
+  theme(text = element_text(size =8),
+        legend.position = "bottom")
+```
+
+```{r}
+ggsave(filename = "Fig2_mean.png",
+       plot = Fig2_mean,
+       height = 175,
+       width = 160,
        unit = "mm")
 ```
 
@@ -310,48 +502,6 @@ position_total_recruits <- position_total_recruits |>
  
 position_total_recruits <- position_total_recruits |>                           
 mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")))
-```
-
-```{r Detect Outliers, echo=FALSE, fig.height=8, fig.width=6.5}
-# p.1 <- total_recruits %>% 
-#   group_by(Year_Collected, Reef, Family, Shelf)  %>% 
-#   ggplot(aes(x=Family, y=Total, colour = Shelf))+
-#   geom_boxplot(position = "dodge")+
-#   theme_classic()+
-#   labs(
-#   y = expression("Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
-#   x = "Family",
-#   colour = "Shelf Position")+
-#   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
-# 
-# p.2 <- total_recruits %>% 
-#   group_by(Year_Collected, Reef, Family, Shelf) %>%
-#   summarise(average_no_recruits = mean(Total)) %>% 
-#   ggplot(aes(x=Family, y=(average_no_recruits), colour = Shelf))+
-#   geom_boxplot(position = "dodge")+
-#   theme_classic()+
-#   labs(
-#   y = expression("Mean Recruits (" * Reef^{-1} ~ Year^{-1} * ")"),
-#   x = "Family",
-#   colour = "Shelf Position"
-# ) +
-# scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
-# 
-# ggarrange(p.1, p.2, ncol = 1)
-```
-
-```{r}
-# total_recruits %>% 
-#   group_by(Year_Collected, Reef, Family, Shelf)  %>% 
-#   ggplot(aes(x=Family, y=Total, colour = Shelf))+
-#   geom_boxplot(position = "dodge")+
-#   theme_classic()+
-#   labs(
-#   y = expression("Recruits (" *Tile^{-1} ~ Year^{-1} * ")"),
-#   x = "Family",
-#   colour = "Shelf Position")+
-#   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
-  # facet_wrap(~Year_Collected, scales = "free_y")
 ```
 
 
@@ -399,8 +549,65 @@ group_by(Year_Collected, Reef, Pos, Shelf)  %>%
 
 Figure.3
 
+```
+```{r echo=FALSE, eval=FALSE}
 ggsave(filename = "Figure 3.png",
        plot = Figure.3,
+       height = 275,
+       width = 125,
+       unit = "mm")
+```
+
+```{r}
+Fig3_mean <- position_total_recruits |> 
+group_by(Year_Collected, Reef, Pos, Shelf)  %>% 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.2
+  ) +
+  # Raw data
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.6),
+    size = 0.35,
+    alpha = 0.3
+  ) +
+  theme_classic() +
+  labs(
+    y = expression("Recruits (" * tile^{-1} * ")"),,
+    colour = "Shelf"
+  ) +
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+  theme(
+    # legend.position = c(1, 0.4),
+    # legend.justification = c(1, 1)
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c(
+      "2022" = "21/22",
+      "2023" = "22/23",
+      "2024" = "23/24",
+      "2025" = "24/25"
+    )
+  )+
+  facet_wrap(~Pos, scales = "free_y", ncol =1)+
+  theme(text = element_text(size =8),
+        legend.position = "right")
+```
+
+```{r echo=FALSE, eval=FALSE}
+ggsave(filename = "Fig3_mean.png",
+       plot = Fig3_mean,
        height = 275,
        width = 125,
        unit = "mm")
@@ -464,6 +671,296 @@ Figure.4 <- position_family_recruits |>
   theme(text =element_text(size =8),
         title = element_text(size = 8))
 
+Figure.4
+```
+
+```{r}
+Acro_pos <- position_family_recruits |> 
+  filter(Family == "Acroporidae") |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.2
+  ) +
+  # Raw data
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.6),
+    size = 0.35,
+    alpha = 0.3
+  ) +
+  theme_classic()+
+  labs(
+  y = expression("Acroporidae recruits (" * ~tile~surface^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_wrap(~Pos, scales = "free_y", ncol =3)+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  geom_jitter(
+    aes(group = Shelf),
+    position = position_jitterdodge(
+      jitter.width = 0.35,
+      dodge.width  = 0.75
+    ),
+    size = 0.35,
+    alpha = 0.5
+  )+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8))
+
+Acro_pos
+```
+
+```{r}
+Poci_pos <- position_family_recruits |> 
+  filter(Family == "Pocilloporidae") |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.2
+  ) +
+  # Raw data
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.6),
+    size = 0.35,
+    alpha = 0.3
+  ) +
+  theme_classic()+
+  labs(
+  y = expression("Pocilloporidae recruits (" * ~tile~surface^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_wrap(~Pos, scales = "free_y", ncol =3)+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  geom_jitter(
+    aes(group = Shelf),
+    position = position_jitterdodge(
+      jitter.width = 0.4,
+      dodge.width  = 0.75
+    ),
+    size = 0.35,
+    alpha = 0.4
+  )+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8))
+
+Poci_pos
+```
+
+```{r}
+Por_pos <- position_family_recruits |> 
+  filter(Family == "Poritidae") |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.2
+  ) +
+  # Raw data
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.6),
+    size = 0.35,
+    alpha = 0.3
+  ) +
+  theme_classic()+
+  labs(
+  y = expression("Poritidae recruits (" * ~tile~surface^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_wrap(~Pos, scales = "free_y", ncol =3)+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  geom_jitter(
+    aes(group = Shelf),
+    position = position_jitterdodge(
+      jitter.width = 0.4,
+      dodge.width  = 0.75
+    ),
+    size = 0.35,
+    alpha = 0.4
+  )+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8))
+
+Por_pos
+```
+
+```{r}
+Oth_pos <- position_family_recruits |> 
+  filter(Family == "Other") |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.2
+  ) +
+  # Raw data
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.6),
+    size = 0.35,
+    alpha = 0.3
+  ) +
+  theme_classic()+
+  labs(
+  y = expression("Other recruits (" * ~tile~surface^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_wrap(~Pos, scales = "free_y", ncol =3)+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  geom_jitter(
+    aes(group = Shelf),
+    position = position_jitterdodge(
+      jitter.width = 0.4,
+      dodge.width  = 0.75
+    ),
+    size = 0.35,
+    alpha = 0.4
+  )+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8))
+
+Oth_pos
+```
+
+```{r}
+ggarrange(Acro_pos, Poci_pos, Por_pos, Oth_pos, ncol =1, common.legend = TRUE)
+```
+
+```{r}
+library(ggh4x)
+
+
+Family_pos <- position_family_recruits |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.2
+  ) +
+  # Raw data
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.6),
+    size = 0.35,
+    alpha = 0.3
+  ) +
+  theme_classic()+
+  labs(
+  y = expression("Recruits (" * ~tile~surface^{-1} * ")"),
+  x = "Year",
+  colour = "Shelf")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_grid2(
+   Pos~Family,
+  scales = "free_y",
+  independent = "y",
+  axes = "y"
+)+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  geom_jitter(
+    aes(group = Shelf),
+    position = position_jitterdodge(
+      jitter.width = 0.35,
+      dodge.width  = 0.75
+    ),
+    size = 0.35,
+    alpha = 0.5
+  )+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        legend.position = "bottom")
+
+Family_pos
+```
+
+```{r eval=FALSE, echo=FALSE}
+ggsave(filename = "Fig4.png",
+       plot = Family_pos,
+       height = 175,
+       width = 200,
+       unit = "mm")
+```
+
+
+```{r eval=FALSE, echo=FALSE}
 ggsave(filename = "Figure 4.png",
        plot = Figure.4,
        height = 170,
@@ -483,45 +980,6 @@ Shelf position is a fixed effect predictor, it is used to test if the average co
 Random effects: 
 a nested random effect, modelling the variations between reefs, and variation between sites nested within reefs
 
-# Summary Statistics
-
-```{r echo=FALSE}
-Coral_settlement_nGBR |> 
-  summarise(total_tiles = n(),
-            total_recruits = sum(total),
-            total_acro = sum(Acroporidae),
-            total_poci = sum(Pocilloporidae),
-            total_poritidae = sum(Poritid),
-            total_other = sum(Other),
-            total_bottom = sum(Under.Total),
-            total_side = sum(Side.Total),
-            total_top = sum(Top.Total)) |> 
-  knitr::kable()
-```
-
-```{r}
-Coral_settlement_nGBR |> 
-  group_by(Year_Collected,Reef, Site) |> 
-  summarise(total_tiles = n(),
-            total_recruits = sum(total))
-```
-
-Temporal statistics
-
-```{r echo=FALSE}
-Coral_settlement_nGBR |> 
-  group_by(Year_Collected) |> 
-  summarise(total_tiles = n(),
-            total_recruits = sum(total),
-            total_acro = sum(Acroporidae),
-            total_poci = sum(Pocilloporidae),
-            total_poritidae = sum(Poritid),
-            total_bottom = sum(`Under Total`),
-            total_side = sum(`Side Total`),
-            total_top = sum(`Top Total`)) |> 
-  knitr::kable()
-```
-
 
 Run generalised linear models with the Poisson, normal binomail and the zero inflated normal bionomial. Total is the dependent variable (the count of coral recruits at a given sampling unit) Shelf position is a fixed effect predicator, it is used to test if the average coral settlement differs between shelf positions Random effects: a nested random effect, modelling the variations between reefs, and variation between sites nested within reefs
 
@@ -530,24 +988,26 @@ Victor: I recommend including Year as a fixed effect since you are interested in
 
 *Should I be scaling or centring the data?*
 
+*Should I be doing a liklihood ratio test here to determine whether the model is better with or without year?*
+
 ```{r warning=FALSE, message=FALSE}
-pois_total_yr <- glmmTMB(total ~ Shelf_Position + Year_Collected + (1 | Reef/Site), 
+pois_total_yr <- glmmTMB(total ~ Shelf + Year_Collected + (1 | Reef/Site), 
       family = "poisson", data = Coral_settlement_nGBR)
 
-nbin_total_yr <- glmmTMB(total ~ Shelf_Position +  Year_Collected +(1 | Reef/Site), 
+nbin_total_yr <- glmmTMB(total ~ Shelf +  Year_Collected +(1 | Reef/Site), 
         family = "nbinom2", data = Coral_settlement_nGBR)
 
-zbin_total_yr <- glmmTMB(total ~ Shelf_Position + Year_Collected + (1 | Reef/Site),
+zbin_total_yr <- glmmTMB(total ~ Shelf + Year_Collected + (1 | Reef/Site),
                       ziformula = ~1,
         family = "nbinom2", data = Coral_settlement_nGBR)
 
-pois_total_yr2 <- glmmTMB(total ~ Shelf_Position * Year_Collected + (1 | Reef/Site), 
+pois_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected + (1 | Reef/Site), 
       family = "poisson", data = Coral_settlement_nGBR)
 
-nbin_total_yr2 <- glmmTMB(total ~ Shelf_Position * Year_Collected +(1 | Reef/Site), 
+nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected +(1 | Reef/Site), 
         family = "nbinom2", data = Coral_settlement_nGBR)
 
-zbin_total_yr2 <- glmmTMB(total ~ Shelf_Position* Year_Collected + (1 | Reef/Site),
+zbin_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected + (1 | Reef/Site),
                       ziformula = ~1,
         family = "nbinom2", data = Coral_settlement_nGBR)
 ```
@@ -591,13 +1051,82 @@ summary(nbin_total_yr2)
 When making a figure should I then be using summary statistics or raw count data? Because the large number of zeros will make it difficult to do a boxplot of the raw data.
 
 
+### Tukey tests
+
+```{r}
+emm_shelf <- emmeans(nbin_total_yr2, ~Shelf)
+
+emm_shelf
+
+pairs(emm_shelf, adjust = "tukey")
+
+```
+
+```{r}
+emm_year <- emmeans(nbin_total_yr2, ~Year_Collected)
+
+emm_year
+
+pairs(emm_year, adjust = "tukey")
+```
+
+
+```{r}
+emm_year_shelf <- emmeans(nbin_total_yr2, ~Year_Collected*Shelf)
+
+emm_year_shelf
+
+pairs(emm_year_shelf, adjust = "tukey", 
+      #type = "response"
+      )
+```
+
+```{r}
+nbin_total_yr2|> 
+  emmeans(~Shelf| Year_Collected, type = "response") |> 
+  as.data.frame() |> 
+  ggplot(aes(x=Year_Collected,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(y= "Estimated marginal mean total\nrecruits (response scale)")+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1))+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
+```{r}
+# Caterpillar plot
+nbin_total_yr2|> 
+  emmeans(~Shelf| Year_Collected, type = "response") |> 
+  as.data.frame() |>
+  ggplot(aes(x = response, y = Shelf, color=Shelf)) +
+  geom_point() +
+  geom_errorbarh(aes(xmin =asymp.LCL, xmax = asymp.UCL), height = 0.2) +
+  facet_wrap(~Year_Collected, scales = "free_y") +
+  labs(x = "Estimated marginal mean (response scale)",
+       y = "Shelf Position",
+       title = "Caterpillar plot of EMMs by Year") +
+  theme_minimal()+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
 # Q2 is the composition of the recruits different across the shelf?
 
 Isolating Data for a single Family of coral
 
 ```{r echo=FALSE}
 Pocilloporidae <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf_Position, 
+  select(Year_Collected, Shelf, 
          Reef, Site, Tile, 
          Pocilloporidae, Top_Pocil, 
          Under_Pocil, Side_Pocil, total)
@@ -614,7 +1143,7 @@ Pocilloporidae_orientation <- Pocilloporidae_orientation %>%
                values_to = "Recruits")
 
 Acroporidae <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf_Position, 
+  select(Year_Collected, Shelf, 
          Reef, Site, Tile, 
          Acroporidae, Top_Acr, 
          Under_Acr, Side_Acr, total)
@@ -631,7 +1160,7 @@ Acroporidae_orientation <- Acroporidae_orientation %>%
                values_to = "Recruits")
 
 Poritid <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf_Position, 
+  select(Year_Collected, Shelf, 
          Reef, Site, Tile, 
          Poritid, Top_Por, Under_Por, 
          Side_Por, total)
@@ -659,22 +1188,22 @@ The structure of your random effects (nested site within reef),
 Whether Year_Collected should be a fixed or random effect.
 
 ```{r poisson of total Recruits, message=FALSE}
-pois_Poritid_fixed <- glmmTMB(Poritid ~ Shelf_Position + Year_Collected+(1 | Reef/Site) , 
+pois_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + Year_Collected+(1 | Reef/Site) , 
       family = "poisson", data = Poritid) 
 
-pois_Poritid_interaction <- glmmTMB(Poritid ~ Shelf_Position*Year_Collected + (1 | Reef/Site), 
+pois_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year_Collected + (1 | Reef/Site), 
       family = "poisson", data = Poritid)
 
-pois_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf_Position + Year_Collected+ (1 | Reef/Site), 
+pois_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year_Collected+ (1 | Reef/Site), 
       family = "poisson", data = Acroporidae)
 
-pois_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf_Position*Year_Collected + (1 | Reef/Site), 
+pois_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year_Collected + (1 | Reef/Site), 
       family = "poisson", data = Acroporidae)
 
-pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf_Position + Year_Collected  + (1 | Reef/Site), 
+pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + Year_Collected  + (1 | Reef/Site), 
       family = "poisson", data = Pocilloporidae)
 
-pois_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf_Position*Year_Collected + (1 | Reef/Site), 
+pois_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year_Collected + (1 | Reef/Site), 
       family = "poisson", data = Pocilloporidae)
 ```
 
@@ -682,23 +1211,23 @@ Negative Binomial of Total Recruits (for a family)
 
 ```{r}
 ## Fixed
-nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + (1 | Reef/Site) + Year_Collected, 
         family = "nbinom2", data = Poritid)
 
-nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + (1 | Reef/Site) + Year_Collected, 
         family = "nbinom2", data = Pocilloporidae)
 
-nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf_Position + (1 | Reef/Site) + Year_Collected, 
+nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + (1 | Reef/Site) + Year_Collected, 
         family = "nbinom2", data = Acroporidae)
 
 ## Interaction
-nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf_Position*Year_Collected + (1 | Reef/Site), 
+nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year_Collected + (1 | Reef/Site), 
         family = "nbinom2", data = Poritid)
 
-nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf_Position * Year_Collected + (1 | Reef/Site), 
+nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year_Collected + (1 | Reef/Site), 
         family = "nbinom2", data = Pocilloporidae)
 
-nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf_Position*Year_Collected + (1 | Reef/Site), 
+nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year_Collected + (1 | Reef/Site), 
         family = "nbinom2", data = Acroporidae)
 ```
 
@@ -709,30 +1238,30 @@ Negative Binomial Zero Inflated of Total recruits (per family)
 #Fixed
 # Fit model with zero-inflated negative binomial distribution 
 
-zbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf_Position+ Year_Collected + (1 | Reef/Site) ,
+zbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf+ Year_Collected + (1 | Reef/Site) ,
                         ziformula = ~1,
                         family = "nbinom2",
                         data = Poritid)
-zbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf_Position * Year_Collected + (1 | Reef/Site),
+zbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf * Year_Collected + (1 | Reef/Site),
                         ziformula = ~1,
                         family = "nbinom2",
                         data = Poritid)
 
-zbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf_Position+ Year_Collected + (1 | Reef/Site),
+zbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf+ Year_Collected + (1 | Reef/Site),
                                ziformula = ~1,
                         family = "nbinom2",
                         data = Pocilloporidae)
 
-zbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf_Position*Year_Collected + (1 | Reef/Site),
+zbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year_Collected + (1 | Reef/Site),
                                ziformula = ~1,
                         family = "nbinom2",
                         data = Pocilloporidae)
 
-zbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf_Position + Year_Collected+ (1 | Reef/Site),
+zbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year_Collected+ (1 | Reef/Site),
                             ziformula = ~1,
                         family = "nbinom2",
                         data = Acroporidae)
-zbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf_Position*Year_Collected + (1 | Reef/Site),
+zbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year_Collected + (1 | Reef/Site),
                             ziformula = ~1,
                         family = "nbinom2",
                         data = Acroporidae)
@@ -740,13 +1269,14 @@ zbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf_Position*Year_Collec
 ```
 
 ### Acroporidae
+
 ```{r}
 Acroporidae |> 
   ggplot(aes(x = Year_Collected, y = Acroporidae, fill = Reef)) +
   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
                position = position_dodge(width = 0.8),
                alpha = 0.6) +
-  facet_wrap(~Shelf_Position, ncol = 1, scale = "free_y")
+  facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 ```
 
 Simulate residuals for models
@@ -767,7 +1297,7 @@ testResiduals(sim2.4)
 sim2.5 <- simulateResiduals(pois_Acroporidae_fixed) #not a good fit
 testResiduals(sim2.5)
 
-sim2.6 <- simulateResiduals(pois_Acroporidae_interaction) #not a goodf fit
+sim2.6 <- simulateResiduals(pois_Acroporidae_interaction) #not a good fit
 testResiduals(sim2.6)
 
 ```
@@ -787,6 +1317,38 @@ nbin_Acroporidae_interaction %>%
 
 Acroporidae abundance significantly different in the outer reefs than inshore reefs.
 
+```{r}
+emm_acro_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf)
+
+emm_acro_shelf
+
+pairs(emm_acro_shelf, adjust = "tukey")
+```
+
+```{r}
+nbin_Acroporidae_interaction|> 
+  emmeans(~Shelf | Year_Collected, type = "response") |> 
+  as.data.frame() |> 
+  ggplot(aes(x=Year_Collected,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(y= "Estimated marginal mean Acroporidae\nrecruits (response scale)")+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1))+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
+
 ### Pocillopora
 
 ```{r}
@@ -795,7 +1357,7 @@ Pocilloporidae |>
   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
                position = position_dodge(width = 0.8),
                alpha = 0.6) +
-  facet_wrap(~Shelf_Position, ncol = 1, scale = "free_y")
+  facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 ```
 
 
@@ -831,9 +1393,39 @@ nbin_Pocilloporidae_interaction %>%
   summary()
 ```
 
+```{r}
+emm_poci_shelf <- emmeans(nbin_Pocilloporidae_interaction, ~Shelf)
 
+emm_poci_shelf
+
+pairs(emm_poci_shelf, adjust = "tukey")
+```
 
 Significant difference in Pocilloporidae abundance in mid shore reefs compared to inshore reefs
+
+```{r}
+nbin_Pocilloporidae_interaction|> 
+  emmeans(~Shelf | Year_Collected, type = "response") |> 
+  as.data.frame() |> 
+  ggplot(aes(x=Year_Collected,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(y= "Estimated marginal mean Acroporidae\nrecruits (response scale)")+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1))+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
 
 ### Poritid
 
@@ -843,7 +1435,7 @@ Poritid |>
   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
                position = position_dodge(width = 0.8),
                alpha = 0.6) +
-  facet_wrap(~Shelf_Position, ncol = 1, scale = "free_y")
+  facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 
 Poritid |> 
   filter(Poritid>60)
@@ -853,10 +1445,10 @@ Test residuals of models
 
 ```{r}
 sim4.1 <- simulateResiduals(pois_Poritid_fixed)
-testResiduals(sim4.1) # bad model
+testResiduals(sim4.1) # bad fit
 
 sim4.2 <- simulateResiduals(pois_Poritid_interaction)
-testResiduals(sim4.2) # bad model
+testResiduals(sim4.2) # bad fit
 
 sim4.3 <- simulateResiduals(nbin_Poritid_interaction)
 testResiduals(sim4.3)
@@ -871,31 +1463,47 @@ sim4.6 <- simulateResiduals(zbin_Poritid_interaction)
 testResiduals(sim4.6)
 ```
 
-
-```{r echo=FALSE}
-AIC(pois_Poritid_fixed, nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Poritid_interaction, pois_Poritid_interaction)
-```
-
-
-```{r echo=FALSE}
-nbin_Poritid_interaction %>% 
-  summary() 
-```
-
 Both nbin_interaction, and zbin_interaction for Portidae have significant dispersion.
 Don't see much of a difference in Poritid across shelf position. Although slightly less in mid shore reefs (p<0.1)
 
-
+```{r echo=FALSE}
+AIC(nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Poritid_interaction)
+```
 
 
 ```{r}
-nb_Orientation_Acroporidae <- glmmTMB(Recruits ~ 0+Shelf_Position* Tile_Surface + (1 | Reef/Site), 
+nbin_Poritid_interaction|> 
+  emmeans(~Shelf | Year_Collected, type = "response") |> 
+  as.data.frame() |> 
+  ggplot(aes(x=Year_Collected,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(y= "Estimated marginal mean Acroporidae\nrecruits (response scale)")+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1))+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
+# Composition and Orientation
+
+```{r}
+nb_Orientation_Acroporidae <- glmmTMB(Recruits ~ 0+Shelf* Tile_Surface + (1 | Reef/Site), 
         family = "nbinom2", data = Acroporidae_orientation)
 
-pois_Orientation_Acro <- glmmTMB(Recruits ~ 0+Shelf_Position* Tile_Surface + (1 | Reef/Site), 
+pois_Orientation_Acro <- glmmTMB(Recruits ~ 0+Shelf* Tile_Surface + (1 | Reef/Site), 
         family = "poisson", data = Acroporidae_orientation)
 
-zi_orientation_Acro <- glmmTMB(Recruits ~ 0+Shelf_Position* Tile_Surface + (1 | Reef/Site),
+zi_orientation_Acro <- glmmTMB(Recruits ~ 0+Shelf* Tile_Surface + (1 | Reef/Site),
                                ziformula = ~1,
         family = "nbinom2", data = Acroporidae_orientation)
 ```
@@ -916,14 +1524,10 @@ sim5 <- simulateResiduals(nb_Orientation_Acroporidae)
 testResiduals(sim5)
 ```
 
-
-
 ```{r}
 sim5.1 <- simulateResiduals(pois_Orientation_Acro)
 testResiduals(sim5.1)
 ```
-
-
 
 # Brood Stock Analysis
 
@@ -938,45 +1542,41 @@ PIT_50m <- PIT_50m |>
     Site = factor(Site)
          ) |> 
   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
+```
 
-
-
-ggplot(PIT_50m, aes(x=Year, y=prop_coral, colour = Reef))+
+```{r echo=FALSE}
+ggplot(PIT_50m, aes(x=Year, y=prop_hard_coral, colour = Reef))+
   geom_boxplot(aes(group = interaction(Year, Site))) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 
 ggplot(PIT_50m, aes(x=Year, y=Prop_macroalgae, colour = Reef))+
   geom_boxplot(aes(group = interaction(Year, Site))) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
-
-
 ```
 
 ### Acroporidae
 
-```{r}
-ggplot(PIT_50m, aes(x=Year, y=Acroporidae, colour = Reef))+
+```{r echo=FALSE}
+ggplot(PIT_50m, aes(x=Year, y=prop_acro, colour = Reef))+
   geom_boxplot(aes(group = interaction(Year, Site))) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 ```
 
 ### Pocilloporidae
 
-```{r}
-ggplot(PIT_50m, aes(x=Year, y=Pocilloporidae, colour = Reef))+
+```{r echo=FALSE}
+ggplot(PIT_50m, aes(x=Year, y=prop_poci, colour = Reef))+
   geom_boxplot(aes(group = interaction(Year, Site))) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 ```
 
 ### Poritidae
 
-```{r}
-ggplot(PIT_50m, aes(x=Year, y=Poritidae, colour = Reef))+
+```{r echo=FALSE} 
+ggplot(PIT_50m, aes(x=Year, y=prop_pori, colour = Reef))+
   geom_boxplot(aes(group = interaction(Year, Site))) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 ```
-
-Why is there not benthic surveys at Turtle S in the past two years?
 
 Victor Email: Regarding the PERMANOVA: you start with a community matrix (sites x coral taxa). A PERMANOVA tests whether community composition differs among groups, using a distance matrix derived from your multivariate raw data. The inputs are a dissimilarity (distance) matrix, and a grouping factor (i.e., a categorical variable you want to test, like “reef”, “shelf.position”, or “year”). In your case, I'd suggest calculating a Bray-Curtis distance matrix and then running a PERMANOVA with the vegan package. Here’s a quick example you can run in R:
 ```{r}
@@ -985,7 +1585,7 @@ abund <- PIT_50m |>
   select(Acroporidae, Pocilloporidae, Poritidae)
 
 prop <- PIT_50m |> 
-  select(prop_coral, Prop_macroalgae)
+  select(prop_hard_coral, Prop_macroalgae)
 ```
 
 Some of the rows do not have Acropora, Pocillopora or Porites present... should I then remove them? Because the distance matrix won't work otherwise.
@@ -999,7 +1599,6 @@ metadata <- PIT_50m |>
     Site = factor(Site)
   )
 ```
-
 
 
 ```{r echo=FALSE}
@@ -1031,26 +1630,17 @@ data_for_abundance <- PIT_50m |>
 data_for_abundance <- data_for_abundance |> 
   filter(clean > 0)
 
-
 abund <- data_for_abundance |> 
-  select(Acroporidae, Pocilloporidae, Poritidae) |> 
-  mutate(
-    Acroporidae = Acroporidae*50,
-    Pocilloporidae = Pocilloporidae*50,
-    Poritidae = Poritidae*50
-  )
+  select(Acroporidae, Pocilloporidae, Poritidae)
 
 abund_std <- abund |> 
   wisconsin()
-
-
 
 abund_bray <- vegdist(abund_std, method = "bray")
 
 meta_abund <- data_for_abundance |> 
   select(Shelf, Year, Reef, Site)
 ```
-
 
 
 ```{r}
@@ -1085,18 +1675,19 @@ scores_nmds <- scores_nmds |>
   bind_cols(meta_abund)
 
 
-ggplot(scores_nmds, aes(x = NMDS1, y = NMDS2, colour = Shelf)) +
+NMDS <- ggplot(scores_nmds, aes(x = NMDS1, y = NMDS2, colour = Shelf)) +
   geom_point(size = 3) +
   theme_minimal() +
   labs(
     title = "NMDS (Bray–Curtis)",
     colour = "Shelf Position"
   )
-
 ```
 
 Stress <0.05 therefore excellent representation with no prospect of misinterpretation.
+
 https://uw.pressbooks.pub/appliedmultivariatestatistics/chapter/nmds/
+
 ```{r}
 gof <- goodness(object = z)
 plot(z, display = "sites", type = "none")
@@ -1109,6 +1700,7 @@ plot original dissimilarities (z$diss) against Euclidean ordination distances (z
 ```{r}
 plot(z$diss, z$dist)
 ```
+
 ```{r}
 z.points <- data.frame(z$points,
                        Acroporidae = abund_std$Acroporidae,
@@ -1122,29 +1714,9 @@ theme(axis.title = element_blank(),
   axis.text = element_blank())
 
 p + geom_point()
-
-
 ```
 
 
-# Correlation between brood stock and corals
-
-### Total hard coral cover and total recruits
-
-```{r}
-PIT_50m |> 
-  group_by(Site, Year, Reef, Shelf) |> 
-  summarise(n = n())
-
-```
-
-Would need to do average or something to have a single value for PIT and single value for tiles for a given combination of site, year, and recruits/brood stock.
-
-### Total Acroporidae cover and total acroproidae recruits
-
-### Total Pocilloporidae cover and total Pocillopordiae recruits
-
-# Position on tile (IGNORE)
 
 ## Acroporidae
 
@@ -1154,7 +1726,7 @@ Acroporidae_orientation |>
   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
                position = position_dodge(width = 0.8),
                alpha = 0.6) +
-  facet_grid(Shelf_Position~Tile_Surface, scale = "free_y")
+  facet_grid(Shelf~Tile_Surface, scale = "free_y")
 ```
 
 ## Pocilloporidae
@@ -1165,7 +1737,7 @@ Pocilloporidae_orientation |>
   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
                position = position_dodge(width = 0.8),
                alpha = 0.6) +
-  facet_grid(Shelf_Position~Tile_Surface, scale = "free_y")+
+  facet_grid(Shelf~Tile_Surface, scale = "free_y")+
   theme_bw()
 ```
 
@@ -1178,20 +1750,12 @@ Poritid_orientation |>
   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
                position = position_dodge(width = 0.8),
                alpha = 0.6) +
-  facet_grid(Shelf_Position~Tile_Surface, scale = "free_y")+
+  facet_grid(Shelf~Tile_Surface, scale = "free_y")+
   theme_bw()
 ```
 
 ***Check the levels of grouping variables***
 
-```{r check levels of grouping variables, echo=FALSE}
-Coral_settlement_nGBR %>% count(Reef, Site)
-```
-
-All reefs have multiple sites, so nesting should work.
-
-
-2023 and 2024 are significantly different to 2022.  2025 is not significantly different to 2022.  Outer shelf is significantly different to inner shelf (p<0.01),   Mid shelf is significantly different to inner shelf reefs (p<0.05).  Intercept is also significant: not quite sure what that means in a biological framework.  When making a figure should I then be using summary statistics or raw count data? Because the large number of zeros will make it difficult to do a boxplot of the raw data. 
 
 ```{r}
 library(parameters)
@@ -1208,34 +1772,8 @@ nbin_total_yr.results <- parameters::model_parameters(nbin_total_yr, exponentiat
 
 
 
-
-### Simulations of the model 
-
-Simulating model -> need to check the reason people do this... I think it is to see if the observed values are explained by the model or not.
-
-
-```{r}
-sim1 <- simulateResiduals(nbin_total_yr)
-testResiduals(sim1)
-```
-
-**Key take aways:**
-- The uniformity indicates the scaled residuals are uniformly distributed. The p value > 0.05 suggests there is no evidence the residuals deviate from uniformity.
-- Dispersion is close to 1 and p value is >0.05, suggesting that there is no overdispersion or under dispersion.
-- Outliers: suggesting that the number of outliers is not significantly different to what would be expected.
-
 Because the simulation suggests not overdispersed, that means I can either do Wald Z or chi squared test (Bolker, Brooks, Clark, Geange, Poulsen, Stevens, White; 2008 http://dx.doi.org/10.1016/j.tree.2008.10.008)
 
-Attempting without seperating families and using family as a fixed effect
-
-```{r}
-pois_Family_yr <- glmmTMB(Total ~ Family * Shelf + Year_Collected + (1 | Reef/Site), 
-      family = "poisson", data = total_recruits)
-
-sim2 <- simulateResiduals(pois_Family_yr)
-testResiduals(sim2)
-```
-Not a good fit
 
 ```{r}
 nbin_Family_yr <- glmmTMB(Total ~ 1+ Family * Shelf + Year_Collected + (1 | Reef/Site), 
@@ -1261,29 +1799,28 @@ AIC(nbin_Family_yr, zbin_Family_yr)
 ```{r}
 summary(nbin_Family_yr)
 ```
-I guess my issue is what to make the baseline that everything is different too... should it be inner:Acroporidae? I don't think so, but I don't know what it should be.
+
+  I guess my issue is what to make the baseline that everything is different too... should it be inner:Acroporidae? I don't think so, but I don't know what it should be.
 
 # Q2 is the composition of the recruits different across the shelf?
 
 PERMANOVA - variation within a group can be calculated directly from a distance matrix. 
 
-
 Assess the fit of a NMDS by plotting the original dissimilarities (diss) against the Euclidean ordination distances (dist). Shepard plot
 ```{r}
-plot(NMDS$diss, NMDS$dist)
-stressplot(object = NMDS)
+# plot(NMDS$diss, NMDS$dist)
+# stressplot(object = NMDS)
 ```
 
 NMDS ordinations are often plotted without units or labels on the axes so that people do not try to interpret them.
 
 ```{r}
-ordiplot(NMDS, type = "n")
-orditorp(NMDS, display = "species", col = "blue", air = 0.01)
-orditorp(NMDS, display = "sites", cex = 0.5, air = 0.01)
+# ordiplot(NMDS, type = "n")
+# orditorp(NMDS, display = "species", col = "blue", air = 0.01)
+# orditorp(NMDS, display = "sites", cex = 0.5, air = 0.01)
 ```
 
 ### PERMANOVA
-
 
 ```{r}
 library(vegan)
@@ -1300,10 +1837,10 @@ site_by_species <- site_by_species %>%
 
 # Step 2: Separate metadata and species data
 metadata <- site_by_species %>%
-  select(Site, Shelf, Year_Collected)
+  select(Site_ID, Shelf, Year_Collected)
 
 species_matrix <- site_by_species %>%
-  select(Site, Acroporidae, Pocilloporidae, Poritid, Other)
+  select(Site_ID, Acroporidae, Pocilloporidae, Poritid, Other)
 
 # Step 3: Set row names and remove species rows with all zeros
 species_matrix_filtered <- species_matrix %>%
@@ -1368,7 +1905,7 @@ The principle of a permutation test is to generate a reference distribution of t
 H0: Observed results can be produced by random chance.
 
 The null hypothesis is rejected if this p
-value is equal to or smaller than the predefined significance level α (ex.: α=0.05).
+value is equal to or smaller than the predefined significance level alpha (ex.: alpha=0.05).
 
 Test for 
 1. Global RDA significance
@@ -1463,7 +2000,7 @@ Test significance of partial RDA
 ```{r}
 anova.cca(partial_rda2)
 ```
-Since p≤0.05 we reject H0 and can conclude that the result was not produced randomly.
+Since p< =0.05 we reject H0 and can conclude that the result was not produced randomly.
 
 ```{r}
 plot(partial_rda2, scaling = 1)
@@ -1474,17 +2011,17 @@ plot(partial_rda2, scaling = 1)
 env_shelf <- environment_data[,"Shelf"]
 
 env_year <- environment_data[,"Year_Collected"]
-vp <- varpart(recruit_hellinger, env_shelf, env_year)
-vp
-
-plot(vp)
+# vp <- varpart(recruit_hellinger, env_shelf, env_year)
+# vp
+# 
+# plot(vp)
 ```
 
 # Multivariate WorkFlow
 
 ### Need to do test of significance of fractions
 
-```{r}
+```{r eval = FALSE}
 anova.cca(rda(recruit_hellinger, env_shelf))
 
 anova.cca(rda(recruit_hellinger, env_year))
@@ -1521,11 +2058,6 @@ PIT <- PIT |>
       TRUE ~ Site
     )
   )
-
-# Belt_10m <- read_csv("Belt_10m.csv") %>%
-#   mutate(across(8:25, ~replace_na(.x, 0))) # Read in data
-# Belt_10m <- Belt_10m %>%
-#   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
 ```
 
 ```{r}
@@ -1533,28 +2065,6 @@ sample_design2 <- PIT |>
   group_by(Year, Reef, Site) |> 
   summarise(PIT = n()) |> 
   arrange(desc(PIT)) 
-# check names of sites in PIT and recruitment data
-
-# site_pit <- PIT |> 
-#   mutate("PIT" = "PIT")|> 
-#   distinct(Site, PIT)
-
-# sites_recruits <- Coral_settlement_nGBR |>
-#   mutate("Recruits" = "recruits")|> 
-#   distinct(Site, Recruits)
-
-# sites_clean <- full_join(site_pit, sites_recruits)
-
-
-# reef_pit <- PIT |> 
-#    mutate("PIT" = "PIT")|> 
-#    distinct(Reef, PIT)
-# 
-# reef_recruits <- Coral_settlement_nGBR |>
-#    mutate("Recruits" = "recruits")|> 
-#    distinct(Reef, Recruits)
-# 
-# reef_clean <- full_join(reef_pit, reef_recruits)
 ```
 
 ***Note to self - perhaps calculate a proportion of soft coral, given that they are known to have a negative effect on coral recruitment***
@@ -1716,13 +2226,9 @@ pit_long |>
 I am going to have to make a decision if I just keep the January or October, and then will need to change the year to facilitate an inner join.
 
 ```{r}
-#PIT_and_recruits <- inner_join(Coral_settlement_nGBR, PIT_50m)
-```
-
-```{r}
 PIT_long <- PIT |> 
-  select(Year, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritidae, Prop_macroalgae, prop_coral) %>% 
-  pivot_longer(cols = 5:9, names_to = "Family", values_to = "Proportion")
+  select(Year, Shelf, Reef, Site, prop_hard_coral, prop_soft_coral, Prop_macroalgae, prop_acro, prop_poci, prop_pori) %>% 
+  pivot_longer(cols = 5:10, names_to = "Family", values_to = "Proportion")
 ```
 
 ```{r}
@@ -1736,10 +2242,9 @@ ggplot(aes(x=Year, y= Proportion, colour = Shelf))+
   colour = "Shelf position")+
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
   facet_wrap(~Family)
-
 ```
 
-Mid shelf has had variable acroporidae cover, 
+Mid shelf has had variable Acroporidae cover, 
 
 ```{r}
 PIT_long |> 
@@ -1751,33 +2256,82 @@ ggplot(aes(x=Year, y= Proportion, colour = Site))+
   x = "Benthos",
   colour = "Shelf position")+
   # scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
-  facet_grid(Reef~Family)
+  facet_grid(Family~Reef, scales = "free_y")
 ```
 
 Two takeaways:
 1. Explicit temporal trend in benthic cover in Macgillvary reef (increasing then decreased final year); and
 2. Significant variation in prop_coral and prop_macroalgae in Turtle group reefs.
+
+# Trying something new, to hopefully be able to include the proportion of a family in a model?
+```{r}
+join <- PIT |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_aco = mean(Acroporidae),
+    sd_aco = sd(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    PIT = n()
+  )
+
+Combined <- left_join(Coral_settlement_nGBR, join)
+
+```
+
+```{r}
+## Fixed
+nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + mean_aco + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Combined)
+
+nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf+mean_poci + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Combined)
+
+nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + mean_por +(1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Combined)
+
+## Interaction
+nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*mean_por*Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+
+nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf *mean_poci* Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+
+nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*mean_aco*Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+```
+
+```{r}
+sim_aco <- simulateResiduals(nbin_Acroporidae_interaction)
+testResiduals(sim_aco)
+
+summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
+```
+
+```{r}
+sim_poci <- simulateResiduals(nbin_Pocilloporidae_interaction)
+testResiduals(sim_poci)
+
+summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
+```
+
+
+```{r}
+sim_por <- simulateResiduals(nbin_Poritid_interaction)
+testResiduals(sim_por)
+
+summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
+
+```
+
+
+
 # Bayesian Analysis 
 
 Model Diagnostics Based on Murray Feedback
-```{r}
-Coral_settlement_nGBR_CS <- read_csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
-  mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
 
-Coral_settlement_nGBR <- Coral_settlement_nGBR_CS %>% 
-  filter(`Shelf posn` != "Coral Sea", #remove coral sea data
-        Obs != c(1499, 1621, 1622)) #Remove loose tiles with heavy biofouling
-
-Coral_settlement_nGBR <- Coral_settlement_nGBR %>% 
-  rename("Shelf"= `Shelf posn`,
-         "Year_Collected"= `Year (Jan)`,
-         "Site_#"= `Site #`,
-         "Acroporidae" =Acropora,
-         "Pocilloporidae" = Pocillopora,
-         "Poritid" = Porites) |> 
-  mutate(Year_Collected = factor(Year_Collected),
-         Shelf = factor(Shelf))
-```
 
 ```{r include=FALSE, eval=FALSE}
 library(tidyverse)  #for data wrangling etc
@@ -1831,7 +2385,4 @@ Coral_settlement_nGBR |>
             mad(total))
 ```
 
-```{r}
-sample_joined <- left_join(sample_design2, sample_design)
-```
 
