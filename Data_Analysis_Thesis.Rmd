@@ -343,7 +343,7 @@ Fig1_mean <- Coral_settlement_nGBR |>
   ) +
   # Raw data
   geom_jitter(
-    position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.6),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
     size = 0.35,
     alpha = 0.5
   ) +
@@ -369,6 +369,7 @@ Fig1_mean <- Coral_settlement_nGBR |>
   )+
   theme(text = element_text(size =8))
 
+Fig1_mean
 ```
 
 Fig 1
@@ -503,8 +504,6 @@ position_total_recruits <- position_total_recruits |>
 position_total_recruits <- position_total_recruits |>                           
 mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")))
 ```
-
-
 
 ```{r message=FALSE, echo=FALSE}
 total_recruits %>% 
@@ -1082,7 +1081,7 @@ pairs(emm_year_shelf, adjust = "tukey",
 ```
 
 ```{r}
-nbin_total_yr2|> 
+total_model_emm <- nbin_total_yr2|> 
   emmeans(~Shelf| Year_Collected, type = "response") |> 
   as.data.frame() |> 
   ggplot(aes(x=Year_Collected,
@@ -1091,7 +1090,7 @@ nbin_total_yr2|>
   geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
-  labs(y= "Estimated marginal mean total\nrecruits (response scale)")+
+  labs(y= "Estimated marginal\nmean total recruits")+
   scale_x_discrete(
     "Deployment",
     labels = c("2022" = "21/22",
@@ -1100,8 +1099,13 @@ nbin_total_yr2|>
                "2025" = "24/25",
                "2026" = "25/26")
     )+
-  theme(legend.position = c(1,1), legend.justification = c(1,1))+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size =8))+
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
+```{r}
+ggarrange(Fig1_mean, total_model_emm, ncol =1, labels = c("A", "B"))
 ```
 
 ```{r}
@@ -1335,7 +1339,7 @@ nbin_Acroporidae_interaction|>
   geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
-  labs(y= "Estimated marginal mean Acroporidae\nrecruits (response scale)")+
+  labs(y= "Estimated marginal\nmean Acroporidae recruits")+
   scale_x_discrete(
     "Deployment",
     labels = c("2022" = "21/22",
@@ -1347,7 +1351,6 @@ nbin_Acroporidae_interaction|>
   theme(legend.position = c(1,1), legend.justification = c(1,1))+
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
 ```
-
 
 ### Pocillopora
 
@@ -1413,7 +1416,7 @@ nbin_Pocilloporidae_interaction|>
   geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
-  labs(y= "Estimated marginal mean Acroporidae\nrecruits (response scale)")+
+  labs(y= "Estimated marginal\nmean Pocilloporidae")+
   scale_x_discrete(
     "Deployment",
     labels = c("2022" = "21/22",
@@ -1481,7 +1484,7 @@ nbin_Poritid_interaction|>
   geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
-  labs(y= "Estimated marginal mean Acroporidae\nrecruits (response scale)")+
+  labs(y= "Estimated marginal\nmean Poritidae recruits")+
   scale_x_discrete(
     "Deployment",
     labels = c("2022" = "21/22",
@@ -1494,7 +1497,8 @@ nbin_Poritid_interaction|>
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
 ```
 
-# Composition and Orientation
+# Q3 Composition and Orientation
+*to do*
 
 ```{r}
 nb_Orientation_Acroporidae <- glmmTMB(Recruits ~ 0+Shelf* Tile_Surface + (1 | Reef/Site), 
@@ -1528,6 +1532,8 @@ testResiduals(sim5)
 sim5.1 <- simulateResiduals(pois_Orientation_Acro)
 testResiduals(sim5.1)
 ```
+
+
 
 # Brood Stock Analysis
 
@@ -1755,7 +1761,6 @@ Poritid_orientation |>
 ```
 
 ***Check the levels of grouping variables***
-
 
 ```{r}
 library(parameters)
@@ -2325,8 +2330,6 @@ testResiduals(sim_por)
 summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
 
 ```
-
-
 
 # Bayesian Analysis 
 
