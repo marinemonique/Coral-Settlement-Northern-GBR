@@ -1578,25 +1578,296 @@ Poritid_orientation |>
 
 # Brood Stock Analysis
 
-Check whether benthic composition is behaving consistently between Sites in a reef
-```{r}
-PIT_50m <- read_csv("PIT_50m.csv", col_types = cols(Shelf = col_character()))
+Importing benthic data
 
-PIT_50m <- PIT_50m |> 
+```{r}
+PIT <- read_csv("PIT_50m.csv") %>%
+  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ))
+
+
+PIT<- PIT |> 
   mutate(
     Shelf = factor(Shelf),
     Reef = factor(Reef),
-    Site = factor(Site)
-         ) |> 
-  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
+    Site = factor(Site))
 ```
 
+```{r}
+PIT |> 
+  group_by(Year, Site) |> 
+  summarise(
+    count = n_distinct(Transect)
+  ) #the number of transects per year differs among sites, so not sure whether calculating mean and standard error is appropriate or not.
+```
+
+## is the total number of recruits related to the number proportion of coral in PIT?
+
+```{r}
+# Step 1: Create site-by-species matrix with Site_ID
+site_by_PIT <- PIT %>%
+  select(
+    Year, Reef, Shelf, Site, Transect,
+    prop_acro, prop_hard_coral, prop_poci, prop_pori,
+    prop_soft_coral, prop_other_hc,
+    Prop_DC, Prop_Other, Prop_macroalgae
+  ) %>%
+  mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
+
+# Step 2: Metadata (KEEP Site_ID)
+metadata_PIT <- site_by_PIT %>%
+  select(Site_ID, Shelf, Year)
+
+# Step 3: Species matrix
+PIT_matrix <- site_by_PIT %>%
+  select(
+    Site_ID,
+    prop_acro, prop_hard_coral, prop_poci, prop_pori,
+    prop_soft_coral, prop_other_hc,
+    Prop_DC, Prop_Other, Prop_macroalgae
+  )
+
+# Step 4: Remove all-zero rows BEFORE rownames
+PIT_matrix_filtered <- PIT_matrix %>%
+  filter(rowSums(across(-Site_ID)) > 0) %>%
+  column_to_rownames("Site_ID")
+
+# Step 5: Match metadata
+PIT_metadata_filtered <- metadata_PIT %>%
+  filter(Site_ID %in% rownames(PIT_matrix_filtered)) %>%
+  column_to_rownames("Site_ID")
+
+# Step 6: PERMANOVA
+PIT_adonis_result <- adonis2(
+  PIT_matrix_filtered ~ Shelf + Year,
+  data = PIT_metadata_filtered,
+  method = "bray",
+  by = "term",
+  permutations = 999
+)
+
+print(PIT_adonis_result)
+
+set.seed(999)  # reproducibility
+
+PIT_nmds <- metaMDS(
+  PIT_matrix_filtered,
+  distance = "bray",
+  k = 2,            # 2D solution
+  trymax = 100,
+  autotransform = FALSE
+)
+```
+
+```{r}
+PIT_nmds$stress
+```
+
+Stress isn't great, but usable.
+ 
+```{r}
+nmds_scores_PIT <- as.data.frame(scores(PIT_nmds, display = "sites"))
+
+nmds_scores_PIT$Site_ID <- rownames(nmds_scores_PIT)
+
+nmds_scores_PIT <- nmds_scores_PIT %>%
+  left_join(
+    PIT_metadata_filtered %>% 
+      rownames_to_column("Site_ID"),
+    by = "Site_ID"
+  )
+
+ggplot(nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf)) +
+  geom_point(size = 3, alpha = 0.8) +
+  stat_ellipse(type = "t") +
+  theme_classic() +
+  coord_equal() +
+  labs(title = "NMDS of PIT benthic composition")
+```
+ 
+```{r}
+PIT_envfit <- envfit(
+  PIT_nmds,
+  PIT_matrix_filtered,
+  permutations = 999
+)
+
+PIT_envfit
+
+plot(PIT_nmds)
+plot(PIT_envfit, p.max = 0.05, col = "black")
+
+```
+
+```{r}
+binomial_acro_benthic <- glmmTMB(data = PIT, prop_acro~Year * Shelf+(1|Reef/Site), family = "binomial")
+
+sim_prop_acro <- simulateResiduals(binomial_acro_benthic)
+testResiduals(sim_prop_acro)
+
+summary(binomial_acro_benthic)
+
+binomial_poci_benthic <- glmmTMB(data = PIT, prop_poci~Year * Shelf+(1|Reef/Site), family = "binomial")
+sim_prop_poci <- simulateResiduals(binomial_poci_benthic)
+testResiduals(sim_prop_poci)
+summary(binomial_poci_benthic)
+
+PIT_matrix <- PIT[,95:103]
+```
+
+
+```{r}
+library(mvabund)
+
+PIT_abund <- mvabund(PIT[,95:103])
+boxplot(PIT[, 95:103], horizontal = TRUE, las = 2, main = "Abundance")
+
+pit_long <- PIT |> 
+  pivot_longer(cols = 95:103, names_to = "Benthos", values_to = "Proportion")
+
+pit_long |> 
+  ggplot(aes(x=Year, y=Proportion, colour = Site))+
+  geom_boxplot()+
+  facet_wrap(~Benthos)
+
+pit_long |> 
+  group_by(Year, Site, `Depth/Zone`, Benthos) |> 
+  summarise(
+    mean = mean(Proportion),
+    se = sd(Proportion)/(n()^0.5),
+    mad = mad(Proportion),
+    min = min(Proportion),
+    max = max(Proportion),
+    n = n(),
+    range = max(Proportion)- min(Proportion)
+  )
+```
+
+
+```{r}
+PIT_long <- PIT |> 
+  select(Year, Shelf, Reef, Site, prop_hard_coral, prop_soft_coral, Prop_macroalgae, prop_acro, prop_poci, prop_pori) %>% 
+  pivot_longer(cols = 5:10, names_to = "Family", values_to = "Proportion")
+```
+
+```{r}
+PIT_long |> 
+ggplot(aes(x=Year, y= Proportion, colour = Shelf))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression("Proportion cover (" * PIT^{-1}*")" ),
+  x = "Benthos",
+  colour = "Shelf position")+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_wrap(~Family)
+```
+
+Mid shelf has had variable Acroporidae cover, 
+
+```{r}
+PIT_long |> 
+ggplot(aes(x=Year, y= Proportion, colour = Site))+
+  geom_boxplot(position = "dodge")+
+  theme_classic()+
+  labs(
+  y = expression("Proportion cover (" * Transect^{-1}*")" ),
+  x = "Benthos",
+  colour = "Shelf position")+
+  # scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  facet_grid(Family~Reef, scales = "free_y")
+```
+
+Two takeaways:
+1. Explicit temporal trend in benthic cover in Macgillvary reef (increasing then decreased final year); and
+2. Significant variation in prop_coral and prop_macroalgae in Turtle group reefs.
+
+## Averaged PIT transects
+Trying something new, to hopefully be able to include the proportion of a family in a model?
+
+```{r}
+join <- PIT |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_aco = mean(Acroporidae),
+    sd_aco = sd(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    PIT = n()
+  )
+
+Combined <- left_join(Coral_settlement_nGBR, join)
+```
+
+```{r}
+## Fixed
+nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + mean_aco + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Combined)
+
+nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf+mean_poci + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Combined)
+
+nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + mean_por +(1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Combined)
+
+## Interaction
+nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*mean_por*Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+
+nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf *mean_poci* Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+
+nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*mean_aco*Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+```
+
+```{r}
+sim_aco <- simulateResiduals(nbin_Acroporidae_interaction)
+testResiduals(sim_aco)
+
+summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
+```
+
+```{r}
+sim_poci <- simulateResiduals(nbin_Pocilloporidae_interaction)
+testResiduals(sim_poci)
+
+summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
+```
+
+
+```{r}
+sim_por <- simulateResiduals(nbin_Poritid_interaction)
+testResiduals(sim_por)
+
+summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
+
+```
+
+Check whether benthic composition is behaving consistently between Sites in a reef
+
 ```{r echo=FALSE}
-ggplot(PIT_50m, aes(x=Year, y=prop_hard_coral, colour = Reef))+
+ggplot(PIT, aes(x=Year, y=prop_hard_coral, colour = Reef))+
   geom_boxplot(aes(group = interaction(Year, Site))) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 
-ggplot(PIT_50m, aes(x=Year, y=Prop_macroalgae, colour = Reef))+
+ggplot(PIT, aes(x=Year, y=Prop_macroalgae, colour = Reef))+
   geom_boxplot(aes(group = interaction(Year, Site))) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 ```
@@ -1604,7 +1875,7 @@ ggplot(PIT_50m, aes(x=Year, y=Prop_macroalgae, colour = Reef))+
 ### Acroporidae
 
 ```{r echo=FALSE}
-ggplot(PIT_50m, aes(x=Year, y=prop_acro, colour = Reef))+
+ggplot(PIT, aes(x=Year, y=prop_acro, colour = Reef))+
   geom_boxplot(aes(group = interaction(Year, Site))) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 ```
@@ -1612,7 +1883,7 @@ ggplot(PIT_50m, aes(x=Year, y=prop_acro, colour = Reef))+
 ### Pocilloporidae
 
 ```{r echo=FALSE}
-ggplot(PIT_50m, aes(x=Year, y=prop_poci, colour = Reef))+
+ggplot(PIT, aes(x=Year, y=prop_poci, colour = Reef))+
   geom_boxplot(aes(group = interaction(Year, Site))) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 ```
@@ -1620,7 +1891,7 @@ ggplot(PIT_50m, aes(x=Year, y=prop_poci, colour = Reef))+
 ### Poritidae
 
 ```{r echo=FALSE} 
-ggplot(PIT_50m, aes(x=Year, y=prop_pori, colour = Reef))+
+ggplot(PIT, aes(x=Year, y=prop_pori, colour = Reef))+
   geom_boxplot(aes(group = interaction(Year, Site))) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 ```
@@ -1628,17 +1899,17 @@ ggplot(PIT_50m, aes(x=Year, y=prop_pori, colour = Reef))+
 Victor Email: Regarding the PERMANOVA: you start with a community matrix (sites x coral taxa). A PERMANOVA tests whether community composition differs among groups, using a distance matrix derived from your multivariate raw data. The inputs are a dissimilarity (distance) matrix, and a grouping factor (i.e., a categorical variable you want to test, like “reef”, “shelf.position”, or “year”). In your case, I'd suggest calculating a Bray-Curtis distance matrix and then running a PERMANOVA with the vegan package. Here’s a quick example you can run in R:
 ```{r}
 library(vegan)
-abund <- PIT_50m |> 
+abund <- PIT |> 
   select(Acroporidae, Pocilloporidae, Poritidae)
 
-prop <- PIT_50m |> 
+prop <- PIT |> 
   select(prop_hard_coral, Prop_macroalgae)
 ```
 
 Some of the rows do not have Acropora, Pocillopora or Porites present... should I then remove them? Because the distance matrix won't work otherwise.
 
 ```{r}
-metadata <- PIT_50m |> 
+metadata <- PIT |> 
   select(Site, Shelf, Reef, Year) |> 
   mutate(
     Shelf = factor(Shelf),
@@ -1671,7 +1942,7 @@ Shelf contributes 52.2% of total variation in community composition (proportion 
 
 ### Try to do for abundances, but will need to remove rows where it is 0
 ```{r}
-data_for_abundance <- PIT_50m |>
+data_for_abundance <- PIT |>
   mutate(clean = rowSums(across(c(Acroporidae, Pocilloporidae, Poritidae)), na.rm = TRUE))
 
 data_for_abundance <- data_for_abundance |> 
@@ -1763,23 +2034,6 @@ theme(axis.title = element_blank(),
 p + geom_point()
 ```
 
-
-
-```{r}
-library(parameters)
-print(model_parameters(nbin_total_yr,
-                       exponentiate = TRUE #required for log or logit function
-                       ))
-```
-
-
-```{r}
-# Specify 'exponentiate = TRUE' to interpret coefficients as ratios
-nbin_total_yr.results <- parameters::model_parameters(nbin_total_yr, exponentiate = TRUE) 
-```
-
-
-
 Because the simulation suggests not overdispersed, that means I can either do Wald Z or chi squared test (Bolker, Brooks, Clark, Geange, Poulsen, Stevens, White; 2008 http://dx.doi.org/10.1016/j.tree.2008.10.008)
 
 
@@ -1808,9 +2062,34 @@ AIC(nbin_Family_yr, zbin_Family_yr)
 summary(nbin_Family_yr)
 ```
 
-  I guess my issue is what to make the baseline that everything is different too... should it be inner:Acroporidae? I don't think so, but I don't know what it should be.
+Estimated marginal means
+```{r}
+Family_mod_tukey <- emmeans(nbin_Family_yr, ~Shelf*Family)
+pairs(Family_mod_tukey, adjust = "tukey")
 
-# Q2 is the composition of the recruits different across the shelf?
+nbin_Family_yr |> 
+  emmeans(~Shelf*Family, type = "response") |> 
+  as.data.frame() |> 
+  ggplot(aes(x=Family,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(y= "Estimated marginal\nmean recruits", x= "Family")+
+  # scale_x_discrete(
+  #   "Deployment",
+  #   labels = c("2022" = "21/22",
+  #              "2023" = "22/23",
+  #              "2024" = "23/24",
+  #              "2025" = "24/25",
+  #              "2026" = "25/26")
+  #   )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1))+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
+
 
 PERMANOVA - variation within a group can be calculated directly from a distance matrix. 
 
@@ -2044,300 +2323,9 @@ anova.cca(rda(recruit_hellinger, env_shelf, env_year))
 anova.cca(rda(recruit_hellinger, env_year, env_shelf))
 ```
 
-# Benthic Data
-
-Importing benthic data
-```{r}
-PIT <- read_csv("PIT_50m.csv") %>%
-  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
-
-PIT <- PIT %>% 
-  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
-
-PIT <- PIT |> 
-  mutate(
-    Site = case_when(
-      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
-      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
-      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
-      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
-      Site == "Turtle South - Coral" ~ "TS_Back",
-      Site == "Turtle North - front" ~ "TN_Crest",
-      TRUE ~ Site
-    )
-  )
-```
-
-```{r}
-sample_design2 <- PIT |> 
-  group_by(Year, Reef, Site) |> 
-  summarise(PIT = n()) |> 
-  arrange(desc(PIT)) 
-```
-
-***Note to self - perhaps calculate a proportion of soft coral, given that they are known to have a negative effect on coral recruitment***
-
-```{r}
-PIT |> 
-  group_by(Year, Site) |> 
-  summarise(
-    count = n_distinct(Transect)
-  ) #the number of transects per year differs among sites, so not sure whether calculating mean and standard error is appropriate or not.
-
-
-```
-
-## is the total number of recruits related to the number proportion of coral in PIT?
-
-```{r}
-# Step 1: Create site-by-species matrix with Site_ID
-site_by_PIT <- PIT %>%
-  select(
-    Year, Reef, Shelf, Site, Transect,
-    prop_acro, prop_hard_coral, prop_poci, prop_pori,
-    prop_soft_coral, prop_other_hc,
-    Prop_DC, Prop_Other, Prop_macroalgae
-  ) %>%
-  mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
-
-# Step 2: Metadata (KEEP Site_ID)
-metadata_PIT <- site_by_PIT %>%
-  select(Site_ID, Shelf, Year)
-
-# Step 3: Species matrix
-PIT_matrix <- site_by_PIT %>%
-  select(
-    Site_ID,
-    prop_acro, prop_hard_coral, prop_poci, prop_pori,
-    prop_soft_coral, prop_other_hc,
-    Prop_DC, Prop_Other, Prop_macroalgae
-  )
-
-# Step 4: Remove all-zero rows BEFORE rownames
-PIT_matrix_filtered <- PIT_matrix %>%
-  filter(rowSums(across(-Site_ID)) > 0) %>%
-  column_to_rownames("Site_ID")
-
-# Step 5: Match metadata
-PIT_metadata_filtered <- metadata_PIT %>%
-  filter(Site_ID %in% rownames(PIT_matrix_filtered)) %>%
-  column_to_rownames("Site_ID")
-
-# Step 6: PERMANOVA
-PIT_adonis_result <- adonis2(
-  PIT_matrix_filtered ~ Shelf + Year,
-  data = PIT_metadata_filtered,
-  method = "bray",
-  by = "term",
-  permutations = 999
-)
-
-print(PIT_adonis_result)
-
-set.seed(999)  # reproducibility
-
-PIT_nmds <- metaMDS(
-  PIT_matrix_filtered,
-  distance = "bray",
-  k = 2,            # 2D solution
-  trymax = 100,
-  autotransform = FALSE
-)
-```
-
-```{r}
-PIT_nmds$stress
-```
- Stress isn't great, but usable.
- 
-```{r}
-nmds_scores_PIT <- as.data.frame(scores(PIT_nmds, display = "sites"))
-
-nmds_scores_PIT$Site_ID <- rownames(nmds_scores_PIT)
-
-nmds_scores_PIT <- nmds_scores_PIT %>%
-  left_join(
-    PIT_metadata_filtered %>% 
-      rownames_to_column("Site_ID"),
-    by = "Site_ID"
-  )
-
-ggplot(nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf)) +
-  geom_point(size = 3, alpha = 0.8) +
-  stat_ellipse(type = "t") +
-  theme_classic() +
-  coord_equal() +
-  labs(title = "NMDS of PIT benthic composition")
-```
- 
-```{r}
-PIT_envfit <- envfit(
-  PIT_nmds,
-  PIT_matrix_filtered,
-  permutations = 999
-)
-
-PIT_envfit
-
-plot(PIT_nmds)
-plot(PIT_envfit, p.max = 0.05, col = "black")
-
-```
-
- 
- 
-```{r}
-binomial_acro_benthic <- glmmTMB(data = PIT, prop_acro~Year * Shelf+(1|Reef/Site), family = "binomial")
-
-sim_prop_acro <- simulateResiduals(binomial_acro_benthic)
-testResiduals(sim_prop_acro)
-
-summary(binomial_acro_benthic)
-
-
-binomial_poci_benthic <- glmmTMB(data = PIT, prop_poci~Year * Shelf+(1|Reef/Site), family = "binomial")
-sim_prop_poci <- simulateResiduals(binomial_poci_benthic)
-testResiduals(sim_prop_poci)
-summary(binomial_poci_benthic)
-
-PIT_matrix <- PIT[,95:103]
-```
-
-
-```{r}
-library(mvabund)
-
-PIT_abund <- mvabund(PIT[,95:103])
-boxplot(PIT[, 95:103], horizontal = TRUE, las = 2, main = "Abundance")
-
-pit_long <- PIT |> 
-  pivot_longer(cols = 95:103, names_to = "Benthos", values_to = "Proportion")
-
-pit_long |> 
-  ggplot(aes(x=Year, y=Proportion, colour = Site))+
-  geom_boxplot()+
-  facet_wrap(~Benthos)
-
-pit_long |> 
-  group_by(Year, Site, `Depth/Zone`, Benthos) |> 
-  summarise(
-    mean = mean(Proportion),
-    se = sd(Proportion)/(n()^0.5),
-    mad = mad(Proportion),
-    min = min(Proportion),
-    max = max(Proportion),
-    n = n(),
-    range = max(Proportion)- min(Proportion)
-  )
-```
-
-I am going to have to make a decision if I just keep the January or October, and then will need to change the year to facilitate an inner join.
-
-```{r}
-PIT_long <- PIT |> 
-  select(Year, Shelf, Reef, Site, prop_hard_coral, prop_soft_coral, Prop_macroalgae, prop_acro, prop_poci, prop_pori) %>% 
-  pivot_longer(cols = 5:10, names_to = "Family", values_to = "Proportion")
-```
-
-```{r}
-PIT_long |> 
-ggplot(aes(x=Year, y= Proportion, colour = Shelf))+
-  geom_boxplot(position = "dodge")+
-  theme_classic()+
-  labs(
-  y = expression("Proportion cover (" * PIT^{-1}*")" ),
-  x = "Benthos",
-  colour = "Shelf position")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
-  facet_wrap(~Family)
-```
-
-Mid shelf has had variable Acroporidae cover, 
-
-```{r}
-PIT_long |> 
-ggplot(aes(x=Year, y= Proportion, colour = Site))+
-  geom_boxplot(position = "dodge")+
-  theme_classic()+
-  labs(
-  y = expression("Proportion cover (" * Transect^{-1}*")" ),
-  x = "Benthos",
-  colour = "Shelf position")+
-  # scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
-  facet_grid(Family~Reef, scales = "free_y")
-```
-
-Two takeaways:
-1. Explicit temporal trend in benthic cover in Macgillvary reef (increasing then decreased final year); and
-2. Significant variation in prop_coral and prop_macroalgae in Turtle group reefs.
-
-# Trying something new, to hopefully be able to include the proportion of a family in a model?
-```{r}
-join <- PIT |> 
-  group_by(Year, Shelf, Reef, Site) |> 
-  summarise(
-    mean_aco = mean(Acroporidae),
-    sd_aco = sd(Acroporidae),
-    mean_poci = mean(Pocilloporidae),
-    sd_poci = sd(Pocilloporidae),
-    mean_por = mean(Poritidae),
-    sd_por = sd(Poritidae),
-    PIT = n()
-  )
-
-Combined <- left_join(Coral_settlement_nGBR, join)
-
-```
-
-```{r}
-## Fixed
-nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + mean_aco + (1 | Reef/Site) + Year_Collected, 
-        family = "nbinom2", data = Combined)
-
-nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf+mean_poci + (1 | Reef/Site) + Year_Collected, 
-        family = "nbinom2", data = Combined)
-
-nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + mean_por +(1 | Reef/Site) + Year_Collected, 
-        family = "nbinom2", data = Combined)
-
-## Interaction
-nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*mean_por*Year_Collected + (1 | Reef/Site), 
-        family = "nbinom2", data = Combined)
-
-nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf *mean_poci* Year_Collected + (1 | Reef/Site), 
-        family = "nbinom2", data = Combined)
-
-nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*mean_aco*Year_Collected + (1 | Reef/Site), 
-        family = "nbinom2", data = Combined)
-```
-
-```{r}
-sim_aco <- simulateResiduals(nbin_Acroporidae_interaction)
-testResiduals(sim_aco)
-
-summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
-```
-
-```{r}
-sim_poci <- simulateResiduals(nbin_Pocilloporidae_interaction)
-testResiduals(sim_poci)
-
-summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
-```
-
-
-```{r}
-sim_por <- simulateResiduals(nbin_Poritid_interaction)
-testResiduals(sim_por)
-
-summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
-
-```
-
 # Bayesian Analysis 
 
 Model Diagnostics Based on Murray Feedback
-
 
 ```{r include=FALSE, eval=FALSE}
 library(tidyverse)  #for data wrangling etc
