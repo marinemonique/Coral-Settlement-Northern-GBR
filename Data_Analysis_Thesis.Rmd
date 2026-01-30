@@ -62,10 +62,17 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR |>
   )) |> 
 mutate(
   notes = case_when(
-    notes %in% c("dislodged", "dislodged tile", "dettached tile") ~ "dislodged",
+    notes %in% c("dislodged", "dislodged tile", "dettached tile") ~ "Dislodged",
+    notes %in% c("lots of tube worms") ~ "Lots of tube worms",
     TRUE ~ notes
   ))
 
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+mutate(
+  notes = case_when(
+    !notes %in% c("Dislodged", "Lots of tube worms")~"No notes",
+    TRUE ~ notes
+  ))
 ```
 
 
@@ -131,14 +138,19 @@ The tiles with lots of tube worms were slightly lower than those without lots of
 
 *also run with year as a random variable*
 ```{r}
-dettached_mod <- glmmTMB(total ~ notes + (1 | Reef/Site) + (1| Year_Collected), 
+dettached_mod_r <- glmmTMB(total ~ notes + (1 | Reef/Site) + (1| Year_Collected), 
       family = "nbinom2", data = Coral_settlement_nGBR)
 ```
 
 ```{r}
-sim_mod <- simulateResiduals(dettached_mod)
+sim_mod_r <- simulateResiduals(dettached_mod_r)
 testResiduals(sim_mod)
 
+#Given both models have good DHARMA outputs, Perform AIC
+AIC(dettached_mod, dettached_mod_r)
+```
+
+```{r}
 plot(ggpredict(dettached_mod, terms = "notes"))
 
 d_tukey <- emmeans(dettached_mod, ~notes)
@@ -290,62 +302,31 @@ Fig.1 <- Coral_settlement_nGBR |>
   )+
   geom_jitter(size = 0.35, alpha = 0.5)
 
-# Fig.1 <- Coral_settlement_nGBR |>
-#   ggplot(aes(x = Year_Collected, y = total, colour = Shelf)) +
-#   geom_boxplot(position = position_dodge(width = 0.75)) +
-#   geom_jitter(
-#     aes(group = Shelf),
-#     position = position_jitterdodge(
-#       jitter.width = 0.35,
-#       dodge.width  = 0.75
-#     ),
-#     size = 0.35,
-#     alpha = 0.5
-#   ) +
-#   theme_classic() +
-#   labs(
-#     y = expression("Recruits (" * tile^{-1} * ")"),
-#     x = "Year",
-#     colour = "Shelf position"
-#   ) +
-#   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
-#   theme(legend.position = c(1,1), legend.justification = c(1,1)) +
-#   scale_x_discrete(
-#     "Deployment",
-#     labels = c(
-#       "2022" = "21/22",
-#       "2023" = "22/23",
-#       "2024" = "23/24",
-#       "2025" = "24/25"
-#     )
-#   )
-
-
 Fig.1
 ```
 
 ```{r}
 Fig1_mean <- Coral_settlement_nGBR |>  
   ggplot(aes(x = Year_Collected, y = total, colour = Shelf)) +
+  # Raw data
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+    size = 0.5,
+    alpha = 0.5
+  ) +
   # Mean points
   stat_summary(
     fun = mean,
     geom = "point",
     position = position_dodge(width = 0.6),
-    size = 2.5
+    size = 2.25
   ) +
   # Error bars (mean ± SE)
   stat_summary(
     fun.data = mean_se,
     geom = "errorbar",
     position = position_dodge(width = 0.6),
-    width = 0.2
-  ) +
-  # Raw data
-  geom_jitter(
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
-    size = 0.35,
-    alpha = 0.5
+    width = 0.45
   ) +
   theme_classic() +
   labs(
@@ -370,6 +351,135 @@ Fig1_mean <- Coral_settlement_nGBR |>
   theme(text = element_text(size =8))
 
 Fig1_mean
+```
+
+```{r warning=FALSE, message=FALSE}
+pois_total_yr <- glmmTMB(total ~ Shelf + Year_Collected + (1 | Reef/Site), 
+      family = "poisson", data = Coral_settlement_nGBR)
+
+nbin_total_yr <- glmmTMB(total ~ Shelf +  Year_Collected +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+zbin_total_yr <- glmmTMB(total ~ Shelf + Year_Collected + (1 | Reef/Site),
+                      ziformula = ~1,
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+pois_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected + (1 | Reef/Site), 
+      family = "poisson", data = Coral_settlement_nGBR)
+
+nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+zbin_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected + (1 | Reef/Site),
+                      ziformula = ~1,
+        family = "nbinom2", data = Coral_settlement_nGBR)
+```
+
+Use DHARMA to assess residuals
+
+```{r}
+sim1.1 <- simulateResiduals(pois_total_yr) 
+testResiduals(sim1.1) #not good fit
+plot(sim1.1)
+
+sim1.2 <- simulateResiduals(pois_total_yr2)
+testResiduals(sim1.2) #not good fit
+plot(sim1.2)
+
+sim1.3 <- simulateResiduals(nbin_total_yr)
+testResiduals(sim1.3) #good
+plot(sim1.3)
+
+sim1.4 <- simulateResiduals(nbin_total_yr2)
+testResiduals(sim1.4) #good
+plot(sim1.4)
+
+sim1.5 <- simulateResiduals(zbin_total_yr)
+testResiduals(sim1.5) #good
+plot(sim1.5)
+
+sim1.6 <- simulateResiduals(zbin_total_yr2)
+testResiduals(sim1.6) #good
+plot(sim1.6)
+```
+
+Poisson model residuals were bad, therefore will only compare the four models that testResiduals were good for.
+
+```{r}
+AIC(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2) |>  #nbin has the lowest AIC with interaction terms
+  knitr::kable()
+```
+
+negative binomial model has the lowest AIC so I will get the summary of that model.
+
+```{r echo=FALSE}
+summary(nbin_total_yr2)
+```
+2023 and 2024 are significantly different to 2022. 2025 is not significantly different to 2022. Outer shelf is significantly different to inner shelf (p<0.01), Mid shelf is significantly different to inner shelf reefs (p<0.05). Intercept is also significant: not quite sure what that means in a biological framework.
+
+When making a figure should I then be using summary statistics or raw count data? Because the large number of zeros will make it difficult to do a boxplot of the raw data.
+
+
+### Tukey tests
+
+```{r}
+emm_shelf <- emmeans(nbin_total_yr2, ~Shelf)
+emm_shelf_response <- emmeans(nbin_total_yr2, ~Shelf, type = "response")
+
+emm_shelf
+emm_shelf_response
+
+pairs(emm_shelf, adjust = "tukey") #has estimate whereas the response has ratio
+pairs(emm_shelf_response, adjust = "tukey")
+
+
+```
+
+```{r}
+emm_year <- emmeans(nbin_total_yr2, ~Year_Collected)
+
+emm_year
+
+pairs(emm_year, adjust = "tukey")
+```
+
+
+```{r}
+emm_year_shelf <- emmeans(nbin_total_yr2, ~Year_Collected*Shelf)
+
+emm_year_shelf
+
+pairs(emm_year_shelf, adjust = "tukey", 
+      #type = "response"
+      )
+```
+
+```{r}
+total_model_emm <- nbin_total_yr2|> 
+  emmeans(~Shelf| Year_Collected, type = "response") |> 
+  as.data.frame() |> 
+  ggplot(aes(x=Year_Collected,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(y= "Estimated marginal\nmean total recruits")+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size =8))+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
+```{r}
+ggarrange(Fig1_mean, total_model_emm, ncol =1, labels = c("A", "B"))
 ```
 
 Fig 1
@@ -989,124 +1099,6 @@ Victor: I recommend including Year as a fixed effect since you are interested in
 
 *Should I be doing a liklihood ratio test here to determine whether the model is better with or without year?*
 
-```{r warning=FALSE, message=FALSE}
-pois_total_yr <- glmmTMB(total ~ Shelf + Year_Collected + (1 | Reef/Site), 
-      family = "poisson", data = Coral_settlement_nGBR)
-
-nbin_total_yr <- glmmTMB(total ~ Shelf +  Year_Collected +(1 | Reef/Site), 
-        family = "nbinom2", data = Coral_settlement_nGBR)
-
-zbin_total_yr <- glmmTMB(total ~ Shelf + Year_Collected + (1 | Reef/Site),
-                      ziformula = ~1,
-        family = "nbinom2", data = Coral_settlement_nGBR)
-
-pois_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected + (1 | Reef/Site), 
-      family = "poisson", data = Coral_settlement_nGBR)
-
-nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected +(1 | Reef/Site), 
-        family = "nbinom2", data = Coral_settlement_nGBR)
-
-zbin_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected + (1 | Reef/Site),
-                      ziformula = ~1,
-        family = "nbinom2", data = Coral_settlement_nGBR)
-```
-
-Use DHARMA to assess residuals
-
-```{r}
-sim1.1 <- simulateResiduals(pois_total_yr) 
-testResiduals(sim1.1) #not good fit
-
-sim1.2 <- simulateResiduals(pois_total_yr2)
-testResiduals(sim1.2) #not good fit
-
-sim1.3 <- simulateResiduals(nbin_total_yr)
-testResiduals(sim1.3) #good
-
-sim1.4 <- simulateResiduals(nbin_total_yr2)
-testResiduals(sim1.4) #good
-
-sim1.5 <- simulateResiduals(zbin_total_yr)
-testResiduals(sim1.5) #good
-
-sim1.6 <- simulateResiduals(zbin_total_yr2)
-testResiduals(sim1.6) #good
-```
-
-Poisson model residuals were bad, therefore will only compare the four models that testResiduals were good for.
-
-```{r}
-AIC(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2) |>  #nbin has the lowest AIC with interaction terms
-  knitr::kable()
-```
-
-negative binomial model has the lowest AIC so I will get the summary of that model.
-
-```{r echo=FALSE}
-summary(nbin_total_yr2)
-```
-2023 and 2024 are significantly different to 2022. 2025 is not significantly different to 2022. Outer shelf is significantly different to inner shelf (p<0.01), Mid shelf is significantly different to inner shelf reefs (p<0.05). Intercept is also significant: not quite sure what that means in a biological framework.
-
-When making a figure should I then be using summary statistics or raw count data? Because the large number of zeros will make it difficult to do a boxplot of the raw data.
-
-
-### Tukey tests
-
-```{r}
-emm_shelf <- emmeans(nbin_total_yr2, ~Shelf)
-
-emm_shelf
-
-pairs(emm_shelf, adjust = "tukey")
-
-```
-
-```{r}
-emm_year <- emmeans(nbin_total_yr2, ~Year_Collected)
-
-emm_year
-
-pairs(emm_year, adjust = "tukey")
-```
-
-
-```{r}
-emm_year_shelf <- emmeans(nbin_total_yr2, ~Year_Collected*Shelf)
-
-emm_year_shelf
-
-pairs(emm_year_shelf, adjust = "tukey", 
-      #type = "response"
-      )
-```
-
-```{r}
-total_model_emm <- nbin_total_yr2|> 
-  emmeans(~Shelf| Year_Collected, type = "response") |> 
-  as.data.frame() |> 
-  ggplot(aes(x=Year_Collected,
-             y=response, 
-             color=Shelf))+
-  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.5))+
-  theme_classic()+
-  labs(y= "Estimated marginal\nmean total recruits")+
-  scale_x_discrete(
-    "Deployment",
-    labels = c("2022" = "21/22",
-               "2023" = "22/23",
-               "2024" = "23/24",
-               "2025" = "24/25",
-               "2026" = "25/26")
-    )+
-  theme(legend.position = c(1,1), legend.justification = c(1,1),
-        text = element_text(size =8))+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
-```
-
-```{r}
-ggarrange(Fig1_mean, total_model_emm, ncol =1, labels = c("A", "B"))
-```
 
 ```{r}
 # Caterpillar plot
@@ -1306,7 +1298,6 @@ testResiduals(sim2.6)
 
 ```
 
-
 Compare AIC of those models
 
 ```{r}
@@ -1322,7 +1313,7 @@ nbin_Acroporidae_interaction %>%
 Acroporidae abundance significantly different in the outer reefs than inshore reefs.
 
 ```{r}
-emm_acro_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf)
+emm_acro_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf, type = "response")
 
 emm_acro_shelf
 
