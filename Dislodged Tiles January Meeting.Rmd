@@ -26,6 +26,7 @@ library(ggfortify)
 library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
 library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
 library(ggpubr)
+library(ggeffects)
 ```
 
 Clean data
@@ -49,7 +50,7 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR %>%
   
 
 Coral_settlement_nGBR <- Coral_settlement_nGBR |>
-  filter(Shelf == "Outer" | (Shelf %in% c("Inner", "Mid") & Tile %in% as.character(1:10)))
+  filter(Shelf == "Outer" | (Shelf %in% c("Inner", "Mid") & Tile %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")))
 
 Coral_settlement_nGBR$Year_Collected <- factor(Coral_settlement_nGBR$Year_Collected)
 
@@ -128,6 +129,16 @@ dettached_mod <- glmmTMB(total ~ notes + (1 | Reef/Site) + (1| Year_Collected),
 ```{r}
 sim_mod <- simulateResiduals(dettached_mod)
 testResiduals(sim_mod)
+
+plot(ggpredict(dettached_mod, terms = "notes"))+
+  labs(y= expression("Predicted no. recruits (" * tile^{-1}*")" ), x= "Notes")+
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        text = element_text(size=8),
+        title = element_blank())
+
+d_tukey <- emmeans(dettached_mod, ~notes)
+pairs(d_tukey, adjust = "tukey")
 ```
 
 ```{r}

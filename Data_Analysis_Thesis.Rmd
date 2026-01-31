@@ -381,26 +381,32 @@ Use DHARMA to assess residuals
 sim1.1 <- simulateResiduals(pois_total_yr) 
 testResiduals(sim1.1) #not good fit
 plot(sim1.1)
+sim1.1_plot <- plotResiduals(sim1.1, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim1.2 <- simulateResiduals(pois_total_yr2)
 testResiduals(sim1.2) #not good fit
 plot(sim1.2)
+sim1.2_plot <- plotResiduals(sim1.2, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim1.3 <- simulateResiduals(nbin_total_yr)
 testResiduals(sim1.3) #good
 plot(sim1.3)
+sim1.3_plot <- plotResiduals(sim1.3, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim1.4 <- simulateResiduals(nbin_total_yr2)
 testResiduals(sim1.4) #good
 plot(sim1.4)
+sim1.4_plot <- plotResiduals(sim1.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim1.5 <- simulateResiduals(zbin_total_yr)
 testResiduals(sim1.5) #good
 plot(sim1.5)
+sim1.5_plot <- plotResiduals(sim1.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim1.6 <- simulateResiduals(zbin_total_yr2)
 testResiduals(sim1.6) #good
 plot(sim1.6)
+sim1.6_plot <- plotResiduals(sim1.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 ```
 
 Poisson model residuals were bad, therefore will only compare the four models that testResiduals were good for.
@@ -763,26 +769,32 @@ Simulate residuals for models
 sim2.1 <- simulateResiduals(nbin_Acroporidae_fixed) 
 testResiduals(sim2.1) #fine
 plot(sim2.1) #bad
+sim2.1_plot <- plotResiduals(sim2.1, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim2.2 <- simulateResiduals(nbin_Acroporidae_interaction)
 testResiduals(sim2.2) #fine
 plot(sim2.2) #fine
+sim2.2_plot <- plotResiduals(sim2.2, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim2.3 <- simulateResiduals(zbin_Acroporidae_fixed)
 testResiduals(sim2.3) #fine
 plot(sim2.3) #bad
+sim2.3_plot <- plotResiduals(sim2.3, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim2.4 <- simulateResiduals(zbin_Acroporidae_interaction)
 testResiduals(sim2.4) #fine
 plot(sim2.4) #fine
+sim2.4_plot <- plotResiduals(sim2.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim2.5 <- simulateResiduals(pois_Acroporidae_fixed) #not a good fit
 testResiduals(sim2.5) #bad
 plot(sim2.5) #bad
+sim2.5_plot <- plotResiduals(sim2.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim2.6 <- simulateResiduals(pois_Acroporidae_interaction) #not a good fit
 testResiduals(sim2.6) #bad
 plot(sim2.6) #bad
+sim2.6_plot <- plotResiduals(sim2.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 ```
 
 Compare AIC of those models
@@ -894,21 +906,27 @@ Test Residuals of models for Pocillopora
 ```{r}
 sim3.1 <- simulateResiduals(pois_Pocilloporidae_fixed)
 testResiduals(sim3.1)
+sim3.1_plot <- plotResiduals(sim3.1, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim3.2 <- simulateResiduals(pois_Pocilloporidae_interaction)
 testResiduals(sim3.2)
+sim3.2_plot <- plotResiduals(sim3.2, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim3.3 <- simulateResiduals(nbin_Pocilloporidae_interaction)
 testResiduals(sim3.3)
+sim3.3_plot <- plotResiduals(sim3.3, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim3.4 <- simulateResiduals(nbin_Pocilloporidae_fixed)
 testResiduals(sim3.4)
+sim3.4_plot <- plotResiduals(sim3.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim3.5 <- simulateResiduals(zbin_Pocilloporidae_fixed)
 testResiduals(sim3.5)
+sim3.5_plot <- plotResiduals(sim3.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim3.6 <- simulateResiduals(zbin_Pocilloporidae_interaction)
 testResiduals(sim3.6)
+sim3.6_plot <- plotResiduals(sim3.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 ```
 
 ```{r}
@@ -1167,6 +1185,8 @@ position_family_recruits <- position_family_recruits |>
 mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")),
        Family = factor(Family, levels = c("Acroporidae", "Pocilloporidae","Poritidae", "Other")))
 ```
+
+# Figure 4
 
 ```{r}
 Figure.4 <- position_family_recruits |> 
