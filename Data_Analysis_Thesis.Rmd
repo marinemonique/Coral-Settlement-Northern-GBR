@@ -89,7 +89,6 @@ Coral_settlement_nGBR |>
   facet_wrap(~Site, scale = "free_y", ncol = 3)
 ```
 
-
 ```{r}
 Coral_settlement_nGBR |>  
   ggplot(aes(x=Year_Collected, y=total, colour = notes))+
@@ -203,8 +202,6 @@ Coral_settlement_nGBR |>
   knitr::kable()
 ```
 
-
-
 ## Summary statistics
 ```{r}
 Coral_settlement_nGBR |> 
@@ -259,7 +256,60 @@ total_recruits <- Coral_settlement_nGBR %>%
 total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
 ```
 
-#Figure 1
+```{r echo=FALSE}
+Pocilloporidae <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf, 
+         Reef, Site, Tile, 
+         Pocilloporidae, Top_Pocil, 
+         Under_Pocil, Side_Pocil, total)
+
+Pocilloporidae_orientation <- Pocilloporidae %>% 
+  rename(Top = Top_Pocil,
+                   Bottom = Under_Pocil,
+                   Side = Side_Pocil,
+         Recruits_per_tile = total)
+
+Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Acroporidae <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf, 
+         Reef, Site, Tile, 
+         Acroporidae, Top_Acr, 
+         Under_Acr, Side_Acr, total)
+
+Acroporidae_orientation <- Acroporidae %>% 
+  rename(Top = Top_Acr,
+                   Bottom = Under_Acr,
+                   Side = Side_Acr,
+         Recruits_per_tile = total)
+
+Acroporidae_orientation <- Acroporidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Poritid <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf, 
+         Reef, Site, Tile, 
+         Poritid, Top_Por, Under_Por, 
+         Side_Por, total)
+
+Poritidae_orientation <- Poritid %>% 
+  rename(Top = Top_Por,
+                   Bottom = Under_Por,
+                   Side = Side_Por,
+         Recruits_per_tile = total) 
+
+Poritidae_orientation <- Poritidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+```
+
+# Figure 1
 
 ```{r}
 Coral_settlement_nGBR |>  
@@ -425,7 +475,6 @@ summary(nbin_total_yr2)
 
 When making a figure should I then be using summary statistics or raw count data? Because the large number of zeros will make it difficult to do a boxplot of the raw data.
 
-
 ### Tukey tests
 
 ```{r}
@@ -437,8 +486,6 @@ emm_shelf_response
 
 pairs(emm_shelf, adjust = "tukey") #has estimate whereas the response has ratio
 pairs(emm_shelf_response, adjust = "tukey")
-
-
 ```
 
 ```{r}
@@ -608,58 +655,7 @@ ggsave(filename = "Fig2_mean.png",
        unit = "mm")
 ```
 
-```{r echo=FALSE}
-Pocilloporidae <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, 
-         Reef, Site, Tile, 
-         Pocilloporidae, Top_Pocil, 
-         Under_Pocil, Side_Pocil, total)
 
-Pocilloporidae_orientation <- Pocilloporidae %>% 
-  rename(Top = Top_Pocil,
-                   Bottom = Under_Pocil,
-                   Side = Side_Pocil,
-         Recruits_per_tile = total)
-
-Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
-
-Acroporidae <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, 
-         Reef, Site, Tile, 
-         Acroporidae, Top_Acr, 
-         Under_Acr, Side_Acr, total)
-
-Acroporidae_orientation <- Acroporidae %>% 
-  rename(Top = Top_Acr,
-                   Bottom = Under_Acr,
-                   Side = Side_Acr,
-         Recruits_per_tile = total)
-
-Acroporidae_orientation <- Acroporidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
-
-Poritid <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, 
-         Reef, Site, Tile, 
-         Poritid, Top_Por, Under_Por, 
-         Side_Por, total)
-
-Poritid_orientation <- Poritid %>% 
-  rename(Top = Top_Por,
-                   Bottom = Under_Por,
-                   Side = Side_Por,
-         Recruits_per_tile = total) 
-
-Poritid_orientation <- Poritid_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
-```
 
 GLMM with Total Recruits for a given coral family, per tile.
 
@@ -1503,6 +1499,7 @@ Family_pos
 # Q3 Composition and Orientation
 *to do*
 
+
 ## Acroporidae
 raw data
 ```{r echo=FALSE}
@@ -1517,6 +1514,15 @@ Acroporidae_orientation |>
 models
 
 ```{r}
+nb_Orientation_Acroporidae_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Reef/Site), 
+        family = "nbinom2", data = Acroporidae_orientation)
+
+pois_Orientation_Acro_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Reef/Site), 
+        family = "poisson", data = Acroporidae_orientation)
+
+zi_orientation_Acro_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Reef/Site),
+                               ziformula = ~1,
+        family = "nbinom2", data = Acroporidae_orientation)
 nb_Orientation_Acroporidae <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site), 
         family = "nbinom2", data = Acroporidae_orientation)
 
@@ -1529,20 +1535,30 @@ zi_orientation_Acro <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site),
 ```
 
 ```{r echo=FALSE}
-sim5 <- simulateResiduals(nb_Orientation_Acroporidae)
-testResiduals(sim5)
-```
-
-```{r}
-sim5.1 <- simulateResiduals(pois_Orientation_Acro)
+sim5.1 <- simulateResiduals(nb_Orientation_Acroporidae_fixed)
 testResiduals(sim5.1)
+
+sim5.2 <- simulateResiduals(nb_Orientation_Acroporidae)
+testResiduals(sim5.2)
+
+sim5.3 <- simulateResiduals(pois_Orientation_Acro_fixed)
+testResiduals(sim5.3)
+
+sim5.4 <- simulateResiduals(pois_Orientation_Acro)
+testResiduals(sim5.4)
+
+sim5.5 <- simulateResiduals(zi_orientation_Acro_fixed)
+testResiduals(sim5.5)
+
+sim5.6 <- simulateResiduals(zi_orientation_Acro)
+testResiduals(sim5.6)
+
 ```
 
 AIC to determine model of best fit
 ```{r echo=FALSE}
 AIC(nb_Orientation_Acroporidae, pois_Orientation_Acro,zi_orientation_Acro)
 ```
-
 
 ```{r echo=FALSE}
 nb_Orientation_Acroporidae |> 
@@ -1565,17 +1581,103 @@ Pocilloporidae_orientation |>
   theme_bw()
 ```
 
+Models
+```{r}
+nb_Orientation_poci_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Reef/Site), 
+        family = "nbinom2", data = Pocilloporidae_orientation)
+
+pois_Orientation_poci_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Reef/Site), 
+        family = "poisson", data = Pocilloporidae_orientation)
+
+zi_orientation_poci_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Reef/Site),
+                               ziformula = ~1,
+        family = "nbinom2", data = Pocilloporidae_orientation)
+nb_Orientation_poci <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site), 
+        family = "nbinom2", data = Pocilloporidae_orientation)
+
+pois_Orientation_poci <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site), 
+        family = "poisson", data = Pocilloporidae_orientation)
+
+zi_orientation_poci <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site),
+                               ziformula = ~1,
+        family = "nbinom2", data = Pocilloporidae_orientation)
+```
+
+```{r echo=FALSE}
+sim6.1 <- simulateResiduals(nb_Orientation_Acroporidae_fixed)
+testResiduals(sim6.1)
+
+sim6.2 <- simulateResiduals(nb_Orientation_Acroporidae)
+testResiduals(sim6.2)
+
+sim6.3 <- simulateResiduals(pois_Orientation_Acro_fixed)
+testResiduals(sim6.3)
+
+sim6.4 <- simulateResiduals(pois_Orientation_Acro)
+testResiduals(sim6.4)
+
+sim6.5 <- simulateResiduals(zi_orientation_Acro_fixed)
+testResiduals(sim6.5)
+
+sim6.6 <- simulateResiduals(zi_orientation_Acro)
+testResiduals(sim6.6)
+
+```
 
 ## Poritidae
 
 ```{r}
-Poritid_orientation |> 
+Poritidae_orientation |> 
   ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
                position = position_dodge(width = 0.8),
                alpha = 0.6) +
   facet_grid(Shelf~Tile_Surface, scale = "free_y")+
   theme_bw()
+```
+
+Models
+```{r}
+nb_Orientation_por_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Reef/Site), 
+        family = "nbinom2", data = Poritidae_orientation)
+
+pois_Orientation_por_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Reef/Site), 
+        family = "poisson", data = Poritidae_orientation)
+
+zi_orientation_por_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Reef/Site),
+                               ziformula = ~1,
+        family = "nbinom2", data = Poritidae_orientation)
+
+nb_Orientation_por <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site), 
+        family = "nbinom2", data = Poritidae_orientation)
+
+pois_Orientation_por <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site), 
+        family = "poisson", data = Poritidae_orientation)
+
+zi_orientation_por <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site),
+                               ziformula = ~1,
+        family = "nbinom2", data = Poritidae_orientation)
+```
+
+```{r echo=FALSE}
+sim7.1 <- simulateResiduals(nb_Orientation_por_fixed)
+testResiduals(sim7.1)
+
+sim7.2 <- simulateResiduals(nb_Orientation_por)
+testResiduals(sim7.2)
+
+sim7.3 <- simulateResiduals(pois_Orientation_por_fixed)
+testResiduals(sim7.3)
+
+sim7.4 <- simulateResiduals(pois_Orientation_por)
+testResiduals(sim7.4)
+
+sim7.5 <- simulateResiduals(zi_orientation_por_fixed)
+testResiduals(sim7.5)
+
+sim7.6 <- simulateResiduals(zi_orientation_por)
+testResiduals(sim7.6)
+
 ```
 
 ```{r eval=FALSE, echo=FALSE}
@@ -1596,10 +1698,6 @@ ggsave(filename = "Figure 4.png",
 ```
 
 # Models
-
-## Question one. is the total number of recruits different across the shelf?
-
-### Use GLMM for total recruits
 
 Run generalised linear models with the Poisson, normal binomail and the zero inflated normal bionomial.
 Total is the dependent variable (the count of coral recruits at a given sampling unit)
@@ -1992,7 +2090,7 @@ Two takeaways:
 1. Explicit temporal trend in benthic cover in Macgillvary reef (increasing then decreased final year); and
 2. Significant variation in prop_coral and prop_macroalgae in Turtle group reefs.
 
-## Averaged PIT transects
+# Figure 5
 Trying something new, to hopefully be able to include the proportion of a family in a model?
 
 ```{r}
@@ -2034,23 +2132,32 @@ nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*mean_aco*Year_Collec
 ```
 
 ```{r}
-sim_aco <- simulateResiduals(nbin_Acroporidae_interaction)
-testResiduals(sim_aco)
+sim8.1 <- simulateResiduals(nbin_Acroporidae_interaction)
+testResiduals(sim8.1)
+
+sim8.2 <- simulateResiduals(nbin_Acroporidae_fixed)
+testResiduals(sim8.2)
 
 summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
 ```
 
 ```{r}
-sim_poci <- simulateResiduals(nbin_Pocilloporidae_interaction)
-testResiduals(sim_poci)
+sim9.1 <- simulateResiduals(nbin_Pocilloporidae_interaction)
+testResiduals(sim9.1)
+
+sim9.2 <- simulateResiduals(nbin_Pocilloporidae_fixed)
+testResiduals(sim9.2)
 
 summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
 ```
 
 
 ```{r}
-sim_por <- simulateResiduals(nbin_Poritid_interaction)
-testResiduals(sim_por)
+sim10.1 <- simulateResiduals(nbin_Poritid_interaction)
+testResiduals(sim10.1)
+
+sim10.2 <- simulateResiduals(nbin_Poritid_fixed)
+testResiduals(sim10.2)
 
 summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
 
@@ -2116,7 +2223,7 @@ metadata <- PIT |>
 
 
 ```{r echo=FALSE}
-dist.mat <- vegdist(prop, method = "bray")                                                       # Step 1: Calculate dissimilarity matrix (Bray-Curtis)
+dist.mat <- vegdist(prop, method = "bray")
 ```
 
 ```{r}
@@ -2133,7 +2240,7 @@ formula – model formula such as Y ~ A + B * C.  See the ‘Complex Models‘ c
 If Y is a dissimilarity matrix (i.e., output from dist() or vegdist()), the pseudo-F statistic is calculated directly.
 If Y is a data frame or matrix containing data, vegdist() is applied to calculate the distance matrix first and then the pseudo-F statistic is calculated.
 
-- 60% os total community variation (in dissimilarity matrix) explained by Year, SHelf, and their interaction.
+- 60% os total community variation (in dissimilarity matrix) explained by Year, Shelf, and their interaction.
 Shelf contributes 52.2% of total variation in community composition (proportion macro algae and proportion coral)
 
 ### Try to do for abundances, but will need to remove rows where it is 0
@@ -2232,22 +2339,20 @@ p + geom_point()
 
 Because the simulation suggests not overdispersed, that means I can either do Wald Z or chi squared test (Bolker, Brooks, Clark, Geange, Poulsen, Stevens, White; 2008 http://dx.doi.org/10.1016/j.tree.2008.10.008)
 
-
 ```{r}
 nbin_Family_yr <- glmmTMB(Total ~ 1+ Family * Shelf + Year_Collected + (1 | Reef/Site), 
         family = "nbinom2", data = total_recruits)
 
-sim3 <- simulateResiduals(nbin_Family_yr)
-testResiduals(sim3)
+sim11.1 <- simulateResiduals(nbin_Family_yr)
+testResiduals(sim11.1)
 
 #seems to be a good model
-
 
 zbin_Family_yr <- glmmTMB(Total ~ 1+Family * Shelf + Year_Collected + (1 | Reef/Site),
                       ziformula = ~1,
         family = "nbinom2", data = total_recruits)
-sim4 <- simulateResiduals(zbin_Family_yr)
-testResiduals(sim4)
+sim11.2 <- simulateResiduals(zbin_Family_yr)
+testResiduals(sim11.2)
 ```
 
 ```{r}
@@ -2284,8 +2389,6 @@ nbin_Family_yr |>
   theme(legend.position = c(1,1), legend.justification = c(1,1))+
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
 ```
-
-
 
 PERMANOVA - variation within a group can be calculated directly from a distance matrix. 
 
@@ -2343,13 +2446,12 @@ adonis_result <- vegan::adonis2(species_matrix_filtered ~ Shelf+ Year_Collected,
                                 permutations = 999)
 
 print(adonis_result)
-
 ```
+
 The PERMANOVA suggests that shelf position and year do significantly affect the coral community composition.
 Shelf position explains 17.4% of the variation (strong and significant)
 Year collected explains 5% of the variation (suggesting significant temporal differences)
 77.5% of the variation in composition of coral recruits remains unexplained.
-
 
 # Redundancy Analysis
 https://pmassicotte.github.io/stats-denmark-2019/07_rda.html#/a-concrete-example-3
@@ -2376,10 +2478,13 @@ summary(my_rda)
 ```{r}
 plot(my_rda)
 ```
+
 Explained variance
+
 ```{r}
 RsquareAdj(my_rda)
 ```
+
 Tests of RDA results
 For canonical analysis such as RDA, model significance relies on permutation tests.
 
