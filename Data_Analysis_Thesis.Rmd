@@ -1813,7 +1813,7 @@ PIT_adonis_result <- adonis2(
   by = "term",
   permutations = 999
 )
-
+ 
 print(PIT_adonis_result)
 
 set.seed(999)  # reproducibility
