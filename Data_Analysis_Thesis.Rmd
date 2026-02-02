@@ -459,6 +459,173 @@ plot(sim1.6)
 sim1.6_plot <- plotResiduals(sim1.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 ```
 
+### Generating the DHARMA residual plots in ggplot to make ggarrange
+
+```{r}
+# Extract residuals and fitted values into a data frame
+residual_sim1.1 <- data.frame(
+  scaledResiduals = sim1.1$scaledResiduals,
+  fittedResponse = sim1.1$fittedPredictedResponse
+)
+
+# Residual vs. Fitted Plot (similar to DHARMa's right panel)
+
+ggplot(residual_sim1.1, aes(x = fittedResponse, y = scaledResiduals)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
+  labs(title = "DHARMa Residuals vs. Fitted",
+       x = "Fitted Response",
+       y = "Scaled Residuals") +
+  theme_minimal()
+
+# QQ Plot (similar to DHARMa's left panel)
+ggplot(data = residual_sim1.1, mapping = aes(sample = scaledResiduals)) +
+  stat_qq(distribution = stats::qunif) +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  labs(title = "QQ Plot against Uniform Distribution",
+       x = "Theoretical Quantiles (Uniform)",
+       y = "Actual Scaled Residuals") +
+  theme_minimal()
+```
+
+Sim1.2
+```{r}
+# Extract residuals and fitted values into a data frame
+residual_sim1.2 <- data.frame(
+  scaledResiduals = sim1.2$scaledResiduals,
+  fittedResponse = sim1.2$fittedPredictedResponse
+)
+
+# Residual vs. Fitted Plot (similar to DHARMa's right panel)
+
+ggplot(residual_sim1.2, aes(x = fittedResponse, y = scaledResiduals)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
+  labs(title = "DHARMa Residuals vs. Fitted",
+       x = "Fitted Response",
+       y = "Scaled Residuals") +
+  theme_minimal()
+
+# QQ Plot (similar to DHARMa's left panel)
+ggplot(data = residual_sim1.2, mapping = aes(sample = scaledResiduals)) +
+  stat_qq(distribution = stats::qunif) +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  labs(title = "QQ Plot against Uniform Distribution",
+       x = "Theoretical Quantiles (Uniform)",
+       y = "Actual Scaled Residuals") +
+  theme_minimal()
+```
+
+Sim1.3
+```{r}
+# Extract residuals and fitted values into a data frame
+residual_sim1.3 <- data.frame(
+  scaledResiduals = sim1.3$scaledResiduals,
+  fittedResponse = sim1.3$fittedPredictedResponse
+)
+
+# Residual vs. Fitted Plot (similar to DHARMa's right panel)
+
+ggplot(residual_sim1.3, aes(x = fittedResponse, y = scaledResiduals)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
+  labs(title = "DHARMa Residuals vs. Fitted",
+       x = "Fitted Response",
+       y = "Scaled Residuals") +
+  theme_minimal()
+
+# QQ Plot (similar to DHARMa's left panel)
+ggplot(data = residual_sim1.3, mapping = aes(sample = scaledResiduals)) +
+  stat_qq(distribution = stats::qunif) +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  labs(title = "QQ Plot against Uniform Distribution",
+       x = "Theoretical Quantiles (Uniform)",
+       y = "Actual Scaled Residuals") +
+  theme_minimal()
+```
+
+```{r}
+# Extract residuals and fitted values into a data frame
+residual_sim1.4 <- data.frame(
+  scaledResiduals = sim1.4$scaledResiduals,
+  fittedResponse = sim1.4$fittedPredictedResponse
+)
+
+# Residual vs. Fitted Plot (similar to DHARMa's right panel)
+
+ggplot(residual_sim1.4, aes(x = fittedResponse, y = scaledResiduals)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
+  labs(title = "DHARMa Residuals vs. Fitted",
+       x = "Fitted Response",
+       y = "Scaled Residuals") +
+  theme_minimal()
+
+# QQ Plot (similar to DHARMa's left panel)
+ggplot(data = residual_sim1.4, mapping = aes(sample = scaledResiduals)) +
+  stat_qq(distribution = stats::qunif) +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  labs(title = "QQ Plot against Uniform Distribution",
+       x = "Theoretical Quantiles (Uniform)",
+       y = "Actual Scaled Residuals") +
+  theme_minimal()
+```
+
+```{r}
+# Extract residuals and fitted values into a data frame
+residual_sim1.5 <- data.frame(
+  scaledResiduals = sim1.5$scaledResiduals,
+  fittedResponse = sim1.5$fittedPredictedResponse
+)
+
+# Residual vs. Fitted Plot (similar to DHARMa's right panel)
+
+ggplot(residual_sim1.5, aes(x = fittedResponse, y = scaledResiduals)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
+  labs(title = "DHARMa Residuals vs. Fitted",
+       x = "Fitted Response",
+       y = "Scaled Residuals") +
+  theme_minimal()
+
+# QQ Plot (similar to DHARMa's left panel)
+ggplot(data = residual_sim1.5, mapping = aes(sample = scaledResiduals)) +
+  stat_qq(distribution = stats::qunif) +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  labs(title = "QQ Plot against Uniform Distribution",
+       x = "Theoretical Quantiles (Uniform)",
+       y = "Actual Scaled Residuals") +
+  theme_minimal()
+```
+
+```{r}
+# Extract residuals and fitted values into a data frame
+residual_sim1.6 <- data.frame(
+  scaledResiduals = sim1.6$scaledResiduals,
+  fittedResponse = sim1.6$fittedPredictedResponse
+)
+
+# Residual vs. Fitted Plot (similar to DHARMa's right panel)
+
+ggplot(residual_sim1.6, aes(x = fittedResponse, y = scaledResiduals)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
+  labs(title = "DHARMa Residuals vs. Fitted",
+       x = "Fitted Response",
+       y = "Scaled Residuals") +
+  theme_minimal()
+
+# QQ Plot (similar to DHARMa's left panel)
+ggplot(data = residual_sim1.6, mapping = aes(sample = scaledResiduals)) +
+  stat_qq(distribution = stats::qunif) +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  labs(title = "QQ Plot against Uniform Distribution",
+       x = "Theoretical Quantiles (Uniform)",
+       y = "Actual Scaled Residuals") +
+  theme_minimal()
+```
+
+
 Poisson model residuals were bad, therefore will only compare the four models that testResiduals were good for.
 
 ```{r}
