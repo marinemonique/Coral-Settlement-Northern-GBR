@@ -983,7 +983,7 @@ pairs(emm_acro_shelf, adjust = "tukey")
 ```
 
 ```{r}
-nbin_Acroporidae_interaction|> 
+Fig2A_EMM <- nbin_Acroporidae_interaction|> 
   emmeans(~Shelf | Year_Collected, type = "response") |> 
   as.data.frame() |> 
   ggplot(aes(x=Year_Collected,
@@ -1003,9 +1003,11 @@ nbin_Acroporidae_interaction|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1))+
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+
+Figure2.A_EMM
 ```
 ```{r}
-total_recruits |> 
+Fig2A_raw <- total_recruits |> 
   filter(Family == "Acroporidae") |> 
   ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
 # Raw data
@@ -1050,11 +1052,65 @@ total_recruits |>
   )+
   theme(text = element_text(size=9),
         legend.position = "bottom")
+
+Fig2A_raw
+```
+
+```{r}
+ggarrange(Fig2A_raw, Fig2A_EMM)
 ```
 
 ### Pocillopora
 
 ```{r}
+Fig2B_Raw <- total_recruits |> 
+  filter(Family == "Pocilloporidae") |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+# Raw data
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+    size = 0.5,
+    alpha = 0.5
+  ) +
+  # Mean points
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2.25
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.45
+  ) +
+  theme_classic() +
+  labs(
+    y = expression("Recruits (" * tile^{-1} * ")"),
+    x = "Year",
+    colour = "Shelf"
+  ) +
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+  theme(
+    # legend.position = c(1, 0.4),
+    # legend.justification = c(1, 1)
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c(
+      "2022" = "21/22",
+      "2023" = "22/23",
+      "2024" = "23/24",
+      "2025" = "24/25"
+    )
+  )+
+  theme(text = element_text(size=9),
+        legend.position = "bottom")
+  
+  
+  
 Pocilloporidae |> 
   ggplot(aes(x = Year_Collected, y = Pocilloporidae, fill = Reef)) +
   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
@@ -1113,7 +1169,7 @@ pairs(emm_poci_shelf, adjust = "tukey")
 Significant difference in Pocilloporidae abundance in mid shore reefs compared to inshore reefs
 
 ```{r}
-nbin_Pocilloporidae_interaction|> 
+Fig2B_EMM <- nbin_Pocilloporidae_interaction|> 
   emmeans(~Shelf | Year_Collected, type = "response") |> 
   as.data.frame() |> 
   ggplot(aes(x=Year_Collected,
@@ -1146,8 +1202,55 @@ Poritid |>
                alpha = 0.6) +
   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 
+
 Poritid |> 
   filter(Poritid>60)
+
+Fig2C_Raw <- total_recruits |> 
+  filter(Family == "Poritid") |> 
+  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+# Raw data
+  geom_jitter(
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+    size = 0.5,
+    alpha = 0.5
+  ) +
+  # Mean points
+  stat_summary(
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2.25
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.45
+  ) +
+  theme_classic() +
+  labs(
+    y = expression("Recruits (" * tile^{-1} * ")"),
+    x = "Year",
+    colour = "Shelf"
+  ) +
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+  theme(
+    # legend.position = c(1, 0.4),
+    # legend.justification = c(1, 1)
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c(
+      "2022" = "21/22",
+      "2023" = "22/23",
+      "2024" = "23/24",
+      "2025" = "24/25"
+    )
+  )+
+  theme(text = element_text(size=9),
+        legend.position = "bottom")
 ```
 
 Test residuals of models
@@ -1690,6 +1793,8 @@ pois_Orientation_Acro_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Re
 zi_orientation_Acro_fixed <- glmmTMB(Recruits ~ Shelf + Tile_Surface + (1 | Reef/Site),
                                ziformula = ~1,
         family = "nbinom2", data = Acroporidae_orientation)
+
+# models with interaction between shelf and tile surface
 nb_Orientation_Acroporidae <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site), 
         family = "nbinom2", data = Acroporidae_orientation)
 
