@@ -1001,10 +1001,11 @@ Fig2A_EMM <- nbin_Acroporidae_interaction|>
                "2025" = "24/25",
                "2026" = "25/26")
     )+
-  theme(legend.position = c(1,1), legend.justification = c(1,1))+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size = 9))+
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
 
-Figure2.A_EMM
+Fig2A_EMM
 ```
 ```{r}
 Fig2A_raw <- total_recruits |> 
@@ -1057,7 +1058,7 @@ Fig2A_raw
 ```
 
 ```{r}
-ggarrange(Fig2A_raw, Fig2A_EMM)
+Fig2_top <- ggarrange(Fig2A_raw, Fig2A_EMM, labels = c("A", "B"))
 ```
 
 ### Pocillopora
@@ -1187,8 +1188,13 @@ Fig2B_EMM <- nbin_Pocilloporidae_interaction|>
                "2025" = "24/25",
                "2026" = "25/26")
     )+
-  theme(legend.position = c(1,1), legend.justification = c(1,1))+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size = 9))+
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+```
+
+```{r}
+Fig2_mid <- ggarrange(Fig2B_Raw, Fig2B_EMM, labels = c("C", "D"))
 ```
 
 
@@ -1284,7 +1290,7 @@ AIC(nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Porit
 
 
 ```{r}
-nbin_Poritid_interaction|> 
+Fig2C_EMM <- nbin_Poritid_interaction|> 
   emmeans(~Shelf | Year_Collected, type = "response") |> 
   as.data.frame() |> 
   ggplot(aes(x=Year_Collected,
@@ -1302,9 +1308,23 @@ nbin_Poritid_interaction|>
                "2025" = "24/25",
                "2026" = "25/26")
     )+
-  theme(legend.position = c(1,1), legend.justification = c(1,1))+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size = 9))+
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
 ```
+
+
+```{r}
+
+Fig2bot <- ggarrange(Fig2C_Raw, Fig2C_EMM, labels = c("E", "F"))
+
+```
+
+## Figure 2 ggarrange
+```{r}
+ggarrange(Fig2_top, Fig2_mid, Fig2bot, ncol =1) #This will likely be figure 2, but also need Other recruits as well.
+```
+
 
 # Figure 3, Position on tiles
 
@@ -1451,6 +1471,7 @@ position_family_recruits <- position_family_recruits |>
 mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")),
        Family = factor(Family, levels = c("Acroporidae", "Pocilloporidae","Poritidae", "Other")))
 ```
+
 
 # Figure 4
 
@@ -1765,6 +1786,85 @@ Family_pos <- position_family_recruits |>
 
 Family_pos
 ```
+
+```{r}
+# negative binomial 
+nb_Ori_family_fixed <- glmmTMB(Total ~ Shelf + Pos + Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = position_family_recruits)
+
+nb_Ori_family_interaction <- glmmTMB(Total ~ Shelf * Pos * Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = position_family_recruits)
+
+
+# Zero-inflated
+
+zi_Ori_family_interaction <- glmmTMB(Total ~ Shelf * Pos * Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = position_family_recruits)
+
+zi_Ori_family_fixed <- glmmTMB(Total ~ Shelf + Pos + Year_Collected + (1 | Reef/Site),
+                               ziformula = ~1,
+        family = "nbinom2", data = position_family_recruits)
+
+zi_Ori_family_interaction <- glmmTMB(Total ~ Shelf * Pos * Year_Collected + (1 | Reef/Site),
+                               ziformula = ~1,
+        family = "nbinom2", data = position_family_recruits)
+
+# poisson 
+pois_Ori_family_fixed <- glmmTMB(Total ~ Shelf + Pos + Year_Collected + (1 | Reef/Site), 
+        family = "poisson", 
+data = position_family_recruits)
+
+pois_Ori_family_interaction <- glmmTMB(Total ~ Shelf * Pos * Year_Collected + (1 | Reef/Site), 
+        family = "poisson", 
+data = position_family_recruits)
+
+
+```
+
+```{r}
+sim5.1 <- simulateResiduals(nb_Ori_family_fixed)
+testResiduals(sim5.1) 
+
+sim5.2 <- simulateResiduals(nb_Ori_family_interaction) #this is the best
+testResiduals(sim5.2)
+
+sim5.3 <- simulateResiduals(zi_Ori_family_fixed)
+testResiduals(sim5.3)
+
+sim5.4 <- simulateResiduals(zi_Ori_family_interaction)
+testResiduals(sim5.4)
+
+sim5.5 <- simulateResiduals(pois_Ori_family_fixed)
+testResiduals(sim5.5)
+
+sim5.6 <- simulateResiduals(pois_Ori_family_interaction)
+testResiduals(sim5.6)
+```
+
+```{r}
+summary(nb_Ori_family_interaction)
+```
+
+```{r}
+Coral_settlement_nGBR |> 
+  group_by(Shelf, Year_Collected) |> 
+  summarise(
+    A_Bottom = sum(Under_Acr),
+    A_Side = sum(Side_Acr),
+    A_Top = sum(Top_Acr),
+    PC_Bottom = sum(Under_Pocil),
+    PC_Side = sum(Side_Pocil),
+    PC_Top =sum(Top_Pocil),
+    PR_Bottom =sum(Under_Por),
+    PR_Side = sum(Side_Por),
+    PR_Top = sum(Top_Por),
+    Oth_Bottom = sum(Under_oth),
+    Oth_Side = sum(Side_other),
+    Oth_Top = sum(Top_other),
+    no.tiles = n()
+  )
+```
+
 
 # Q3 Composition and Orientation
 *to do*
@@ -2085,6 +2185,14 @@ PIT_adonis_result <- adonis2(
   by = "term",
   permutations = 999
 )
+
+PIT_adonis_result <- adonis2(
+  PIT_matrix_filtered ~ Shelf * Year,
+  data = PIT_metadata_filtered,
+  method = "bray",
+  by = "term",
+  permutations = 999
+)
  
 print(PIT_adonis_result)
 
@@ -2118,11 +2226,14 @@ nmds_scores_PIT <- nmds_scores_PIT %>%
   )
 
 ggplot(nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf)) +
-  geom_point(size = 3, alpha = 0.8) +
+  geom_point(size = 2, alpha = 0.8) +
   stat_ellipse(type = "t") +
   theme_classic() +
   coord_equal() +
-  labs(title = "NMDS of PIT benthic composition")
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        legend.position = "right")
 ```
  
 ```{r}
@@ -2134,9 +2245,12 @@ PIT_envfit <- envfit(
 
 PIT_envfit
 
+PIT_envfit$vectors$pvals #check p values to determine whether to include
+
+# Prop other not significant at p<0.05
+
 plot(PIT_nmds)
 plot(PIT_envfit, p.max = 0.05, col = "black")
-
 ```
 
 Individual groupings of macroalgae, and then do the Reefs
@@ -2229,6 +2343,8 @@ PIT_envfit <- envfit(
 )
 
 PIT_envfit
+
+PIT_envfit$vectors$pvals #check p values to determine whether to include
 
 plot(PIT_nmds)
 plot(PIT_envfit, p.max = 0.05, col = "black")
