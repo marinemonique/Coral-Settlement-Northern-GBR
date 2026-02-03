@@ -1355,42 +1355,10 @@ total_recruits %>%
   print(n=20)
 ```
 
-```{r}
-Figure.3 <- position_total_recruits |> 
-group_by(Year_Collected, Reef, Pos, Shelf)  %>% 
-  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
-  geom_boxplot(position = "dodge")+
-  theme_classic()+
-  labs(
-  y = expression("Recruits (" *tile^{-1} * ")"),
-  x = "Year",
-  colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
-  facet_wrap(~Pos, scales = "free_y", ncol =1)+
-  scale_x_discrete(
-    "Deployment",
-    labels = c("2022" = "21/22",
-               "2023" = "22/23",
-               "2024" = "23/24",
-               "2025" = "24/25",
-               "2026" = "25/26")
-    )+
-  geom_jitter(
-    aes(group = Shelf),
-    position = position_jitterdodge(
-      jitter.width = 0.35,
-      dodge.width  = 0.75
-    ),
-    size = 0.35,
-    alpha = 0.5
-  )
-
-Figure.3
-
-```
+Going to need to seperate these out, or just combine this as the LHS with three plots on the RHS for estimated marginal means.
 
 ```{r}
-Fig3_mean <- position_total_recruits |> 
+Fig3_Raw <- position_total_recruits |> 
 group_by(Year_Collected, Reef, Pos, Shelf)  %>% 
   ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
 # Raw data
@@ -1415,7 +1383,7 @@ group_by(Year_Collected, Reef, Pos, Shelf)  %>%
   ) +
   theme_classic() +
   labs(
-    y = expression("Recruits (" * tile^{-1} * ")"),,
+    y = expression("Recruits (" * surface^{-1} ~ tile^{-1} * ")"),,
     colour = "Shelf"
   ) +
   scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
@@ -1434,14 +1402,106 @@ group_by(Year_Collected, Reef, Pos, Shelf)  %>%
   )+
   facet_wrap(~Pos, scales = "free_y", ncol =1)+
   theme(text = element_text(size=9),
-        legend.position = "right")
+        legend.position = "bottom")
+
+Fig3_Raw
 ```
 
+## Models 
+
+```{r}
+pois_total_position_fixed <- glmmTMB(Total ~ Pos +Shelf + Year_Collected+ (1 | Reef/Site), 
+      family = "poisson",
+      data = position_total_recruits)
+
+pois_total_position_interaction <-  glmmTMB(Total ~ Pos * Shelf * Year_Collected + (1 | Reef/Site), 
+      family = "poisson",
+      data = position_total_recruits)
+
+nb_total_position_fixed <- glmmTMB(Total ~ Pos + Shelf + Year_Collected + (1 | Reef/Site) ,
+                        family = "nbinom2",
+                        data = position_total_recruits)
+
+nb_total_position_interaction <- glmmTMB(Total ~ Pos * Shelf * Year_Collected + (1 | Reef/Site) ,
+                        family = "nbinom2",
+                        data = position_total_recruits)
+
+zi_total_position_fixed <- glmmTMB(Total ~ Pos + Shelf + Year_Collected + (1 | Reef/Site) ,
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = position_total_recruits)
+
+zi_total_position_interaction <-  glmmTMB(Total ~ Pos * Shelf * Year_Collected + (1 | Reef/Site) ,
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = position_total_recruits)
+```
+
+Simulate residuals using DHARMA package, and then assess the residuals using testResiduals function.
+```{r}
+sim5.1 <- simulateResiduals(pois_total_position_fixed)
+testResiduals(sim5.1) 
+
+sim5.2 <- simulateResiduals(pois_total_position_interaction) 
+
+sim5.3 <- simulateResiduals(nb_total_position_fixed)
+testResiduals(sim5.3)
+
+sim5.4 <- simulateResiduals(nb_total_position_interaction) # this is good
+testResiduals(sim5.4)
+
+sim5.5 <- simulateResiduals(zi_total_position_fixed)
+testResiduals(sim5.5)
+
+sim5.6 <- simulateResiduals(zi_total_position_interaction) # this is good
+testResiduals(sim5.6)
+```
+
+```{r}
+AIC(nb_total_position_interaction, zi_total_position_interaction) #nb is slightly better
+```
+
+```{r}
+Fig3B_EMM <- nb_total_position_interaction |> 
+  emmeans(~Pos | Shelf | Year_Collected, type = "response") |> 
+  as.data.frame() |> 
+  ggplot(aes(x=Year_Collected,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(
+    y = expression("Predicted recruit abundance (" * surface^{-1} ~ tile^{-1} * ")"),,
+    colour = "Shelf"
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  facet_wrap(~Pos, ncol = 1, scales = "free_y")+
+  theme(legend.position = "bottom",
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+
+Fig3B_EMM
+```
+
+
+```{r}
+Figure3 <- ggarrange(Fig3_Raw, Fig3B_EMM, labels = c("A", "B"), ncol =2)
+```
+
+
 ```{r echo=FALSE, eval=FALSE}
-ggsave(filename = "Fig3_mean.png",
-       plot = Fig3_mean,
-       height = 275,
-       width = 125,
+ggsave(filename = "Fig3.png",
+       plot = Figure3,
+       height = 200,
+       width = 169,
        unit = "mm")
 ```
 
