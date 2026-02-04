@@ -309,7 +309,13 @@ Poritidae_orientation <- Poritidae_orientation %>%
                values_to = "Recruits")
 ```
 
+Colour palette:
+#B676A3
+#   scale_fill_identity() +
+# c("#c9df8a", "#B676A3", "#dbac98")
+
 # Figure 1
+
 
 ```{r}
 Coral_settlement_nGBR |>  
@@ -320,7 +326,7 @@ Coral_settlement_nGBR |>
   y = expression("Total recruits (" * tile^{-1}*")" ),
   x = "Deployment",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+
   facet_wrap(~Shelf)+
   scale_x_discrete(
     "Deployment",
@@ -340,7 +346,7 @@ Fig.1 <- Coral_settlement_nGBR |>
   y = expression("Recruits (" * tile^{-1}*")" ),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+ scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+
   #facet_wrap(~Shelf)+
   theme(legend.position = c(1,1), legend.justification = c(1,1))+
   scale_x_discrete(
@@ -384,7 +390,7 @@ Fig1_mean <- Coral_settlement_nGBR |>
     x = "Year",
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+  scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+
   theme(
     legend.position = c(1, 1),
     legend.justification = c(1, 1)
@@ -678,10 +684,14 @@ pairs(emm_year_shelf, adjust = "tukey",
 total_model_emm <- nbin_total_yr2|> 
   emmeans(~Shelf| Year_Collected, type = "response") |> 
   as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
   ggplot(aes(x=Year_Collected,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+  geom_pointrange(aes(ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(y = expression("Predicted recruits (" * tile^{-1} * ")"))+
@@ -695,7 +705,7 @@ total_model_emm <- nbin_total_yr2|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size =9))+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+  scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))
 ```
 
 ```{r}
@@ -736,7 +746,7 @@ group_by(Year_Collected, Reef, Family, Shelf)  %>%
   y = expression("Recruits (" *tile^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+
   facet_wrap(~Family, scales = "free_y", ncol =1)+
   scale_x_discrete(
     "Deployment",
@@ -750,11 +760,14 @@ group_by(Year_Collected, Reef, Family, Shelf)  %>%
     aes(group = Shelf),
     position = position_jitterdodge(
       jitter.width = 0.35,
-      dodge.width  = 0.75
+      dodge.width  = 1.5
     ),
     size = 0.35,
-    alpha = 0.5
+    alpha = 0.5,
+    
   )
+
+Figure.2
 ```
 
 
@@ -770,23 +783,24 @@ group_by(Year_Collected, Reef, Family, Shelf)  %>%
 Fig2_mean <- total_recruits |> 
   ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
 # Raw data
-  geom_jitter(
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+  geom_jitter(aes(group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 1),
     size = 0.5,
-    alpha = 0.5
+    alpha = 0.5,
+    colour = "grey"
   ) +
   # Mean points
   stat_summary(
     fun = mean,
     geom = "point",
-    position = position_dodge(width = 0.6),
+    position = position_dodge(width = 1),
     size = 2.25
   ) +
   # Error bars (mean ± SE)
   stat_summary(
     fun.data = mean_se,
     geom = "errorbar",
-    position = position_dodge(width = 0.6),
+    position = position_dodge(width = 1),
     width = 0.45
   ) +
   theme_classic() +
@@ -795,7 +809,7 @@ Fig2_mean <- total_recruits |>
     x = "Year",
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+ scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -812,6 +826,7 @@ Fig2_mean <- total_recruits |>
   facet_wrap(~Family, scales = "free_y", ncol =2)+
   theme(text = element_text(size=9),
         legend.position = "bottom")
+Fig2_mean
 ```
 
 ```{r}
@@ -964,6 +979,8 @@ Compare AIC of those models
 
 ```{r}
 AIC( nbin_Acroporidae_interaction, zbin_Acroporidae_interaction)
+
+model.sel(nbin_Acroporidae_interaction, zbin_Acroporidae_interaction)
 ```
 
 
@@ -986,10 +1003,14 @@ pairs(emm_acro_shelf, adjust = "tukey")
 Fig2A_EMM <- nbin_Acroporidae_interaction|> 
   emmeans(~Shelf | Year_Collected, type = "response") |> 
   as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |> 
   ggplot(aes(x=Year_Collected,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+  geom_pointrange(aes(ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(y=expression("Predicted Acroporidae recruits ( " * tile^{-1} * ")"))+
@@ -1003,7 +1024,7 @@ Fig2A_EMM <- nbin_Acroporidae_interaction|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size = 9))+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+  scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))
 
 Fig2A_EMM
 ```
@@ -1037,7 +1058,7 @@ Fig2A_raw <- total_recruits |>
     x = "Year",
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+ scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+ 
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1093,7 +1114,7 @@ Fig2B_Raw <- total_recruits |>
     x = "Year",
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366")) +
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1173,10 +1194,14 @@ Significant difference in Pocilloporidae abundance in mid shore reefs compared t
 Fig2B_EMM <- nbin_Pocilloporidae_interaction|> 
   emmeans(~Shelf | Year_Collected, type = "response") |> 
   as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
   ggplot(aes(x=Year_Collected,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+  geom_pointrange(aes(ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(y= "Estimated marginal\nmean Pocilloporidae")+
@@ -1190,7 +1215,7 @@ Fig2B_EMM <- nbin_Pocilloporidae_interaction|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size = 9))+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
 ```
 
 ```{r}
@@ -1241,7 +1266,7 @@ Fig2C_Raw <- total_recruits |>
     x = "Year",
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366")) +
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1293,10 +1318,14 @@ AIC(nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Porit
 Fig2C_EMM <- nbin_Poritid_interaction|> 
   emmeans(~Shelf | Year_Collected, type = "response") |> 
   as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
   ggplot(aes(x=Year_Collected,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+  geom_pointrange(aes(ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(y= "Estimated marginal\nmean Poritidae recruits")+
@@ -1310,7 +1339,7 @@ Fig2C_EMM <- nbin_Poritid_interaction|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size = 9))+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
 ```
 
 
@@ -1418,7 +1447,7 @@ Fig2A_raw <- family_total_recruits |>
     x = "Year",
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366")) +
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1441,10 +1470,14 @@ Fig2A_raw
 Fig2B_EMM <- nb_total_family_interaction |> 
   emmeans(~Family | Shelf | Year_Collected, type = "response") |> 
   as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
   ggplot(aes(x=Year_Collected,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+  geom_pointrange(aes(ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(
@@ -1462,7 +1495,7 @@ Fig2B_EMM <- nb_total_family_interaction |>
   facet_wrap(~Family, ncol = 1, scales = "free_y")+
   theme(legend.position = "bottom",
         text = element_text(size = 9))+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
 
 Fig2B_EMM
 ```
@@ -1540,7 +1573,7 @@ group_by(Year_Collected, Reef, Pos, Shelf)  %>%
     y = expression("Recruits (" * surface^{-1} ~ tile^{-1} * ")"),,
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366")) +
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366")) +
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1622,7 +1655,11 @@ Fig3B_EMM <- nb_total_position_interaction |>
   ggplot(aes(x=Year_Collected,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
+  geom_pointrange(aes(ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(
@@ -1640,7 +1677,7 @@ Fig3B_EMM <- nb_total_position_interaction |>
   facet_wrap(~Pos, ncol = 1, scales = "free_y")+
   theme(legend.position = "bottom",
         text = element_text(size = 9))+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
 
 Fig3B_EMM
 ```
@@ -1698,7 +1735,7 @@ Figure.4 <- position_family_recruits |>
   y = expression("Recruits (" * surface^{-1}~tile^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
   facet_wrap(Family~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -1752,7 +1789,7 @@ Acro_pos <- position_family_recruits |>
   y = expression("Acroporidae recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
   facet_wrap(~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -1805,7 +1842,7 @@ Poci_pos <- position_family_recruits |>
   y = expression("Pocilloporidae recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
   facet_wrap(~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -1858,7 +1895,7 @@ Por_pos <- position_family_recruits |>
   y = expression("Poritidae recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
   facet_wrap(~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -1911,7 +1948,7 @@ Oth_pos <- position_family_recruits |>
   y = expression("Other recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
   facet_wrap(~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -1970,7 +2007,7 @@ Family_pos <- position_family_recruits |>
   y = expression("Recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
   facet_grid2(
    Pos~Family,
   scales = "free_y",
@@ -2305,15 +2342,19 @@ Victor: I recommend including Year as a fixed effect since you are interested in
 nbin_total_yr2|> 
   emmeans(~Shelf| Year_Collected, type = "response") |> 
   as.data.frame() |>
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
   ggplot(aes(x = response, y = Shelf, color=Shelf)) +
   geom_point() +
-  geom_errorbarh(aes(xmin =asymp.LCL, xmax = asymp.UCL), height = 0.2) +
+  geom_errorbarh(aes(xmin =lower, xmax = upper), height = 0.2) +
   facet_wrap(~Year_Collected, scales = "free_y") +
   labs(x = "Estimated marginal mean (response scale)",
        y = "Shelf Position",
        title = "Caterpillar plot of EMMs by Year") +
   theme_minimal()+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
 ```
 
 
@@ -2444,7 +2485,7 @@ ggplot(nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf)) +
   stat_ellipse(type = "t") +
   theme_classic() +
   coord_equal() +
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
   theme(text =element_text(size =8),
         title = element_text(size = 8),
         legend.position = "right")
@@ -2455,9 +2496,9 @@ PIT_envfit <- envfit(
   PIT_nmds,
   PIT_matrix_filtered,
   permutations = 999
-)
+) 
 
-PIT_envfit
+PIT_envfit <- as.data.frame(scores(PIT_envfit, display = "vectors"))
 
 PIT_envfit$vectors$pvals #check p values to determine whether to include
 
@@ -2465,6 +2506,33 @@ PIT_envfit$vectors$pvals #check p values to determine whether to include
 
 plot(PIT_nmds)
 plot(PIT_envfit, p.max = 0.05, col = "black")
+
+#ggrepel
+
+ggplot() +
+  geom_point(data = nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf), size = 2, alpha = 0.8) +
+  stat_ellipse(data = nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf), type = "t") +
+  # geom_segment(data = PIT_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+  #              arrow = arrow(length = unit(1/3, "picas")),
+  #              linetype = "solid",
+  #              linewidth = 0.5)+
+  theme_classic() +
+  coord_equal() +
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        legend.position = "right")
+
+ggplot()+
+  geom_segment(data = PIT_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+               arrow = arrow(length = unit(1/3, "picas")),
+               linetype = "solid",
+               linewidth = 0.5)+
+   theme_classic() +
+  coord_equal() +
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        legend.position = "right")
 ```
 
 Individual groupings of macroalgae, and then do the Reefs
@@ -2669,7 +2737,7 @@ ggplot(aes(x=Year, y= Proportion, colour = Shelf))+
   y = expression("Proportion cover (" * PIT^{-1}*")" ),
   x = "Benthos",
   colour = "Shelf position")+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
   facet_wrap(~Family)
 ```
 
@@ -2684,7 +2752,7 @@ ggplot(aes(x=Year, y= Proportion, colour = Site))+
   y = expression("Proportion cover (" * Transect^{-1}*")" ),
   x = "Benthos",
   colour = "Shelf position")+
-  # scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))+
+  # scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
   facet_grid(Family~Reef, scales = "free_y")
 ```
 
@@ -2973,10 +3041,14 @@ pairs(Family_mod_tukey, adjust = "tukey")
 nbin_Family_yr |> 
   emmeans(~Shelf*Family, type = "response") |> 
   as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
   ggplot(aes(x=Family,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+  geom_pointrange(aes(ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(y= "Estimated marginal\nmean recruits", x= "Family")+
@@ -2989,7 +3061,7 @@ nbin_Family_yr |>
   #              "2026" = "25/26")
   #   )+
   theme(legend.position = c(1,1), legend.justification = c(1,1))+
-  scale_colour_manual(values = c("#99CCFF", "#3399FF", "#003366"))
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
 ```
 
 PERMANOVA - variation within a group can be calculated directly from a distance matrix. 
