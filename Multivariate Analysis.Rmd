@@ -147,6 +147,7 @@ p <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = 
          legend.position = "right",
          axis.title = element_text(face = "bold")
      ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
      labs(
          x = "nMDS1",
         y = "nMDS2",
@@ -212,9 +213,10 @@ p_h <- ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                       
      labs(
          x = "nMDS1",
         y = "nMDS2",
-         colour = "Shelf Position",
+         colour = "Shelf",
         shape = "Year Collected"
     ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
     annotate("text",
              x = min(scores_hellinger$NMDS1),
              y = min(scores_hellinger$NMDS2),              
@@ -247,9 +249,10 @@ p_h <- ggplot(scores_hellinger,
   labs(
     x = "nMDS1",
     y = "nMDS2",
-    colour = "Shelf Position",
+    colour = "Shelf",
     shape = "Year Collected"
   ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   annotate("text",
            x = min(scores_hellinger$NMDS1),
            y = min(scores_hellinger$NMDS2),
@@ -270,6 +273,9 @@ Recruits_envfit <- envfit(
 
 Recruits_envfit <- as.data.frame(scores(Recruits_envfit, display = "vectors"))
 
+Recruits_envfit <- Recruits_envfit |> 
+  rownames_to_column(var = "label_family")
+
  #check p values to determine whether to include
 
 # Prop other not significant at p<0.05
@@ -279,6 +285,16 @@ plot(PIT_envfit, p.max = 0.05, col = "black")
 ```
 
 ```{r}
+library(ggrepel)
+
+# Decide limits of x and y axis, so that both plots will be the same
+scores_hellinger |> 
+  summarise(
+    x_min = min(NMDS1),
+    x_max = max(NMDS1),
+    y_min = min(NMDS2),
+    y_max = max(NMDS2)
+  )
 
 ggplot() +
      geom_point(data =scores_hellinger, aes(x = NMDS1, y = NMDS2,
@@ -300,6 +316,7 @@ ggplot() +
          colour = "Shelf Position",
         shape = "Year Collected"
     ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
     annotate("text",
              x = min(scores_hellinger$NMDS1),
              y = min(scores_hellinger$NMDS2),              
@@ -308,10 +325,81 @@ ggplot() +
 geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
              arrow = arrow(length = unit(1/3, "picas")),
              linetype = "solid",
-             linewidth = 0.5)
+             linewidth = 0.5)+
+  geom_text_repel(data = Recruits_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_family),
+                  inherit.aes = FALSE,
+                  size = 6)+
+  scale_x_continuous(limits = c(-1, 2))+
+  scale_y_continuous(limits = c(-1.5, 1))
 ```
 
 The issue with the hellinger transformed nMDS is that there is like an outline of triangle. Not sure what that means.
+
+# Composition of vegetated tiles, hellinger transformed
+
+```{r}
+Fig5.A <- ggplot() +
+     geom_point(data =scores_hellinger, aes(x = NMDS1, y = NMDS2,
+                                      colour = Shelf,
+                         shape = Year_Collected),
+                size = 3, alpha = 0.9) +
+    stat_ellipse(data =scores_hellinger, aes(x = NMDS1, y = NMDS2,
+                                      group = Shelf, colour = Shelf),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         colour = "Shelf Position",
+        shape = "Year Collected"
+    ) +
+    annotate("text",
+             x = min(scores_hellinger$NMDS1),
+             y = min(scores_hellinger$NMDS2),              
+             label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
+              hjust = 0, vjust = 0, size = 5)+
+  scale_x_continuous(limits = c(-1, 2))+
+  scale_y_continuous(limits = c(-1.5, 1))
+
+Fig5.B <- ggplot()+
+  geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = Recruits_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_family),
+                  inherit.aes = FALSE,
+                  size = 6)+
+  theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         colour = "Shelf Position",
+        shape = "Year Collected"
+    ) +
+    annotate("text",
+             x = min(scores_hellinger$NMDS1),
+             y = min(scores_hellinger$NMDS2),              
+             label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
+              hjust = 0, vjust = 0, size = 5)+
+  scale_x_continuous(limits = c(-1, 2))+
+  scale_y_continuous(limits = c(-1.5, 1))
+
+ggpubr::ggarrange(Fig5.A, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right")
+```
+
 
 ## Determining what each of the lines represents
 
@@ -395,6 +483,7 @@ p_h_adj <- ggplot(scores_h_adj, aes(x = NMDS1, y = NMDS2,                       
          colour = "Shelf Position",
         shape = "Year Collected"
     ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
     annotate("text",
              x = min(scores_h_adj$MDS1),
              y = min(scores_h_adj$MDS2),              label = paste0("Stress = ", round(nmds_h_adj$stress, 3)),
@@ -455,6 +544,7 @@ p_h_adj <- ggplot(scores_h_adj, aes(x = NMDS1, y = NMDS2,                       
          legend.position = "right",
          axis.title = element_text(face = "bold")
      ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
      labs(
          x = "nMDS1",
         y = "nMDS2",
