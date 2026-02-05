@@ -28,6 +28,7 @@ library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression mo
 library(ggpubr)
 library(ggeffects) #to be able to do ggpredict
 library(ggh4x) # to specify x and y axis if desired
+library(MuMIn) #model selection function
 
 
 # Import and clean data
@@ -1186,7 +1187,7 @@ Fig2B_Raw <- total_recruits |>
     x = "Year",
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366")) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F")) +
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1339,7 +1340,7 @@ Fig2C_Raw <- total_recruits |>
     colour = "Shelf"
   ) +
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
-  # scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366")) +
+  # scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F")) +
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1412,7 +1413,7 @@ Fig2C_EMM <- nbin_Poritid_interaction|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size = 9))+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 ```
 
 
@@ -1516,7 +1517,7 @@ Fig2A_raw <- family_total_recruits |>
     x = "Year",
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366")) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F")) +
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1564,7 +1565,7 @@ Fig2B_EMM <- nb_total_family_interaction |>
   facet_wrap(~Family, ncol = 1, scales = "free_y")+
   theme(legend.position = "bottom",
         text = element_text(size = 9))+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 
 Fig2B_EMM
 ```
@@ -1627,7 +1628,7 @@ group_by(Year_Collected, Reef, Pos, Shelf)  %>%
     y = expression("Recruits (" * surface^{-1} ~ tile^{-1} * ")"),,
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366")) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F")) +
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1706,13 +1707,13 @@ AIC(nb_total_position_interaction, zi_total_position_interaction) #nb is slightl
 Fig3B_EMM <- nb_total_position_interaction |> 
   emmeans(~Pos | Shelf | Year_Collected, type = "response") |> 
   as.data.frame() |> 
-  ggplot(aes(x=Year_Collected,
-             y=response, 
-             color=Shelf))+
   mutate(
     lower = response - 1.96*SE,
     upper = response + 1.96*SE
   ) |>
+  ggplot(aes(x=Year_Collected,
+             y=response, 
+             color=Shelf)) +
   geom_pointrange(aes(ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
@@ -1731,7 +1732,7 @@ Fig3B_EMM <- nb_total_position_interaction |>
   facet_wrap(~Pos, ncol = 1, scales = "free_y")+
   theme(legend.position = "bottom",
         text = element_text(size = 9))+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 
 Fig3B_EMM
 ```
@@ -1799,7 +1800,7 @@ Figure.4 <- position_family_recruits |>
   y = expression("Recruits (" * surface^{-1}~tile^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   facet_wrap(Family~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -1853,7 +1854,7 @@ Acro_pos <- position_family_recruits |>
   y = expression("Acroporidae recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   facet_wrap(~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -1906,7 +1907,7 @@ Poci_pos <- position_family_recruits |>
   y = expression("Pocilloporidae recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   facet_wrap(~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -2013,7 +2014,7 @@ Oth_pos <- position_family_recruits |>
   y = expression("Other recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   facet_wrap(~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -2070,7 +2071,7 @@ Family_pos <- position_family_recruits |>
   y = expression("Recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   facet_grid2(
    Pos~Family,
   scales = "free_y",
@@ -2417,7 +2418,7 @@ nbin_total_yr2|>
        y = "Shelf Position",
        title = "Caterpillar plot of EMMs by Year") +
   theme_minimal()+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 ```
 
 
@@ -2519,7 +2520,7 @@ ggplot(nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf)) +
   stat_ellipse(type = "t") +
   theme_classic() +
   coord_equal() +
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   theme(text =element_text(size =8),
         title = element_text(size = 8),
         legend.position = "right")
@@ -2552,7 +2553,7 @@ ggplot() +
   #              linewidth = 0.5)+
   theme_classic() +
   coord_equal() +
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   theme(text =element_text(size =8),
         title = element_text(size = 8),
         legend.position = "right")
@@ -2772,7 +2773,7 @@ ggplot(aes(x=Year, y= Proportion, colour = Shelf))+
   y = expression("Proportion cover (" * PIT^{-1}*")" ),
   x = "Benthos",
   colour = "Shelf position")+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   facet_wrap(~Family)
 ```
 
@@ -2787,7 +2788,7 @@ ggplot(aes(x=Year, y= Proportion, colour = Site))+
   y = expression("Proportion cover (" * Transect^{-1}*")" ),
   x = "Benthos",
   colour = "Shelf position")+
-  # scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  # scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   facet_grid(Family~Reef, scales = "free_y")
 ```
 
@@ -2906,7 +2907,7 @@ ggplot(PIT, aes(x=Year, y=prop_pori, colour = Reef))+
 ```
 
 Victor Email: Regarding the PERMANOVA: you start with a community matrix (sites x coral taxa). A PERMANOVA tests whether community composition differs among groups, using a distance matrix derived from your multivariate raw data. The inputs are a dissimilarity (distance) matrix, and a grouping factor (i.e., a categorical variable you want to test, like “reef”, “shelf.position”, or “year”). In your case, I'd suggest calculating a Bray-Curtis distance matrix and then running a PERMANOVA with the vegan package. Here’s a quick example you can run in R:
-```{r}
+```{r eval = FALSE}
 abund <- PIT |> 
   select(Acroporidae, Pocilloporidae, Poritidae)
 
@@ -2916,7 +2917,7 @@ prop <- PIT |>
 
 Some of the rows do not have Acropora, Pocillopora or Porites present... should I then remove them? Because the distance matrix won't work otherwise.
 
-```{r}
+```{r eval =FALSE}
 metadata <- PIT |> 
   select(Site, Shelf, Reef, Year) |> 
   mutate(
@@ -2927,11 +2928,11 @@ metadata <- PIT |>
 ```
 
 
-```{r echo=FALSE}
+```{r echo=FALSE, eval=FALSE}
 dist.mat <- vegdist(prop, method = "bray")
 ```
 
-```{r}
+```{r eval=FALSE}
 PERMANOVA_prop <- adonis2(dist.mat ~ Reef:Shelf, data = metadata, permutations = 999, by = "terms")   # Step 2: run PERMANOVA
 
 print(PERMANOVA_prop)
@@ -2949,7 +2950,7 @@ If Y is a data frame or matrix containing data, vegdist() is applied to calculat
 Shelf contributes 52.2% of total variation in community composition (proportion macro algae and proportion coral)
 
 ### Try to do for abundances, but will need to remove rows where it is 0
-```{r}
+```{r eval=FALSE}
 data_for_abundance <- PIT |>
   mutate(clean = rowSums(across(c(Acroporidae, Pocilloporidae, Poritidae)), na.rm = TRUE))
 
@@ -2969,17 +2970,17 @@ meta_abund <- data_for_abundance |>
 ```
 
 
-```{r}
+```{r eval=FALSE}
 PERMANOVA_abund <- adonis2(abund_bray ~ Year+Shelf+ Year:Shelf, data = meta_abund, permutations = 999, by = "terms")   # Step 2: run PERMANOVA
 ```
 
-```{r echo=FALSE}
+```{r echo=FALSE, eval=FALSE}
 PERMANOVA_abund
 ```
 
 Abundance is the community matrix data, with 237 sample units of 3 species.
 
-```{r}
+```{r eval=FALSE}
 set.seed(42)
 z <- metaMDS(comm = abund_std,
              autotransform = FALSE,
@@ -3014,7 +3015,7 @@ Stress <0.05 therefore excellent representation with no prospect of misinterpret
 
 https://uw.pressbooks.pub/appliedmultivariatestatistics/chapter/nmds/
 
-```{r}
+```{r eval=FALSE}
 gof <- goodness(object = z)
 plot(z, display = "sites", type = "none")
 points(z, display = "sites", cex = 2*gof/mean(gof))
@@ -3023,11 +3024,11 @@ points(z, display = "sites", cex = 2*gof/mean(gof))
 Evaluating fit
 plot original dissimilarities (z$diss) against Euclidean ordination distances (z$dist).
 
-```{r}
+```{r eval=FALSE}
 plot(z$diss, z$dist)
 ```
 
-```{r}
+```{r eval=FALSE}
 z.points <- data.frame(z$points,
                        Acroporidae = abund_std$Acroporidae,
                        Pocilloporidae = abund_std$Pocilloporidae,
@@ -3096,7 +3097,7 @@ nbin_Family_yr |>
   #              "2026" = "25/26")
   #   )+
   theme(legend.position = c(1,1), legend.justification = c(1,1))+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 ```
 
 PERMANOVA - variation within a group can be calculated directly from a distance matrix. 
@@ -3196,7 +3197,7 @@ The principle of a permutation test is to generate a reference distribution of t
 H0: Observed results can be produced by random chance.
 
 The null hypothesis is rejected if this p
-value is equal to or smaller than the predefined significance level α (ex.: α=0.05).
+value is equal to or smaller than the predefined significance level alpha (ex.: alpha=0.05).
 
 Test for 
 1. Global RDA significance
@@ -3378,7 +3379,7 @@ The principle of a permutation test is to generate a reference distribution of t
 H0: Observed results can be produced by random chance.
 
 The null hypothesis is rejected if this p
-value is equal to or smaller than the predefined significance level α (ex.: α=0.05).
+value is equal to or smaller than the predefined significance level alpha (ex.: alpha=0.05).
 
 Test for 
 1. Global RDA significance

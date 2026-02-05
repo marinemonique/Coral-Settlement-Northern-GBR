@@ -23,6 +23,8 @@ library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
 library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
 library(ggpubr)
 library(data.table) #not sure if required at this point
+library(plotly) #interactive nmds
+
 ```
 
 Clean data
@@ -258,9 +260,6 @@ p_h <- ggplot(scores_hellinger,
            y = min(scores_hellinger$NMDS2),
            label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
            hjust = 0, vjust = 0, size = 5)
-
-# library(plotly)
-# ggplotly(p_h, tooltip = "text")
 
 ```
 
