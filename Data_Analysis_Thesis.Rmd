@@ -27,8 +27,11 @@ library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
 library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
 library(ggpubr)
 library(ggeffects) #to be able to do ggpredict
+library(ggh4x) # to specify x and y axis if desired
 
-# Clean data
+
+# Import and clean data
+## Recruitment data
 Coral_settlement_nGBR_CS <- read.csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
   mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
 
@@ -73,6 +76,87 @@ mutate(
     !notes %in% c("Dislodged", "Lots of tube worms")~"No notes",
     TRUE ~ notes
   ))
+
+# Benthic Data
+
+PIT <- read_csv("PIT_50m.csv") %>%
+  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ))
+
+
+PIT<- PIT |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site))
+
+join <- PIT |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_aco = mean(prop_acro),
+    sd_aco = sd(prop_acro),
+    mean_poci = mean(prop_poci),
+    sd_poci = sd(prop_poci),
+    mean_por = mean(prop_pori),
+    sd_por = sd(prop_pori),
+    mean_macroalgae = mean(Prop_macroalgae),
+    sd_macroalgae = sd(Prop_macroalgae),
+    PIT = n()
+  )
+
+Combined <- left_join(Coral_settlement_nGBR, join)
+
+## Total recuits
+total_recruits <- Coral_settlement_nGBR %>%
+  select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total")
+
+#Order so that Other is last in Family
+total_recruits <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 6:9, names_to = "Family", values_to = "Total") %>%
+  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
+
+total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
+
+## Position on tile
+
+position_total_recruits <- Coral_settlement_nGBR %>%
+  select(2:9, 15:29, 32) %>% 
+  pivot_longer(cols = 21:23, names_to = "Pos", values_to = "Total")
+
+position_total_recruits <- position_total_recruits |> 
+  mutate(Pos = case_when(
+      Pos == "Top.Total" ~ "Top",
+      Pos == "Side.Total" ~ "Side",
+      Pos == "Under.Total" ~ "Bottom"
+  ))
+ 
+position_total_recruits <- position_total_recruits |>                           
+mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")))
+
+position_total_recruits <- left_join(position_total_recruits, join)
+
+## Family recruitment data
+family_total_recruits <- Coral_settlement_nGBR %>%
+  select(2:13) %>% 
+  pivot_longer(cols = 9:12, names_to = "Family", values_to = "Total")
+
+
 ```
 
 
@@ -242,19 +326,6 @@ sample_design <- Coral_settlement_nGBR |>
 ```
 
 
-```{r echo=FALSE, message=FALSE}
-total_recruits <- Coral_settlement_nGBR %>%
-  select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
-  pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total")
-
-#Order so that Other is last in Family
-total_recruits <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
-  pivot_longer(cols = 6:9, names_to = "Family", values_to = "Total") %>%
-  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
-
-total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
-```
 
 ```{r echo=FALSE}
 Pocilloporidae <- Coral_settlement_nGBR %>% 
@@ -1357,11 +1428,7 @@ ggarrange(Fig2_top, Fig2_mid, Fig2bot, ncol =1) #This will likely be figure 2, b
 ```
 
 Trying a different method here
-```{r}
-family_total_recruits <- Coral_settlement_nGBR %>%
-  select(2:13) %>% 
-  pivot_longer(cols = 9:12, names_to = "Family", values_to = "Total")
-```
+
 
 Models of family total recruits
 
@@ -1517,21 +1584,6 @@ ggsave(filename = "Fig2.png",
 
 # Figure 3, Position on tiles
 
-```{r}
-position_total_recruits <- Coral_settlement_nGBR %>%
-  select(2:9, 15:29) %>% 
-  pivot_longer(cols = 21:23, names_to = "Pos", values_to = "Total")
-
-position_total_recruits <- position_total_recruits |> 
-  mutate(Pos = case_when(
-      Pos == "Top.Total" ~ "Top",
-      Pos == "Side.Total" ~ "Side",
-      Pos == "Under.Total" ~ "Bottom"
-  ))
- 
-position_total_recruits <- position_total_recruits |>                           
-mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")))
-```
 
 ```{r message=FALSE, echo=FALSE}
 total_recruits %>% 
@@ -1697,6 +1749,16 @@ ggsave(filename = "Fig3.png",
        width = 169,
        unit = "mm")
 ```
+## Relationship to macroalgae with position on tile
+
+Doesn't appear obvious to me.
+
+```{r}
+ggplot()+
+  geom_point(data = position_total_recruits, aes(x=mean_macroalgae, y = Total, colour = Pos))+
+  facet_grid(Pos~Shelf)
+```
+
 
 # Composition on tile
 
@@ -1981,8 +2043,6 @@ ggarrange(Acro_pos, Poci_pos, Por_pos, Oth_pos, ncol =1, common.legend = TRUE)
 ```
 
 ```{r}
-library(ggh4x)
-
 
 Family_pos <- position_family_recruits |> 
   ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
@@ -2363,35 +2423,6 @@ nbin_total_yr2|>
 
 # Brood Stock Analysis
 
-Importing benthic data
-
-```{r}
-PIT <- read_csv("PIT_50m.csv") %>%
-  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
-
-PIT <- PIT %>% 
-  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
-
-PIT <- PIT |> 
-  mutate(
-    Site = case_when(
-      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
-      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
-      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
-      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
-      Site == "Turtle South - Coral" ~ "TS_Back",
-      Site == "Turtle North - front" ~ "TN_Crest",
-      TRUE ~ Site
-    ))
-
-
-PIT<- PIT |> 
-  mutate(
-    Shelf = factor(Shelf),
-    Reef = factor(Reef),
-    Site = factor(Site))
-```
-
 ```{r}
 PIT |> 
   group_by(Year, Site) |> 
@@ -2437,7 +2468,7 @@ PIT_metadata_filtered <- metadata_PIT %>%
 
 # Step 6: PERMANOVA
 PIT_adonis_result <- adonis2(
-  PIT_matrix_filtered ~ Shelf + Year,
+  PIT_matrix_filtered ~ Shelf + Year, #where shelf and year are fixed effects but without interaction
   data = PIT_metadata_filtered,
   method = "bray",
   by = "term",
@@ -2445,7 +2476,7 @@ PIT_adonis_result <- adonis2(
 )
 
 PIT_adonis_result <- adonis2(
-  PIT_matrix_filtered ~ Shelf * Year,
+  PIT_matrix_filtered ~ Shelf * Year, #includes interaction term
   data = PIT_metadata_filtered,
   method = "bray",
   by = "term",
@@ -2620,6 +2651,7 @@ ggplot(nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Reef)) +
   coord_equal() +
   labs(title = "NMDS of PIT benthic composition")
 ```
+
 ```{r}
 PIT_envfit <- envfit(
   PIT_nmds,
@@ -2875,7 +2907,6 @@ ggplot(PIT, aes(x=Year, y=prop_pori, colour = Reef))+
 
 Victor Email: Regarding the PERMANOVA: you start with a community matrix (sites x coral taxa). A PERMANOVA tests whether community composition differs among groups, using a distance matrix derived from your multivariate raw data. The inputs are a dissimilarity (distance) matrix, and a grouping factor (i.e., a categorical variable you want to test, like “reef”, “shelf.position”, or “year”). In your case, I'd suggest calculating a Bray-Curtis distance matrix and then running a PERMANOVA with the vegan package. Here’s a quick example you can run in R:
 ```{r}
-library(vegan)
 abund <- PIT |> 
   select(Acroporidae, Pocilloporidae, Poritidae)
 
@@ -3087,10 +3118,6 @@ NMDS ordinations are often plotted without units or labels on the axes so that p
 ### PERMANOVA
 
 ```{r}
-library(vegan)
-library(dplyr)
-library(tidyr)
-
 # Step 1: Create site-by-species matrix and "Site" column
 site_by_species <- Coral_settlement_nGBR %>%
   select(Year_Collected, Reef, Shelf, Site, Tile, Acroporidae, Pocilloporidae, Poritid, Other) 
@@ -3144,21 +3171,19 @@ Recruits <- Coral_settlement_nGBR %>%
   select(Acroporidae, Pocilloporidae, Poritid, Other)
 recruit_hellinger <- decostand(Recruits, method = "hellinger")
 
-environment_data <- Coral_settlement_nGBR %>%
+environment_data <- left_join(Coral_settlement_nGBR, join) %>%
   select(Year_Collected, Site, Reef, Shelf) #worried because environment data is nested here.
 ```
 
 ```{r}
-my_rda <- rda(recruit_hellinger~Year_Collected + Shelf+ (Reef/Site), data = environment_data)
+my_rda <- rda(recruit_hellinger~Year_Collected*Shelf, data = environment_data)
 
 summary(my_rda)
 ```
 ```{r}
 plot(my_rda)
 ```
-
 Explained variance
-
 ```{r}
 RsquareAdj(my_rda)
 ```
@@ -3171,7 +3196,7 @@ The principle of a permutation test is to generate a reference distribution of t
 H0: Observed results can be produced by random chance.
 
 The null hypothesis is rejected if this p
-value is equal to or smaller than the predefined significance level alpha (ex.: alpha=0.05).
+value is equal to or smaller than the predefined significance level α (ex.: α=0.05).
 
 Test for 
 1. Global RDA significance
@@ -3182,14 +3207,17 @@ Test for
 ```{r}
 anova.cca(my_rda, permutations = 999)
 ```
+
 Since p = 0.001, reject H0, meaning that the RDA model is significant and not produced by random chance
 
 ### Axis significance
+
 ```{r}
 anova.cca(my_rda, by = "axis")
 ```
 
 ### Terms significance
+
 ```{r}
 anova.cca(my_rda, by = "terms")
 ```
@@ -3199,7 +3227,9 @@ Use the vif.cca function
 ```{r}
 sqrt(vif.cca(my_rda))
 ```
-Not sure what the go is with some being NA. "As a rule of thumb, if sqrt vif >2, collinarity is considered high and some of the explanatory cariables are redundant.
+
+Not sure what the go is with some being NA. "As a rule of thumb, if sqrt vif >2, collinarity is considered high and some of the explanatory variables are redundant.
+So perhaps year is not needed here
 
 I will remove reef and site.
 ```{r}
@@ -3215,25 +3245,28 @@ RsquareAdj(my_rda2)
 
 anova.cca(my_rda2, permutations = 999)
 ```
+
 ```{r}
 anova.cca(my_rda2, by = "axis")
 anova.cca(my_rda2, by = "terms")
 
 sqrt(vif.cca(my_rda2))
 ```
+These are now all under two, so thats good.
 
-###Unexplained Variance
+
+### Unexplained Variance
 Kaiser Guttman criterion
 
 ```{r}
 my_rda2$CA$eig[my_rda2$CA$eig > mean(my_rda2$CA$eig)]
 ```
 
-## Partial RDA
+# Partial RDA
 It is possible to run an RDA of a matrix Y, explained by a matrix variables X, in the presence of co-variable(s) W.
 
 This analysis allows to display the patterns of the response data (Y) uniquely explained by a linear model of the explanatory variables (X) when the effect of other covariates (W) is held constant (Borcard, Gillet, and Legendre 2011).
-### Hold Year constant
+## Hold Year constant
 Model the effect of shelf position on coral recruit family abundances once the effect of year is removed
 
 ```{r}
@@ -3243,18 +3276,21 @@ partial_rda <- rda(recruit_hellinger~ Shelf + Condition(Year_Collected), data = 
 ```{r}
 summary(partial_rda)
 ```
+
 Conditioned gives the amount of variance that has been explained by the covariables and removed
 Constrained gives the amount of variance uniquely explained by the explanatory variables
 ```{r}
 RsquareAdj(partial_rda)
 ```
 
-### Hold Shelf Position Constant
+## Hold Shelf Position Constant
+
 Model the effect of year on coral recruit family abundances once the effect of shelf position is removed
 
 ```{r}
 partial_rda2 <- rda(recruit_hellinger~ Year_Collected + Condition(Shelf), data = environment_data)
 ```
+
 ```{r}
 summary(partial_rda2)
 ```
@@ -3266,40 +3302,194 @@ Test significance of partial RDA
 ```{r}
 anova.cca(partial_rda2)
 ```
-Since p< =0.05 we reject H0 and can conclude that the result was not produced randomly.
+
+Since p < =0.05 we reject H0 and can conclude that the result was not produced randomly.
 
 ```{r}
 plot(partial_rda2, scaling = 1)
 ```
 
-### Variance partitioning
-```{r}
+## Variance partitioning
+```{r eval=FALSE}
 env_shelf <- environment_data[,"Shelf"]
 
 env_year <- environment_data[,"Year_Collected"]
-# vp <- varpart(recruit_hellinger, env_shelf, env_year)
-# vp
-# 
-# plot(vp)
-```
+env_data <- data.frame(
+  Shelf = env_shelf,
+  Year_Collected = env_year
+)
+vp <- varpart(recruit_hellinger, 
+              ~ Shelf,
+              ~Year_Collected,
+              data = env_data)
+vp
 
-# Multivariate WorkFlow
+plot(vp)
+
+```
+having an error in colMeans(x, na.rm = TRUE), 'x' must be numeric for this.Not sure why because recruit_hellinger is a table of values, but the other two are categorical?
+
 
 ### Need to do test of significance of fractions
 
 ```{r eval = FALSE}
-anova.cca(rda(recruit_hellinger, env_shelf))
+anova.cca(rda(recruit_hellinger~ Shelf, data =env_data))
 
-anova.cca(rda(recruit_hellinger, env_year))
+anova.cca(rda(recruit_hellinger~ Year_Collected, data = env_data))
 
 #[a + b+c]
-anova.cca(rda(recruit_hellinger, environment_data))
+anova.cca(rda(recruit_hellinger~ Shelf + Year_Collected,
+      data = env_data))
 
 # [a]
-anova.cca(rda(recruit_hellinger, env_shelf, env_year))
+anova.cca(rda(recruit_hellinger ~ Shelf + Condition(Year_Collected),
+      data = env_data))
 
 # [c]
-anova.cca(rda(recruit_hellinger, env_year, env_shelf))
+anova.cca(rda(recruit_hellinger ~ Year_Collected + Condition(Shelf),
+      data = env_data))
+```
+
+### Try Redundancy analysis for the PITS
+
+```{r}
+Benthic_Surveys <- PIT %>%
+  select(95:106)
+
+meta_RA_PIT <- PIT %>%
+  select(1:4) #worried because environment data is nested here.
+```
+
+```{r}
+Benthic_rda <- rda(Benthic_Surveys~Year*Shelf, data = meta_RA_PIT)
+
+summary(Benthic_rda)
+```
+Explained variance
+```{r}
+RsquareAdj(Benthic_rda)
+```
+
+Tests of RDA results
+For canonical analysis such as RDA, model significance relies on permutation tests.
+
+The principle of a permutation test is to generate a reference distribution of the chosen statistic under the null hypothesis H0 by randomly permuting appropriate elements of the data a large number of times and recomputing the statistic each time. Then, one compares the true value of the statistic to this reference distribution. The p value is computed as the proportion of the permuted values equal to or larger than the true (unpermuted) value of the statistic for a one-tailed test in the upper tail, like the F test used in RDA (Borcard, Gillet, and Legendre 2011).
+
+H0: Observed results can be produced by random chance.
+
+The null hypothesis is rejected if this p
+value is equal to or smaller than the predefined significance level α (ex.: α=0.05).
+
+Test for 
+1. Global RDA significance
+2. Axis significance
+3. Terms (explanatory variables) significance
+
+### Global significance test
+```{r}
+anova.cca(Benthic_rda, permutations = 999)
+```
+
+Since p = 0.001, reject H0, meaning that the RDA model is significant and not produced by random chance
+
+### Axis significance
+
+```{r}
+anova.cca(Benthic_rda, by = "axis")
+```
+
+### Terms significance
+
+```{r}
+anova.cca(Benthic_rda, by = "terms")
+```
+
+# Partial RDA
+It is possible to run an RDA of a matrix Y, explained by a matrix variables X, in the presence of co-variable(s) W.
+
+This analysis allows to display the patterns of the response data (Y) uniquely explained by a linear model of the explanatory variables (X) when the effect of other covariates (W) is held constant (Borcard, Gillet, and Legendre 2011).
+## Hold Year constant
+Model the effect of shelf position on coral recruit family abundances once the effect of year is removed
+
+```{r}
+Benthic_partial_rda <- rda(Benthic_Surveys~ Shelf + Condition(Year), data = meta_RA_PIT)
+```
+
+```{r}
+summary(Benthic_partial_rda)
+```
+
+Conditioned gives the amount of variance that has been explained by the covariables and removed
+Constrained gives the amount of variance uniquely explained by the explanatory variables
+```{r}
+RsquareAdj(Benthic_partial_rda)
+```
+
+## Hold Shelf Position Constant
+
+Model the effect of year on coral recruit family abundances once the effect of shelf position is removed
+
+```{r}
+Benthic_partial_rda2 <- rda(Benthic_Surveys~ Year + Condition(Shelf), data = meta_RA_PIT)
+```
+
+```{r}
+summary(Benthic_partial_rda2)
+```
+
+```{r}
+RsquareAdj(Benthic_partial_rda2)
+```
+
+Test significance of partial RDA
+```{r}
+anova.cca(Benthic_partial_rda2)
+```
+
+Since p < =0.05 we reject H0 and can conclude that the result was not produced randomly.
+
+```{r}
+plot(Benthic_partial_rda2, scaling = 1)
+```
+
+## Variance partitioning
+```{r eval=FALSE}
+Benthic_shelf <- meta_RA_PIT[,"Shelf"]
+
+Benthic_year <- meta_RA_PIT[,"Year"]
+
+env_data <- data.frame(
+  Shelf = Benthic_shelf,
+  Year = Benthic_year
+)
+vp <- varpart(Benthic_Surveys, 
+              ~ Shelf,
+              ~Year,
+              data = env_data)
+vp
+
+plot(vp)
+
+```
+
+### Need to do test of significance of fractions
+
+```{r eval = FALSE}
+anova.cca(rda(Benthic_Surveys~ Shelf, data =env_data))
+
+anova.cca(rda(Benthic_Surveys~ Year, data = env_data))
+
+#[a + b+c]
+anova.cca(rda(Benthic_Surveys~ Shelf + Year,
+      data = env_data))
+
+# [a]
+anova.cca(rda(Benthic_Surveys ~ Shelf + Condition(Year),
+      data = env_data))
+
+# [c]
+anova.cca(rda(Benthic_Surveys ~ Year + Condition(Shelf),
+      data = env_data))
 ```
 
 # Bayesian Analysis 
