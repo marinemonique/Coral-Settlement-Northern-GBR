@@ -313,6 +313,7 @@ Colour palette:
 #B676A3
 #   scale_fill_identity() +
 # c("#c9df8a", "#B676A3", "#dbac98")
+"#C97B5F" 
 
 # Figure 1
 
@@ -326,7 +327,7 @@ Coral_settlement_nGBR |>
   y = expression("Total recruits (" * tile^{-1}*")" ),
   x = "Deployment",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   facet_wrap(~Shelf)+
   scale_x_discrete(
     "Deployment",
@@ -346,7 +347,7 @@ Fig.1 <- Coral_settlement_nGBR |>
   y = expression("Recruits (" * tile^{-1}*")" ),
   x = "Year",
   colour = "Shelf")+
- scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+
+ scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   #facet_wrap(~Shelf)+
   theme(legend.position = c(1,1), legend.justification = c(1,1))+
   scale_x_discrete(
@@ -390,7 +391,7 @@ Fig1_mean <- Coral_settlement_nGBR |>
     x = "Year",
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   theme(
     legend.position = c(1, 1),
     legend.justification = c(1, 1)
@@ -705,7 +706,7 @@ total_model_emm <- nbin_total_yr2|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size =9))+
-  scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 ```
 
 ```{r}
@@ -746,7 +747,7 @@ group_by(Year_Collected, Reef, Family, Shelf)  %>%
   y = expression("Recruits (" *tile^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   facet_wrap(~Family, scales = "free_y", ncol =1)+
   scale_x_discrete(
     "Deployment",
@@ -809,7 +810,7 @@ Fig2_mean <- total_recruits |>
     x = "Year",
     colour = "Shelf"
   ) +
- scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+
+ scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1024,7 +1025,7 @@ Fig2A_EMM <- nbin_Acroporidae_interaction|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size = 9))+
-  scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 
 Fig2A_EMM
 ```
@@ -1058,7 +1059,7 @@ Fig2A_raw <- total_recruits |>
     x = "Year",
     colour = "Shelf"
   ) +
- scale_colour_manual(values = c("#c9df8a", "#B676A3", "#dbac98"))+ 
+ scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+ 
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1215,7 +1216,7 @@ Fig2B_EMM <- nbin_Pocilloporidae_interaction|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size = 9))+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 ```
 
 ```{r}
@@ -1266,7 +1267,8 @@ Fig2C_Raw <- total_recruits |>
     x = "Year",
     colour = "Shelf"
   ) +
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366")) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  # scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366")) +
   theme(
     # legend.position = c(1, 0.4),
     # legend.justification = c(1, 1)
@@ -1865,6 +1867,7 @@ Poci_pos <- position_family_recruits |>
         title = element_text(size = 8))
 
 Poci_pos
+
 ```
 
 ```{r}
@@ -1895,7 +1898,7 @@ Por_pos <- position_family_recruits |>
   y = expression("Poritidae recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#003366"))+
+  scale_colour_manual(values = c("#a3b899", "#B676A3", "#dbac98"))+
   facet_wrap(~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -2767,12 +2770,12 @@ Trying something new, to hopefully be able to include the proportion of a family
 join <- PIT |> 
   group_by(Year, Shelf, Reef, Site) |> 
   summarise(
-    mean_aco = mean(Acroporidae),
-    sd_aco = sd(Acroporidae),
-    mean_poci = mean(Pocilloporidae),
-    sd_poci = sd(Pocilloporidae),
-    mean_por = mean(Poritidae),
-    sd_por = sd(Poritidae),
+    mean_aco = mean(prop_acro),
+    sd_aco = sd(prop_acro),
+    mean_poci = mean(prop_poci),
+    sd_poci = sd(prop_poci),
+    mean_por = mean(prop_pori),
+    sd_por = sd(prop_pori),
     PIT = n()
   )
 
@@ -2808,6 +2811,7 @@ testResiduals(sim8.1)
 sim8.2 <- simulateResiduals(nbin_Acroporidae_fixed)
 testResiduals(sim8.2)
 
+AIC(nbin_Acroporidae_fixed, nbin_Acroporidae_interaction)
 summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
 ```
 
