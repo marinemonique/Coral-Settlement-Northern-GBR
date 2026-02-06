@@ -78,6 +78,59 @@ mutate(
     TRUE ~ notes
   ))
 
+
+Pocilloporidae <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf, 
+         Reef, Site, Tile, 
+         Pocilloporidae, Top_Pocil, 
+         Under_Pocil, Side_Pocil, total)
+
+Pocilloporidae_orientation <- Pocilloporidae %>% 
+  rename(Top = Top_Pocil,
+                   Bottom = Under_Pocil,
+                   Side = Side_Pocil,
+         Recruits_per_tile = total)
+
+Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Acroporidae <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf, 
+         Reef, Site, Tile, 
+         Acroporidae, Top_Acr, 
+         Under_Acr, Side_Acr, total)
+
+Acroporidae_orientation <- Acroporidae %>% 
+  rename(Top = Top_Acr,
+                   Bottom = Under_Acr,
+                   Side = Side_Acr,
+         Recruits_per_tile = total)
+
+Acroporidae_orientation <- Acroporidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Poritid <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf, 
+         Reef, Site, Tile, 
+         Poritid, Top_Por, Under_Por, 
+         Side_Por, total)
+
+Poritidae_orientation <- Poritid %>% 
+  rename(Top = Top_Por,
+                   Bottom = Under_Por,
+                   Side = Side_Por,
+         Recruits_per_tile = total) 
+
+Poritidae_orientation <- Poritidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+
 # Benthic Data
 
 PIT <- read_csv("PIT_50m.csv") %>%
@@ -155,7 +208,8 @@ position_total_recruits <- left_join(position_total_recruits, join)
 ## Family recruitment data
 family_total_recruits <- Coral_settlement_nGBR %>%
   select(2:13) %>% 
-  pivot_longer(cols = 9:12, names_to = "Family", values_to = "Total")
+  pivot_longer(cols = 9:12, names_to = "Family", values_to = "Total") |> 
+  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 
 
 ```
@@ -327,64 +381,10 @@ sample_design <- Coral_settlement_nGBR |>
 ```
 
 
-
-```{r echo=FALSE}
-Pocilloporidae <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, 
-         Reef, Site, Tile, 
-         Pocilloporidae, Top_Pocil, 
-         Under_Pocil, Side_Pocil, total)
-
-Pocilloporidae_orientation <- Pocilloporidae %>% 
-  rename(Top = Top_Pocil,
-                   Bottom = Under_Pocil,
-                   Side = Side_Pocil,
-         Recruits_per_tile = total)
-
-Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
-
-Acroporidae <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, 
-         Reef, Site, Tile, 
-         Acroporidae, Top_Acr, 
-         Under_Acr, Side_Acr, total)
-
-Acroporidae_orientation <- Acroporidae %>% 
-  rename(Top = Top_Acr,
-                   Bottom = Under_Acr,
-                   Side = Side_Acr,
-         Recruits_per_tile = total)
-
-Acroporidae_orientation <- Acroporidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
-
-Poritid <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, 
-         Reef, Site, Tile, 
-         Poritid, Top_Por, Under_Por, 
-         Side_Por, total)
-
-Poritidae_orientation <- Poritid %>% 
-  rename(Top = Top_Por,
-                   Bottom = Under_Por,
-                   Side = Side_Por,
-         Recruits_per_tile = total) 
-
-Poritidae_orientation <- Poritidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
-```
-
 Colour palette:
-#B676A3
-#   scale_fill_identity() +
-# c("#c9df8a", "#B676A3", "#dbac98")
+B676A3
+  scale_fill_identity() +
+c("#c9df8a", "#B676A3", "#dbac98")
 "#C97B5F" 
 
 # Figure 1
@@ -436,22 +436,23 @@ Fig.1
 
 ```{r}
 Fig1_mean <- Coral_settlement_nGBR |>  
-  ggplot(aes(x = Year_Collected, y = total, colour = Shelf)) +
+  ggplot() +
   # Raw data
-  geom_jitter(
+  geom_jitter(aes(x = Year_Collected, y = total, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
     size = 0.5,
-    alpha = 0.5
+    alpha = 0.5,
+    colour = "grey"
   ) +
   # Mean points
-  stat_summary(
+  stat_summary(aes(x = Year_Collected, y = total, colour = Shelf),
     fun = mean,
     geom = "point",
     position = position_dodge(width = 0.6),
     size = 2.25
   ) +
   # Error bars (mean ± SE)
-  stat_summary(
+  stat_summary(aes(x = Year_Collected, y = total, colour = Shelf),
     fun.data = mean_se,
     geom = "errorbar",
     position = position_dodge(width = 0.6),
@@ -538,171 +539,6 @@ plot(sim1.6)
 sim1.6_plot <- plotResiduals(sim1.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 ```
 
-### Generating the DHARMA residual plots in ggplot to make ggarrange
-
-```{r}
-# Extract residuals and fitted values into a data frame
-residual_sim1.1 <- data.frame(
-  scaledResiduals = sim1.1$scaledResiduals,
-  fittedResponse = sim1.1$fittedPredictedResponse
-)
-
-# Residual vs. Fitted Plot (similar to DHARMa's right panel)
-
-ggplot(residual_sim1.1, aes(x = fittedResponse, y = scaledResiduals)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
-  labs(title = "DHARMa Residuals vs. Fitted",
-       x = "Fitted Response",
-       y = "Scaled Residuals") +
-  theme_minimal()
-
-# QQ Plot (similar to DHARMa's left panel)
-ggplot(data = residual_sim1.1, mapping = aes(sample = scaledResiduals)) +
-  stat_qq(distribution = stats::qunif) +
-  geom_abline(intercept = 0, slope = 1, color = "red") +
-  labs(title = "QQ Plot against Uniform Distribution",
-       x = "Theoretical Quantiles (Uniform)",
-       y = "Actual Scaled Residuals") +
-  theme_minimal()
-```
-
-Sim1.2
-```{r}
-# Extract residuals and fitted values into a data frame
-residual_sim1.2 <- data.frame(
-  scaledResiduals = sim1.2$scaledResiduals,
-  fittedResponse = sim1.2$fittedPredictedResponse
-)
-
-# Residual vs. Fitted Plot (similar to DHARMa's right panel)
-
-ggplot(residual_sim1.2, aes(x = fittedResponse, y = scaledResiduals)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
-  labs(title = "DHARMa Residuals vs. Fitted",
-       x = "Fitted Response",
-       y = "Scaled Residuals") +
-  theme_minimal()
-
-# QQ Plot (similar to DHARMa's left panel)
-ggplot(data = residual_sim1.2, mapping = aes(sample = scaledResiduals)) +
-  stat_qq(distribution = stats::qunif) +
-  geom_abline(intercept = 0, slope = 1, color = "red") +
-  labs(title = "QQ Plot against Uniform Distribution",
-       x = "Theoretical Quantiles (Uniform)",
-       y = "Actual Scaled Residuals") +
-  theme_minimal()
-```
-
-Sim1.3
-```{r}
-# Extract residuals and fitted values into a data frame
-residual_sim1.3 <- data.frame(
-  scaledResiduals = sim1.3$scaledResiduals,
-  fittedResponse = sim1.3$fittedPredictedResponse
-)
-
-# Residual vs. Fitted Plot (similar to DHARMa's right panel)
-
-ggplot(residual_sim1.3, aes(x = fittedResponse, y = scaledResiduals)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
-  labs(title = "DHARMa Residuals vs. Fitted",
-       x = "Fitted Response",
-       y = "Scaled Residuals") +
-  theme_minimal()
-
-# QQ Plot (similar to DHARMa's left panel)
-ggplot(data = residual_sim1.3, mapping = aes(sample = scaledResiduals)) +
-  stat_qq(distribution = stats::qunif) +
-  geom_abline(intercept = 0, slope = 1, color = "red") +
-  labs(title = "QQ Plot against Uniform Distribution",
-       x = "Theoretical Quantiles (Uniform)",
-       y = "Actual Scaled Residuals") +
-  theme_minimal()
-```
-
-```{r}
-# Extract residuals and fitted values into a data frame
-residual_sim1.4 <- data.frame(
-  scaledResiduals = sim1.4$scaledResiduals,
-  fittedResponse = sim1.4$fittedPredictedResponse
-)
-
-# Residual vs. Fitted Plot (similar to DHARMa's right panel)
-
-ggplot(residual_sim1.4, aes(x = fittedResponse, y = scaledResiduals)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
-  labs(title = "DHARMa Residuals vs. Fitted",
-       x = "Fitted Response",
-       y = "Scaled Residuals") +
-  theme_minimal()
-
-# QQ Plot (similar to DHARMa's left panel)
-ggplot(data = residual_sim1.4, mapping = aes(sample = scaledResiduals)) +
-  stat_qq(distribution = stats::qunif) +
-  geom_abline(intercept = 0, slope = 1, color = "red") +
-  labs(title = "QQ Plot against Uniform Distribution",
-       x = "Theoretical Quantiles (Uniform)",
-       y = "Actual Scaled Residuals") +
-  theme_minimal()
-```
-
-```{r}
-# Extract residuals and fitted values into a data frame
-residual_sim1.5 <- data.frame(
-  scaledResiduals = sim1.5$scaledResiduals,
-  fittedResponse = sim1.5$fittedPredictedResponse
-)
-
-# Residual vs. Fitted Plot (similar to DHARMa's right panel)
-
-ggplot(residual_sim1.5, aes(x = fittedResponse, y = scaledResiduals)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
-  labs(title = "DHARMa Residuals vs. Fitted",
-       x = "Fitted Response",
-       y = "Scaled Residuals") +
-  theme_minimal()
-
-# QQ Plot (similar to DHARMa's left panel)
-ggplot(data = residual_sim1.5, mapping = aes(sample = scaledResiduals)) +
-  stat_qq(distribution = stats::qunif) +
-  geom_abline(intercept = 0, slope = 1, color = "red") +
-  labs(title = "QQ Plot against Uniform Distribution",
-       x = "Theoretical Quantiles (Uniform)",
-       y = "Actual Scaled Residuals") +
-  theme_minimal()
-```
-
-```{r}
-# Extract residuals and fitted values into a data frame
-residual_sim1.6 <- data.frame(
-  scaledResiduals = sim1.6$scaledResiduals,
-  fittedResponse = sim1.6$fittedPredictedResponse
-)
-
-# Residual vs. Fitted Plot (similar to DHARMa's right panel)
-
-ggplot(residual_sim1.6, aes(x = fittedResponse, y = scaledResiduals)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "loess", col = "red") + # Optional: add a smooth line
-  labs(title = "DHARMa Residuals vs. Fitted",
-       x = "Fitted Response",
-       y = "Scaled Residuals") +
-  theme_minimal()
-
-# QQ Plot (similar to DHARMa's left panel)
-ggplot(data = residual_sim1.6, mapping = aes(sample = scaledResiduals)) +
-  stat_qq(distribution = stats::qunif) +
-  geom_abline(intercept = 0, slope = 1, color = "red") +
-  labs(title = "QQ Plot against Uniform Distribution",
-       x = "Theoretical Quantiles (Uniform)",
-       y = "Actual Scaled Residuals") +
-  theme_minimal()
-```
 
 
 Poisson model residuals were bad, therefore will only compare the four models that testResiduals were good for.
@@ -710,6 +546,8 @@ Poisson model residuals were bad, therefore will only compare the four models th
 ```{r}
 AIC(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2) |>  #nbin has the lowest AIC with interaction terms
   knitr::kable()
+
+Table_2 <- model.sel(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2)
 ```
 
 negative binomial model has the lowest AIC so I will get the summary of that model.
@@ -755,7 +593,7 @@ pairs(emm_year_shelf, adjust = "tukey",
 
 ```{r}
 total_model_emm <- nbin_total_yr2|> 
-  emmeans(~Shelf| Year_Collected, type = "response") |> 
+  emmeans(~Shelf | Year_Collected, type = "response") |> 
   as.data.frame() |> 
   mutate(
     lower = response - 1.96*SE,
@@ -809,7 +647,7 @@ ggsave(filename = "Figure_1mean.png",
 
 # Figure 2
 
-```{r}
+```{r eval =FALSE, include=FALSE}
 Figure.2 <- total_recruits |> 
 group_by(Year_Collected, Reef, Family, Shelf)  %>% 
   ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
@@ -854,26 +692,26 @@ Figure.2
 
 ```{r}
 Fig2_mean <- total_recruits |> 
-  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  ggplot()+
 # Raw data
-  geom_jitter(aes(group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 1),
+  geom_jitter(aes(x=Year_Collected, y=Total, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.9),
     size = 0.5,
     alpha = 0.5,
     colour = "grey"
   ) +
   # Mean points
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Shelf),
     fun = mean,
     geom = "point",
-    position = position_dodge(width = 1),
+    position = position_dodge(width = 0.9),
     size = 2.25
   ) +
   # Error bars (mean ± SE)
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Shelf),
     fun.data = mean_se,
     geom = "errorbar",
-    position = position_dodge(width = 1),
+    position = position_dodge(width = 0.9),
     width = 0.45
   ) +
   theme_classic() +
@@ -896,7 +734,7 @@ Fig2_mean <- total_recruits |>
       "2025" = "24/25"
     )
   )+
-  facet_wrap(~Family, scales = "free_y", ncol =2)+
+  facet_wrap(~Family, scales = "free_y", ncol =1)+
   theme(text = element_text(size=9),
         legend.position = "bottom")
 Fig2_mean
@@ -1005,7 +843,7 @@ zbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year_Collected + (1 
 
 ### Acroporidae
 
-```{r}
+```{r include=FALSE}
 Acroporidae |> 
   ggplot(aes(x = Year_Collected, y = Acroporidae, fill = Reef)) +
   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
@@ -1104,30 +942,31 @@ Fig2A_EMM
 ```{r}
 Fig2A_raw <- total_recruits |> 
   filter(Family == "Acroporidae") |> 
-  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  ggplot()+
 # Raw data
-  geom_jitter(
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+  geom_jitter(aes(x=Year_Collected, y=Total, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.75),
     size = 0.5,
-    alpha = 0.5
+    # alpha = 0.5,
+    colour = "grey"
   ) +
   # Mean points
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Shelf),
     fun = mean,
     geom = "point",
-    position = position_dodge(width = 0.6),
+    position = position_dodge(width = 0.75),
     size = 2.25
   ) +
   # Error bars (mean ± SE)
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Shelf),
     fun.data = mean_se,
     geom = "errorbar",
-    position = position_dodge(width = 0.6),
+    position = position_dodge(width = 0.75),
     width = 0.45
   ) +
   theme_classic() +
   labs(
-    y = expression("Recruits (" * tile^{-1} * ")"),
+    y = expression("Acroporidae recruits (" * tile^{-1} * ")"),
     x = "Year",
     colour = "Shelf"
   ) +
@@ -1160,22 +999,23 @@ Fig2_top <- ggarrange(Fig2A_raw, Fig2A_EMM, labels = c("A", "B"))
 ```{r}
 Fig2B_Raw <- total_recruits |> 
   filter(Family == "Pocilloporidae") |> 
-  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  ggplot()+
 # Raw data
-  geom_jitter(
+  geom_jitter(aes(x=Year_Collected, y=Total, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
     size = 0.5,
-    alpha = 0.5
+    alpha = 0.5,
+    colour = "grey"
   ) +
   # Mean points
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Shelf),
     fun = mean,
     geom = "point",
     position = position_dodge(width = 0.6),
     size = 2.25
   ) +
   # Error bars (mean ± SE)
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Shelf),
     fun.data = mean_se,
     geom = "errorbar",
     position = position_dodge(width = 0.6),
@@ -1183,7 +1023,7 @@ Fig2B_Raw <- total_recruits |>
   ) +
   theme_classic() +
   labs(
-    y = expression("Recruits (" * tile^{-1} * ")"),
+    y = expression("Pocilloporidae recruits (" * tile^{-1} * ")"),
     x = "Year",
     colour = "Shelf"
   ) +
@@ -1206,12 +1046,12 @@ Fig2B_Raw <- total_recruits |>
   
   
   
-Pocilloporidae |> 
-  ggplot(aes(x = Year_Collected, y = Pocilloporidae, fill = Reef)) +
-  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
-               position = position_dodge(width = 0.8),
-               alpha = 0.6) +
-  facet_wrap(~Shelf, ncol = 1, scale = "free_y")
+# Pocilloporidae |> 
+#   ggplot(aes(x = Year_Collected, y = Pocilloporidae, fill = Reef)) +
+#   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+#                position = position_dodge(width = 0.8),
+#                alpha = 0.6) +
+#   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 ```
 
 
@@ -1277,7 +1117,7 @@ Fig2B_EMM <- nbin_Pocilloporidae_interaction|>
   geom_pointrange(aes(ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
-  labs(y= "Estimated marginal\nmean Pocilloporidae")+
+  labs(y =expression("Predicted Pocilloporidae recruits ( " * tile^{-1} * ")"))+
   scale_x_discrete(
     "Deployment",
     labels = c("2022" = "21/22",
@@ -1299,12 +1139,12 @@ Fig2_mid <- ggarrange(Fig2B_Raw, Fig2B_EMM, labels = c("C", "D"))
 ### Poritid
 
 ```{r}
-Poritid |> 
-  ggplot(aes(x = Year_Collected, y = Poritid, fill = Reef)) +
-  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
-               position = position_dodge(width = 0.8),
-               alpha = 0.6) +
-  facet_wrap(~Shelf, ncol = 1, scale = "free_y")
+# Poritid |> 
+#   ggplot(aes(x = Year_Collected, y = Poritid, fill = Reef)) +
+#   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+#                position = position_dodge(width = 0.8),
+#                alpha = 0.6) +
+#   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
 
 
 Poritid |> 
@@ -1312,30 +1152,31 @@ Poritid |>
 
 Fig2C_Raw <- total_recruits |> 
   filter(Family == "Poritid") |> 
-  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  ggplot()+
 # Raw data
-  geom_jitter(
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+  geom_jitter(aes(x=Year_Collected, y=Total, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.75),
     size = 0.5,
-    alpha = 0.5
+    alpha = 0.5,
+    colour = "grey"
   ) +
   # Mean points
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Shelf),
     fun = mean,
     geom = "point",
-    position = position_dodge(width = 0.6),
+    position = position_dodge(width = 0.75),
     size = 2.25
   ) +
   # Error bars (mean ± SE)
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Shelf),
     fun.data = mean_se,
     geom = "errorbar",
-    position = position_dodge(width = 0.6),
+    position = position_dodge(width = 0.75),
     width = 0.45
   ) +
   theme_classic() +
   labs(
-    y = expression("Recruits (" * tile^{-1} * ")"),
+    y = expression("Poritidae recruits (" * tile^{-1} * ")"),
     x = "Year",
     colour = "Shelf"
   ) +
@@ -1356,6 +1197,8 @@ Fig2C_Raw <- total_recruits |>
   )+
   theme(text = element_text(size=9),
         legend.position = "bottom")
+
+Fig2C_Raw
 ```
 
 Test residuals of models
@@ -1402,7 +1245,7 @@ Fig2C_EMM <- nbin_Poritid_interaction|>
   geom_pointrange(aes(ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
-  labs(y= "Estimated marginal\nmean Poritidae recruits")+
+  labs(y= expression("Predicted Poritidae recruits ( " * tile^{-1} * ")"))+
   scale_x_discrete(
     "Deployment",
     labels = c("2022" = "21/22",
@@ -1420,6 +1263,8 @@ Fig2C_EMM <- nbin_Poritid_interaction|>
 ```{r}
 
 Fig2bot <- ggarrange(Fig2C_Raw, Fig2C_EMM, labels = c("E", "F"))
+
+
 
 ```
 
@@ -1485,27 +1330,32 @@ testResiduals(sim4.6)
 
 ```{r}
 AIC(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fixed, zi_total_family_interaction) #nb family interaction is best
+
+Table_3 <- model.sel(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fixed, zi_total_family_interaction)
+
+
 ```
 
 ```{r}
 
 Fig2A_raw <- family_total_recruits |> 
-  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  ggplot()+
 # Raw data
-  geom_jitter(
+  geom_jitter(aes(x=Year_Collected, y=Total, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
     size = 0.5,
-    alpha = 0.5
+    alpha = 0.5,
+    colour = "grey"
   ) +
   # Mean points
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total,colour = Shelf),
     fun = mean,
     geom = "point",
     position = position_dodge(width = 0.6),
     size = 2.25
   ) +
   # Error bars (mean ± SE)
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total,colour = Shelf),
     fun.data = mean_se,
     geom = "errorbar",
     position = position_dodge(width = 0.6),
@@ -1571,14 +1421,14 @@ Fig2B_EMM
 ```
 
 ```{r}
-Figure2 <- ggarrange(Fig2A_raw, Fig2B_EMM, ncol =2)
+Figure2 <- ggarrange(Fig2A_raw, Fig2B_EMM, ncol =2, common.legend = TRUE, legend = "bottom", labels = c("A", "B"))
 Figure2
 ```
 
 ```{r echo=FALSE, eval=FALSE}
 ggsave(filename = "Fig2.png",
        plot = Figure2,
-       height = 200,
+       height = 250,
        width = 169,
        unit = "mm")
 ```
@@ -1597,27 +1447,28 @@ total_recruits %>%
   print(n=20)
 ```
 
-Going to need to seperate these out, or just combine this as the LHS with three plots on the RHS for estimated marginal means.
+Going to need to separate these out, or just combine this as the LHS with three plots on the RHS for estimated marginal means.
 
 ```{r}
 Fig3_Raw <- position_total_recruits |> 
 group_by(Year_Collected, Reef, Pos, Shelf)  %>% 
-  ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
+  ggplot()+
 # Raw data
-  geom_jitter(
+  geom_jitter(aes(x=Year_Collected, y=Total, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
     size = 0.5,
-    alpha = 0.5
+    alpha = 0.5,
+    colour = "grey"
   ) +
   # Mean points
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Shelf),
     fun = mean,
     geom = "point",
     position = position_dodge(width = 0.6),
     size = 2.25
   ) +
   # Error bars (mean ± SE)
-  stat_summary(
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Shelf),
     fun.data = mean_se,
     geom = "errorbar",
     position = position_dodge(width = 0.6),
@@ -1961,7 +1812,7 @@ Por_pos <- position_family_recruits |>
   y = expression("Poritidae recruits (" * ~tile~surface^{-1} * ")"),
   x = "Year",
   colour = "Shelf")+
-  scale_colour_manual(values = c("#a3b899", "#B676A3", "#dbac98"))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   facet_wrap(~Pos, scales = "free_y", ncol =3)+
   scale_x_discrete(
     "Deployment",
@@ -2424,6 +2275,7 @@ nbin_total_yr2|>
 
 # Brood Stock Analysis
 
+
 ```{r}
 PIT |> 
   group_by(Year, Site) |> 
@@ -2432,7 +2284,7 @@ PIT |>
   ) #the number of transects per year differs among sites, so not sure whether calculating mean and standard error is appropriate or not.
 ```
 
-## is the total number of recruits related to the number proportion of coral in PIT?
+## is the total number of recruits related to the proportion of coral cover in PIT?
 
 ```{r}
 # Step 1: Create site-by-species matrix with Site_ID
@@ -2500,6 +2352,7 @@ PIT_nmds <- metaMDS(
 ```{r}
 PIT_nmds$stress
 ```
+Stress is 0.0933
 
 Stress isn't great, but usable.
  
@@ -2515,15 +2368,24 @@ nmds_scores_PIT <- nmds_scores_PIT %>%
     by = "Site_ID"
   )
 
-ggplot(nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf)) +
-  geom_point(size = 2, alpha = 0.8) +
-  stat_ellipse(type = "t") +
+Figure6A <- ggplot() +
+  geom_point(data = nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf, shape = Year), size = 2, alpha = 0.8) +
+  stat_ellipse(data = nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf), type = "t") +
   theme_classic() +
   coord_equal() +
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   theme(text =element_text(size =8),
         title = element_text(size = 8),
-        legend.position = "right")
+        legend.position = "right")+
+  scale_x_continuous(limits = c(-1.75, 3.75))+
+  scale_y_continuous(limits = c(-1.5, 1.75))+
+  scale_shape_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26"))
 ```
  
 ```{r}
@@ -2535,6 +2397,10 @@ PIT_envfit <- envfit(
 
 PIT_envfit <- as.data.frame(scores(PIT_envfit, display = "vectors"))
 
+
+PIT_envfit <- PIT_envfit |> 
+  rownames_to_column(var = "label_Benthos")
+
 PIT_envfit$vectors$pvals #check p values to determine whether to include
 
 # Prop other not significant at p<0.05
@@ -2544,7 +2410,7 @@ plot(PIT_envfit, p.max = 0.05, col = "black")
 
 #ggrepel
 
-ggplot() +
+Figure6A <- ggplot() +
   geom_point(data = nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf), size = 2, alpha = 0.8) +
   stat_ellipse(data = nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf), type = "t") +
   # geom_segment(data = PIT_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
@@ -2568,6 +2434,56 @@ ggplot()+
   theme(text =element_text(size =8),
         title = element_text(size = 8),
         legend.position = "right")
+```
+
+
+
+```{r}
+Figure6B <- ggplot()+
+  geom_segment(data = PIT_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+               arrow = arrow(length = unit(1/3, "picas")),
+               linetype = "solid",
+               linewidth = 0.5)+
+   theme_classic() +
+  coord_equal() +
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        legend.position = "right")+
+  geom_text_repel(data = PIT_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_Benthos),
+                  inherit.aes = FALSE,
+                  size = 5)+
+  theme_bw() +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         text = element_text(size = 9)
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2"
+    ) +
+    # annotate("text",
+    #          x = min(scores_hellinger$NMDS1),
+    #          y = min(scores_hellinger$NMDS2),              
+             #label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
+              #hjust = 0, vjust = 0, size = 4
+             # )+
+  scale_x_continuous(limits = c(-1.75, 3.75))+
+  scale_y_continuous(limits = c(-1.5, 1.75))
+  
+```
+
+```{r}
+Figure6 <- ggarrange(Figure6A, Figure6B, ncol =1, common.legend = TRUE, legend = "right", labels = c("A", "B"))
+
+Figure6
+
+ggsave(file = "Figure6.png",
+       plot = Figure6,
+       width = 169,
+       height = 190,
+       units = "mm")
 ```
 
 Individual groupings of macroalgae, and then do the Reefs

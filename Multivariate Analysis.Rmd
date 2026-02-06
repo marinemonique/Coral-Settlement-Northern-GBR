@@ -25,11 +25,7 @@ library(ggpubr)
 library(data.table) #not sure if required at this point
 library(plotly) #interactive nmds
 
-```
-
-Clean data
-
-```{r message=FALSE}
+#import and clean data
 Coral_settlement_nGBR_CS <- read_csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
   mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
 
@@ -73,7 +69,7 @@ environment_data <- Coral_settlement_nGBR %>%
 
 ## Sqrt
 
-```{r}
+```{r eval =FALSE}
 # Filtered recruit data
 Recruits_sqrt <- sqrt(Recruits)
 
@@ -81,12 +77,12 @@ Recruits_sqrt <- sqrt(Recruits)
 adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray")
 
 #Nested PERMANOVA
-adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef )
+adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef)
 ```
 
 Example: test effects with full nested structure explicitly:
 
-```{r}
+```{r eval = FALSE}
 adonis2(
   Recruits_sqrt ~ Year_Collected + Shelf + Reef %in% Shelf + Site %in% Reef,
   data = environment_data,
@@ -96,14 +92,14 @@ adonis2(
 
 ## inspect dispersion (PERMDISP)
 
-```{r}
+```{r eval =FALSE}
 bray <- vegdist(Recruits_sqrt, method = "bray")
 
 betadisper(bray, environment_data$Shelf)
 anova(betadisper(bray, environment_data$Shelf))
 ```
 
-```{r}
+```{r eval = FALSE}
 bray <- vegdist(Recruits_sqrt, method = "bray")
 
 set.seed(999)     # for reproducibility
@@ -118,7 +114,7 @@ site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
 scores <- cbind(site_scores, environment_data[, c("Year_Collected", "Shelf", "Reef", "Site")])
 ```
 
-Your stress = 0.154 sits comfortably in the:
+Your stress = 0.149 sits comfortably in the:
 
 “Acceptable / good for ecological community data”
 “Reliable representation of multivariate structure”
@@ -137,8 +133,8 @@ The 2D ordination is capturing the major differences in assemblages
 Patterns you see between groups (Shelf, Year, Reef) are trustworthy
 *(ChatGPT output - further investigation required)*
 
-```{r}
-p <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
+```{r eval = FALSE}
+p <- ggplot(data =scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
                          shape = Year_Collected)) +
      geom_point(size = 3, alpha = 0.9) +
     stat_ellipse(aes(group = Shelf, colour = Shelf),
@@ -173,13 +169,21 @@ adonis2(recruit_hellinger ~ Year_Collected * Shelf, data = environment_data, met
 adonis2(recruit_hellinger ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef )
 ```
 
+Question: I don't understand why these outputs are the same, if one is nested and one is not?
+
+
 ### inspect dispersion (PERMDISP) on Hellinger transformed
 
 ```{r}
 bray_hellinger <- vegdist(recruit_hellinger, method = "bray")
 
+# With respect to Shelf
 betadisper(bray_hellinger, environment_data$Shelf)
 anova(betadisper(bray_hellinger, environment_data$Shelf))
+
+# with respect to year
+betadisper(bray_hellinger, environment_data$Year_Collected)
+anova(betadisper(bray_hellinger, environment_data$Year_Collected))
 ```
 
 ```{r}
@@ -201,6 +205,16 @@ Recruits_tile <- Coral_settlement_nGBR %>%
   select(Tile, Site, Acroporidae, Pocilloporidae, Poritid, Other)
 
 scores_hellinger <- left_join(scores_hellinger, Recruits_tile)
+scores_hellinger <- scores_hellinger |> 
+  mutate(
+    Deployment =
+    case_when(
+      Year_Collected == "2025" ~ "24/25",
+      Year_Collected == "2024" ~ "23/24",
+      Year_Collected == "2023" ~ "22/23",
+      Year_Collected == "2022" ~ "21/22")
+  )
+
 p_h <- ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
                          shape = Year_Collected)) +
      geom_point(size = 3, alpha = 0.9) +
@@ -225,9 +239,35 @@ p_h <- ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                       
              label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
               hjust = 0, vjust = 0, size = 5)
  p_h
+ 
+ 
+Figure5A1 <-  ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
+     geom_point(size = 3, alpha = 0.9) +
+    stat_ellipse(aes(group = Shelf, colour = Shelf),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         text = element_text(size = 9)) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         colour = "Shelf",
+        shape = "Year Collected"
+    ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+    annotate("text",
+             x = min(scores_hellinger$NMDS1),
+             y = min(scores_hellinger$NMDS2),              
+             label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
+              hjust = 0, vjust = 0, size = 5)+
+   facet_wrap(~ Deployment, ncol = 1)+
+  scale_x_continuous(limits = c(-1, 2))+
+  scale_y_continuous(limits = c(-1.5, 1))
 ```
 
-```{r}
+```{r eval = FALSE}
 p_h <- ggplot(scores_hellinger,
               aes(x = NMDS1, y = NMDS2,
                   colour = Shelf,
@@ -243,11 +283,10 @@ p_h <- ggplot(scores_hellinger,
   stat_ellipse(aes(group = Shelf, colour = Shelf),
                level = 0.75, linewidth = 1) +
   theme_bw(base_size = 14) +
-  theme(
-    panel.grid = element_blank(),
-    legend.position = "right",
-    axis.title = element_text(face = "bold")
-  ) +
+ theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         text = element_text(size = 9) +
   labs(
     x = "nMDS1",
     y = "nMDS2",
@@ -260,6 +299,8 @@ p_h <- ggplot(scores_hellinger,
            y = min(scores_hellinger$NMDS2),
            label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
            hjust = 0, vjust = 0, size = 5)
+
+plotly::ggplotly(p_h)
 
 ```
 
@@ -279,8 +320,8 @@ Recruits_envfit <- Recruits_envfit |>
 
 # Prop other not significant at p<0.05
 
-plot(PIT_nmds)
-plot(PIT_envfit, p.max = 0.05, col = "black")
+# plot(PIT_nmds)
+# plot(PIT_envfit, p.max = 0.05, col = "black")
 ```
 
 ```{r}
@@ -350,20 +391,28 @@ Fig5.A <- ggplot() +
      theme(
         panel.grid = element_blank(),
          legend.position = "right",
-         axis.title = element_text(face = "bold")
+         text = element_text(size = 9)
      ) +
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
      labs(
          x = "nMDS1",
         y = "nMDS2",
-         colour = "Shelf Position",
-        shape = "Year Collected"
+         colour = "Shelf",
+        shape = "Deployment"
     ) +
+   scale_shape_discrete(
+    "Deployment",
+    labels = c(
+      "2022" = "21/22",
+      "2023" = "22/23",
+      "2024" = "23/24",
+      "2025" = "24/25"
+    ))+
     annotate("text",
              x = min(scores_hellinger$NMDS1),
              y = min(scores_hellinger$NMDS2),              
              label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
-              hjust = 0, vjust = 0, size = 5)+
+              hjust = 0, vjust = 0, size = 4)+
   scale_x_continuous(limits = c(-1, 2))+
   scale_y_continuous(limits = c(-1.5, 1))
 
@@ -375,28 +424,37 @@ Fig5.B <- ggplot()+
   geom_text_repel(data = Recruits_envfit,
                   aes(x = NMDS1, y= NMDS2, label = label_family),
                   inherit.aes = FALSE,
-                  size = 6)+
-  theme_bw(base_size = 14) +
+                  size = 5)+
+  theme_bw() +
      theme(
         panel.grid = element_blank(),
          legend.position = "right",
-         axis.title = element_text(face = "bold")
+         text = element_text(size = 9)
      ) +
      labs(
          x = "nMDS1",
         y = "nMDS2",
-         colour = "Shelf Position",
+         colour = "Shelf",
         shape = "Year Collected"
     ) +
     annotate("text",
              x = min(scores_hellinger$NMDS1),
              y = min(scores_hellinger$NMDS2),              
              label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
-              hjust = 0, vjust = 0, size = 5)+
+              hjust = 0, vjust = 0, size = 4)+
   scale_x_continuous(limits = c(-1, 2))+
   scale_y_continuous(limits = c(-1.5, 1))
 
-ggpubr::ggarrange(Fig5.A, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right")
+#Figure5 <- ggpubr::ggarrange(Fig5.A, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right")
+
+Figure5 <- ggpubr::ggarrange(Figure5A1, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right", heights = c(1.75, 0.5))
+
+
+ggsave(filename = "Fig5.png",
+       plot = Figure5,
+       height = 250,
+       width = 169,
+       unit = "mm")
 ```
 
 
@@ -798,182 +856,3 @@ adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method 
 adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef )
 ```
 
-
-# Redundancy Analysis
-https://pmassicotte.github.io/stats-denmark-2019/07_rda.html#/a-concrete-example-3
-
-Suggests using the Hellinger-transform method (Borcard, Gillet, and Legendre 2011; Legendre and Gallagher 2001) that is suited to species abundance data, 
-
-- gives low weights to variables with low counts and many zeros.
-Divide each value in a data matrix by its row sum, and taking the square root of the quotient
-
-```{r}
-Recruits <- Coral_settlement_nGBR %>%
-  select(Acroporidae, Pocilloporidae, Poritid, Other)
-recruit_hellinger <- decostand(Recruits, method = "hellinger")
-
-environment_data <- Coral_settlement_nGBR %>%
-  select(Year_Collected, Site, Reef, Shelf) #worried because environment data is nested here.
-```
-
-```{r}
-my_rda <- rda(recruit_hellinger~Year_Collected + Shelf+ (Reef/Site), data = environment_data)
-
-summary(my_rda)
-```
-```{r}
-plot(my_rda)
-```
-Explained variance
-```{r}
-RsquareAdj(my_rda)
-```
-
-Tests of RDA results
-For canonical analysis such as RDA, model significance relies on permutation tests.
-
-The principle of a permutation test is to generate a reference distribution of the chosen statistic under the null hypothesis H0 by randomly permuting appropriate elements of the data a large number of times and recomputing the statistic each time. Then, one compares the true value of the statistic to this reference distribution. The p value is computed as the proportion of the permuted values equal to or larger than the true (unpermuted) value of the statistic for a one-tailed test in the upper tail, like the F test used in RDA (Borcard, Gillet, and Legendre 2011).
-
-H0: Observed results can be produced by random chance.
-
-The null hypothesis is rejected if this p
-value is equal to or smaller than the predefined significance level α (ex.: α=0.05).
-
-Test for 
-1. Global RDA significance
-2. Axis significance
-3. Terms (explanatory variables) significance
-
-### Global significance test
-```{r}
-anova.cca(my_rda, permutations = 999)
-```
-
-Since p = 0.001, reject H0, meaning that the RDA model is significant and not produced by random chance
-
-### Axis significance
-
-```{r}
-anova.cca(my_rda, by = "axis")
-```
-
-### Terms significance
-
-```{r}
-anova.cca(my_rda, by = "terms")
-```
-
-### Check for multicollinearity
-Use the vif.cca function
-```{r}
-sqrt(vif.cca(my_rda))
-```
-
-Not sure what the go is with some being NA. "As a rule of thumb, if sqrt vif >2, collinarity is considered high and some of the explanatory cariables are redundant.
-
-I will remove reef and site.
-```{r}
-my_rda2 <- rda(recruit_hellinger~Year_Collected + Shelf, data = environment_data)
-
-summary(my_rda2)
-```
-
-```{r}
-plot(my_rda2)
-
-RsquareAdj(my_rda2)
-
-anova.cca(my_rda2, permutations = 999)
-```
-
-```{r}
-anova.cca(my_rda2, by = "axis")
-anova.cca(my_rda2, by = "terms")
-
-sqrt(vif.cca(my_rda2))
-```
-
-### Unexplained Variance
-Kaiser Guttman criterion
-
-```{r}
-my_rda2$CA$eig[my_rda2$CA$eig > mean(my_rda2$CA$eig)]
-```
-
-# Partial RDA
-It is possible to run an RDA of a matrix Y, explained by a matrix variables X, in the presence of co-variable(s) W.
-
-This analysis allows to display the patterns of the response data (Y) uniquely explained by a linear model of the explanatory variables (X) when the effect of other covariates (W) is held constant (Borcard, Gillet, and Legendre 2011).
-## Hold Year constant
-Model the effect of shelf position on coral recruit family abundances once the effect of year is removed
-
-```{r}
-partial_rda <- rda(recruit_hellinger~ Shelf + Condition(Year_Collected), data = environment_data)
-```
-
-```{r}
-summary(partial_rda)
-```
-
-Conditioned gives the amount of variance that has been explained by the covariables and removed
-Constrained gives the amount of variance uniquely explained by the explanatory variables
-```{r}
-RsquareAdj(partial_rda)
-```
-
-## Hold Shelf Position Constant
-
-Model the effect of year on coral recruit family abundances once the effect of shelf position is removed
-
-```{r}
-partial_rda2 <- rda(recruit_hellinger~ Year_Collected + Condition(Shelf), data = environment_data)
-```
-
-```{r}
-summary(partial_rda2)
-```
-
-```{r}
-RsquareAdj(partial_rda2)
-```
-Test significance of partial RDA
-```{r}
-anova.cca(partial_rda2)
-```
-
-Since p < =0.05 we reject H0 and can conclude that the result was not produced randomly.
-
-```{r}
-plot(partial_rda2, scaling = 1)
-```
-
-## Variance partitioning
-```{r eval=FALSE}
-env_shelf <- environment_data[,"Shelf"]
-
-env_year <- environment_data[,"Year_Collected"]
-vp <- varpart(recruit_hellinger, env_shelf, env_year)
-vp
-
-plot(vp)
-
-```
-having an error in colMeans(x, na.rm = TRUE), 'x' must be numeric for this.Not sure why because recruit_hellinger is a table of values, but the other two are categorical?
-
-
-### Need to do test of significance of fractions
-
-```{r eval = FALSE}
-anova.cca(rda(recruit_hellinger, env_shelf))
-
-anova.cca(rda(recruit_hellinger, env_year))
-
-#[a + b+c]
-anova.cca(rda(recruit_hellinger, environment_data))
-
-# [a]
-anova.cca(rda(recruit_hellinger, env_shelf, env_year))
-
-# [c]
-anova.cca(rda(recruit_hellinger, env_year, env_shelf))
-```

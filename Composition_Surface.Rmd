@@ -128,6 +128,17 @@ mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")),
 
 position_family_recruits <- position_family_recruits |> pivot_wider(names_from = Family, values_from = Total)
 
+position_family_recruits <- position_family_recruits |> 
+  mutate(
+    Adjustment = 1
+  )
+```
+
+# Zero adjusted, all tiles with recruits on at least one surface
+
+# Vegetated Surfaces
+
+```{r}
 vegetated_surfaces <- position_family_recruits |> 
   mutate(surface = case_when(Pos == "Top"~ `Top Total`,
                               Pos == "Bottom" ~ `Under Total`,
@@ -154,3 +165,161 @@ adonis2(SC_hellinger ~ Pos * Shelf, data = environment_data, method = "bray")
 #Nested PERMANOVA
 adonis2(SC_hellinger ~ Pos * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef)
 ```
+
+I don't entirely understand the next step:
+
+### inspect dispersion (PERMDISP) on Hellinger transformed
+
+```{r}
+bray_hellinger <- vegdist(SC_hellinger, method = "bray")
+
+# With respect to Shelf
+betadisper(bray_hellinger, environment_data$Shelf)
+anova(betadisper(bray_hellinger, environment_data$Shelf))
+
+# with respect to year
+betadisper(bray_hellinger, environment_data$Pos)
+anova(betadisper(bray_hellinger, environment_data$Pos))
+```
+
+
+```{r}
+set.seed(999)     # for reproducibility
+
+nmds_SC_hellinger <- metaMDS(SC_hellinger, distance = "bray", k = 2, trymax = 100)
+
+#Check the Stress Value
+nmds_SC_hellinger$stress
+
+# Extract NMDS for plot
+site_scores_SC_hellinger <- as.data.frame(vegan::scores(nmds_SC_hellinger, display = "sites"))
+scores_SC_hellinger <- cbind(site_scores_SC_hellinger, environment_data[, c("Pos","Year_Collected", "Shelf", "Reef", "Site")])
+```
+
+
+```{r}
+scores_SC_hellinger <- left_join(scores_SC_hellinger, vegetated_surfaces)
+
+SC_nmds_plot <- ggplot(scores_SC_hellinger, aes(x = NMDS1,
+                                y = NMDS2,
+                                colour = Shelf,
+                         shape = Year_Collected)) +
+     geom_point(size = 3, alpha = 0.9) +
+    stat_ellipse(aes(group = Shelf, colour = Shelf),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         colour = "Shelf",
+        shape = "Deployment"
+    ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+    #annotate("text",
+            # x = min(scores_SC_hellinger$NMDS1),
+            # y = min(scores_SC_hellinger$NMDS2),              
+            # label = paste0("Stress = ", round(nmds_SC_hellinger$stress, 3)),
+             # hjust = 0, vjust = 0, size = 5)+
+  facet_wrap(~ Pos, ncol = 1)
+```
+
+# Vectors
+```{r}
+SC_envfit <- envfit(
+  nmds_SC_hellinger,
+  SC_hellinger,
+  permutations = 999
+) 
+
+SC_envfit <- as.data.frame(scores(SC_envfit, display = "vectors"))
+
+SC_envfit <- SC_envfit |> 
+  rownames_to_column(var = "label_family")
+```
+
+```{r}
+library(ggrepel)
+
+# Decide limits of x and y axis, so that both plots will be the same
+scores_SC_hellinger |> 
+  summarise(
+    x_min = min(NMDS1),
+    x_max = max(NMDS1),
+    y_min = min(NMDS2),
+    y_max = max(NMDS2)
+  )
+
+ggplot() +
+     geom_point(data = scores_SC_hellinger, aes(x = NMDS1, y = NMDS2,
+                                      colour = Shelf,
+                         shape = Year_Collected),
+                size = 3, alpha = 0.9) +
+    stat_ellipse(data =scores_SC_hellinger, aes(x = NMDS1, y = NMDS2,
+                                      group = Shelf, colour = Shelf),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2",
+         colour = "Shelf",
+        shape = "Year Collected"
+    ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+    annotate("text",
+             x = min(scores_SC_hellinger$NMDS1),
+             y = min(scores_SC_hellinger$NMDS2),              
+             label = paste0("Stress = ", round(nmds_SC_hellinger$stress, 3)),
+              hjust = 0, vjust = 0, size = 5)+
+geom_segment(data = SC_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = SC_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_family),
+                  inherit.aes = FALSE,
+                  size = 6)+
+  scale_x_continuous(limits = c(-1, 2))+
+  scale_y_continuous(limits = c(-1.5, 1))+
+  facet_wrap(~Pos, ncol =1)
+
+SC_Vector_plot <- ggplot() +
+  geom_segment(data = SC_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = SC_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_family),
+                  inherit.aes = FALSE,
+                  size = 6)+
+  scale_x_continuous(limits = c(-1, 2))+
+  scale_y_continuous(limits = c(-1.5, 1))+
+     theme_bw(base_size = 14) +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         axis.title = element_text(face = "bold")
+     ) +
+     labs(
+         x = "nMDS1",
+        y = "nMDS2"
+    ) 
+
+SC_Vector_plot
+
+```
+
+```{r}
+Vegetated_tiles_nmds <- ggarrange(SC_nmds_plot, SC_Vector_plot, heights = c(3, 1),ncol =1, common.legend = TRUE) 
+ggsave(file = "vege_pos_family.png",plot = Vegetated_tiles_nmds, width = 130, height = 210, units = "mm", dpi = 300)
+```
+
