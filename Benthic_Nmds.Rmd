@@ -29,7 +29,7 @@ library(ggpubr)
 library(ggeffects) #to be able to do ggpredict
 library(ggh4x) # to specify x and y axis if desired
 library(MuMIn) #model selection function
-
+library(ggrepel)
 
 # Import and clean data
 ## Recruitment data
@@ -177,13 +177,14 @@ PIT_metadata_filtered <- metadata_PIT %>%
   column_to_rownames("Site_ID")
 
 # Step 6: PERMANOVA
-PIT_adonis_result <- adonis2(
+PIT_adonis_result1 <- adonis2(
   PIT_matrix_filtered ~ Shelf + Year, #where shelf and year are fixed effects but without interaction
   data = PIT_metadata_filtered,
   method = "bray",
   by = "term",
   permutations = 999
 )
+print(PIT_adonis_result1)
 
 PIT_adonis_result <- adonis2(
   PIT_matrix_filtered ~ Shelf * Year, #includes interaction term
@@ -213,7 +214,6 @@ PIT_nmds$stress
 ```
 Stress is 0.102
 
-Stress isn't great, but usable.
  
 ```{r}
 nmds_scores_PIT <- as.data.frame(scores(PIT_nmds, display = "sites"))

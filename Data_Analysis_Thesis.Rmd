@@ -210,8 +210,6 @@ family_total_recruits <- Coral_settlement_nGBR %>%
   select(2:13) %>% 
   pivot_longer(cols = 9:12, names_to = "Family", values_to = "Total") |> 
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
-
-
 ```
 
 
@@ -299,7 +297,7 @@ pairs(d_tukey, adjust = "tukey")
 
 ```{r}
 Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
-  filter(notes != "dislodged")
+  filter(notes != "Dislodged")
 ```
 
 # Summary Statistics
@@ -320,9 +318,9 @@ Coral_settlement_nGBR |>
 
 ```{r echo=FALSE}
 Coral_settlement_nGBR |> 
-  group_by(Year_Collected,Reef, Site) |> 
+  group_by(Reef, Site, Year_Collected) |> 
   summarise(total_tiles = n(),
-            total_recruits = sum(total))
+            total_recruits = sum(total)) #|> write.csv("Dislodged_removed_tiles.csv")
 ```
 
 Temporal statistics
@@ -371,6 +369,38 @@ Coral_settlement_nGBR |>
   )
 ```
 
+Number of tiles without any recruits
+```{r}
+
+29 / 678*100
+Coral_settlement_nGBR |> 
+  filter(total == 0) |> 
+    summarise(
+    n= n()
+  )
+
+Coral_settlement_nGBR |> 
+  filter(total == 0) |> 
+  group_by(Shelf) |> 
+    summarise(
+    n= n()
+  )
+
+Coral_settlement_nGBR |> 
+  filter(total == 0) |> 
+  group_by(Reef) |> 
+    summarise(
+    n= n()
+  )
+18/29*100
+Coral_settlement_nGBR |> 
+  filter(total == 0) |> 
+  group_by(Year) |> 
+    summarise(
+    n= n()
+  )
+
+```
 
 
 ```{r echo=FALSE}
@@ -1261,11 +1291,7 @@ Fig2C_EMM <- nbin_Poritid_interaction|>
 
 
 ```{r}
-
 Fig2bot <- ggarrange(Fig2C_Raw, Fig2C_EMM, labels = c("E", "F"))
-
-
-
 ```
 
 ## Figure 2 ggarrange
@@ -1332,8 +1358,6 @@ testResiduals(sim4.6)
 AIC(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fixed, zi_total_family_interaction) #nb family interaction is best
 
 Table_3 <- model.sel(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fixed, zi_total_family_interaction)
-
-
 ```
 
 ```{r}
@@ -1432,6 +1456,19 @@ ggsave(filename = "Fig2.png",
        width = 169,
        unit = "mm")
 ```
+
+## Composition Results
+```{r}
+# Percentage Acroporidae
+15586/21168 
+
+# Percentage Pocilloporidae
+3265/21168
+
+# PErcent Poritidae
+478/21168
+```
+
 
 # Figure 3, Position on tiles
 
@@ -1601,6 +1638,20 @@ ggsave(filename = "Fig3.png",
        width = 169,
        unit = "mm")
 ```
+
+Results summary statistics
+
+```{r}
+#bottom
+11946/21168
+
+# side
+7507/21168
+
+#top of tile
+1715/21168
+```
+
 ## Relationship to macroalgae with position on tile
 
 Doesn't appear obvious to me.
@@ -1895,7 +1946,6 @@ ggarrange(Acro_pos, Poci_pos, Por_pos, Oth_pos, ncol =1, common.legend = TRUE)
 ```
 
 ```{r}
-
 Family_pos <- position_family_recruits |> 
   ggplot(aes(x=Year_Collected, y=Total, colour = Shelf))+
   stat_summary(
@@ -2090,7 +2140,6 @@ testResiduals(sim5.5)
 
 sim5.6 <- simulateResiduals(zi_orientation_Acro)
 testResiduals(sim5.6)
-
 ```
 
 AIC to determine model of best fit
@@ -2629,21 +2678,6 @@ ggplot(nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Reef)) +
 
 ```
 
-```{r}
-binomial_acro_benthic <- glmmTMB(data = PIT, prop_acro~Year * Shelf+(1|Reef/Site), family = "binomial")
-
-sim_prop_acro <- simulateResiduals(binomial_acro_benthic)
-testResiduals(sim_prop_acro)
-
-summary(binomial_acro_benthic)
-
-binomial_poci_benthic <- glmmTMB(data = PIT, prop_poci~Year * Shelf+(1|Reef/Site), family = "binomial")
-sim_prop_poci <- simulateResiduals(binomial_poci_benthic)
-testResiduals(sim_prop_poci)
-summary(binomial_poci_benthic)
-
-PIT_matrix <- PIT[,95:103]
-```
 
 
 ```{r}
