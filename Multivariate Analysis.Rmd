@@ -49,6 +49,30 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR |>
   filter(Shelf == "Outer" | (Shelf %in% c("Inner", "Mid") & Tile %in% as.character(1:10)))
 
 Coral_settlement_nGBR$Year_Collected <- factor(Coral_settlement_nGBR$Year_Collected)
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  mutate(
+    Year = case_when(
+      Year_Collected == "2022" ~ "2021-22",
+      Year_Collected == "2023" ~ "2022-23",
+      Year_Collected == "2024" ~ "2023-24",
+      Year_Collected == "2025" ~ "2024-25",
+      Year_Collected == "2026" ~ "2025-26"
+  )) |> 
+mutate(
+  notes = case_when(
+    notes %in% c("dislodged", "dislodged tile", "dettached tile") ~ "Dislodged",
+    notes %in% c("lots of tube worms") ~ "Lots of tube worms",
+    TRUE ~ notes
+  ))
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+mutate(
+  notes = case_when(
+    !notes %in% c("Dislodged", "Lots of tube worms")~"No notes",
+    TRUE ~ notes
+  )) |> 
+  filter(notes != "Dislodged")
+
 ```
 
 Notes from Victor email: Regarding the PERMANOVA: you start with a community matrix (sites x coral taxa). A PERMANOVA tests whether community composition differs among groups, using a distance matrix derived from your multivariate raw data. The inputs are a dissimilarity (distance) matrix, and a grouping factor (i.e., a categorical variable you want to test, like “reef”, “shelf.position”, or “year”). In your case, I'd suggest calculating a Bray-Curtis distance matrix and then running a PERMANOVA with the vegan package. 
@@ -263,7 +287,7 @@ Figure5A1 <-  ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                
              label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
               hjust = 0, vjust = 0, size = 5)+
    facet_wrap(~ Deployment, ncol = 1)+
-  scale_x_continuous(limits = c(-1, 2))+
+  scale_x_continuous(limits = c(-1, 1.6))+
   scale_y_continuous(limits = c(-1.5, 1))
 ```
 
@@ -370,7 +394,7 @@ geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2)
                   aes(x = NMDS1, y= NMDS2, label = label_family),
                   inherit.aes = FALSE,
                   size = 6)+
-  scale_x_continuous(limits = c(-1, 2))+
+  scale_x_continuous(limits = c(-1, 1.6))+
   scale_y_continuous(limits = c(-1.5, 1))
 ```
 
@@ -413,8 +437,10 @@ Fig5.A <- ggplot() +
              y = min(scores_hellinger$NMDS2),              
              label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
               hjust = 0, vjust = 0, size = 4)+
-  scale_x_continuous(limits = c(-1, 2))+
-  scale_y_continuous(limits = c(-1.5, 1))
+  scale_x_continuous(limits = c(-1, 1.6))+
+  scale_y_continuous(limits = c(-1.35, 0.85))
+
+Fig5.A
 
 Fig5.B <- ggplot()+
   geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
@@ -442,12 +468,12 @@ Fig5.B <- ggplot()+
              y = min(scores_hellinger$NMDS2),              
              label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
               hjust = 0, vjust = 0, size = 4)+
-  scale_x_continuous(limits = c(-1, 2))+
-  scale_y_continuous(limits = c(-1.5, 1))
+  scale_x_continuous(limits = c(-1, 1.6))+
+  scale_y_continuous(limits = c(-1.4, 0.9))
 
-#Figure5 <- ggpubr::ggarrange(Fig5.A, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right")
+Figure5 <- ggpubr::ggarrange(Fig5.A, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right")
 
-Figure5 <- ggpubr::ggarrange(Figure5A1, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right", heights = c(1.75, 0.5))
+#Figure5 <- ggpubr::ggarrange(Figure5A1, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right", heights = c(1.75, 0.5))
 
 
 ggsave(filename = "Fig5.png",
