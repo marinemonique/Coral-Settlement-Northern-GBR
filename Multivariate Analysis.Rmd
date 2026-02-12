@@ -101,7 +101,8 @@ Recruits_sqrt <- sqrt(Recruits)
 adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray")
 
 #Nested PERMANOVA
-adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef)
+adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef) |> 
+print()
 ```
 
 Example: test effects with full nested structure explicitly:
@@ -182,15 +183,21 @@ p <- ggplot(data =scores, aes(x = NMDS1, y = NMDS2,                          col
               hjust = 0, vjust = 0, size = 5)
  p
 ```
+ 
+```{r}
+ # ggplotly(p)
+```
 
 ## Hellinger transformed
 
 ```{r}
 # Bray–Curtis PERMANOVA
-adonis2(recruit_hellinger ~ Year_Collected * Shelf, data = environment_data, method = "bray")
+adonis2(recruit_hellinger ~ Year_Collected * Shelf, data = environment_data, method = "bray", by = "term", permutations = 999) |> 
+  print()
 
-#Nested PERMANOVA
-adonis2(recruit_hellinger ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef )
+# #Nested PERMANOVA
+# adonis2(recruit_hellinger ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef, by= "term", permutations = 999 ) |> 
+#   print()
 ```
 
 Question: I don't understand why these outputs are the same, if one is nested and one is not?
@@ -291,7 +298,7 @@ Figure5A1 <-  ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                
   scale_y_continuous(limits = c(-1.5, 1))
 ```
 
-```{r eval = FALSE}
+```{r}
 p_h <- ggplot(scores_hellinger,
               aes(x = NMDS1, y = NMDS2,
                   colour = Shelf,
@@ -310,7 +317,7 @@ p_h <- ggplot(scores_hellinger,
  theme(
         panel.grid = element_blank(),
          legend.position = "right",
-         text = element_text(size = 9) +
+         text = element_text(size = 9)) +
   labs(
     x = "nMDS1",
     y = "nMDS2",
@@ -324,7 +331,7 @@ p_h <- ggplot(scores_hellinger,
            label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
            hjust = 0, vjust = 0, size = 5)
 
-plotly::ggplotly(p_h)
+# ggplotly(p_h, tooltip = "text")
 
 ```
 
@@ -393,7 +400,7 @@ geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2)
   geom_text_repel(data = Recruits_envfit,
                   aes(x = NMDS1, y= NMDS2, label = label_family),
                   inherit.aes = FALSE,
-                  size = 6)+
+                  size = 6,box.padding = 0.5, min.segment.length = Inf) +
   scale_x_continuous(limits = c(-1, 1.6))+
   scale_y_continuous(limits = c(-1.5, 1))
 ```
@@ -450,7 +457,9 @@ Fig5.B <- ggplot()+
   geom_text_repel(data = Recruits_envfit,
                   aes(x = NMDS1, y= NMDS2, label = label_family),
                   inherit.aes = FALSE,
-                  size = 5)+
+                  size = 5,
+                  box.padding = 0.5, 
+                  min.segment.length = Inf)+
   theme_bw() +
      theme(
         panel.grid = element_blank(),
@@ -463,13 +472,8 @@ Fig5.B <- ggplot()+
          colour = "Shelf",
         shape = "Year Collected"
     ) +
-    annotate("text",
-             x = min(scores_hellinger$NMDS1),
-             y = min(scores_hellinger$NMDS2),              
-             label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
-              hjust = 0, vjust = 0, size = 4)+
   scale_x_continuous(limits = c(-1, 1.6))+
-  scale_y_continuous(limits = c(-1.4, 0.9))
+  scale_y_continuous(limits = c(-1.35, 0.85))
 
 Figure5 <- ggpubr::ggarrange(Fig5.A, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right")
 

@@ -29,6 +29,7 @@ library(ggpubr)
 library(ggeffects) #to be able to do ggpredict
 library(ggh4x) # to specify x and y axis if desired
 library(MuMIn) #model selection function
+library(ggrepel)
 
 
 # Import and clean data
@@ -63,6 +64,13 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR |>
       Year_Collected == "2024" ~ "2023-24",
       Year_Collected == "2025" ~ "2024-25",
       Year_Collected == "2026" ~ "2025-26"
+  ),
+  Deployment = case_when(
+      Year_Collected == "2022" ~ "21/22",
+      Year_Collected == "2023" ~ "22/23",
+      Year_Collected == "2024" ~ "23/24",
+      Year_Collected == "2025" ~ "24/25",
+      Year_Collected == "2026" ~ "25/26"
   )) |> 
 mutate(
   notes = case_when(
@@ -80,7 +88,7 @@ mutate(
 
 
 Pocilloporidae <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, 
+  select(Year, Shelf, 
          Reef, Site, Tile, 
          Pocilloporidae, Top_Pocil, 
          Under_Pocil, Side_Pocil, total)
@@ -97,7 +105,7 @@ Pocilloporidae_orientation <- Pocilloporidae_orientation %>%
                values_to = "Recruits")
 
 Acroporidae <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, 
+  select(Year, Shelf, 
          Reef, Site, Tile, 
          Acroporidae, Top_Acr, 
          Under_Acr, Side_Acr, total)
@@ -114,7 +122,7 @@ Acroporidae_orientation <- Acroporidae_orientation %>%
                values_to = "Recruits")
 
 Poritid <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, 
+  select(Year, Shelf, 
          Reef, Site, Tile, 
          Poritid, Top_Por, Under_Por, 
          Side_Por, total)
@@ -355,6 +363,17 @@ Coral_settlement_nGBR |>
     se = sd(total)/(n()^0.5),
     n= n()
   )
+
+#21/22 and 23/24
+59.24022/27.15976
+
+#22/23 and 23/24
+59.24022/13.52571
+
+#23/24 and 24/25
+59.24022/20.56497
+
+
 ```
 
 ### By Shelf Position
@@ -367,7 +386,101 @@ Coral_settlement_nGBR |>
     se = sd(total)/(n()^0.5),
     n= n()
   )
+
+55.520833/24.259740
+55.520833/9.921397
 ```
+Inner 
+```{r}
+Coral_settlement_nGBR |> 
+  filter(Shelf == "Inner") |> 
+  group_by(Year_Collected) |> 
+  summarise(
+    mean = mean(total),
+    se = sd(total)/(n()^0.5),
+    n= n()
+  )
+
+```
+
+Mid
+
+```{r}
+Coral_settlement_nGBR |> 
+  filter(Shelf == "Mid") |> 
+  group_by(Year_Collected) |> 
+  summarise(
+    mean = mean(total),
+    se = sd(total)/(n()^0.5),
+    n= n()
+  )
+```
+
+Outer
+
+```{r}
+Coral_settlement_nGBR |> 
+  filter(Shelf == "Outer") |> 
+  group_by(Year_Collected) |> 
+  summarise(
+    mean = mean(total),
+    se = sd(total)/(n()^0.5),
+    n= n()
+  )
+```
+
+Year and Shelf
+2022
+```{r}
+Coral_settlement_nGBR |> 
+  filter(Year_Collected == "2022") |> 
+  group_by(Shelf) |> 
+  summarise(
+    mean = mean(total),
+    se = sd(total)/(n()^0.5),
+    n= n()
+  )
+```
+
+2023 
+
+```{r}
+Coral_settlement_nGBR |> 
+  filter(Year_Collected == "2023") |> 
+  group_by(Shelf) |> 
+  summarise(
+    mean = mean(total),
+    se = sd(total)/(n()^0.5),
+    n= n()
+  )
+```
+
+2024 
+
+```{r}
+Coral_settlement_nGBR |> 
+  filter(Year_Collected == "2024") |> 
+  group_by(Shelf) |> 
+  summarise(
+    mean = mean(total),
+    se = sd(total)/(n()^0.5),
+    n= n()
+  )
+```
+
+2025
+
+```{r}
+Coral_settlement_nGBR |> 
+  filter(Year_Collected == "2025") |> 
+  group_by(Shelf) |> 
+  summarise(
+    mean = mean(total),
+    se = sd(total)/(n()^0.5),
+    n= n()
+  )
+```
+
 
 Number of tiles without any recruits
 ```{r}
@@ -514,23 +627,23 @@ Fig1_mean
 ```
 
 ```{r warning=FALSE, message=FALSE}
-pois_total_yr <- glmmTMB(total ~ Shelf + Year_Collected + (1 | Reef/Site), 
+pois_total_yr <- glmmTMB(total ~ Shelf + Year + (1 | Reef/Site), 
       family = "poisson", data = Coral_settlement_nGBR)
 
-nbin_total_yr <- glmmTMB(total ~ Shelf +  Year_Collected +(1 | Reef/Site), 
+nbin_total_yr <- glmmTMB(total ~ Shelf +  Year +(1 | Reef/Site), 
         family = "nbinom2", data = Coral_settlement_nGBR)
 
-zbin_total_yr <- glmmTMB(total ~ Shelf + Year_Collected + (1 | Reef/Site),
+zbin_total_yr <- glmmTMB(total ~ Shelf + Year + (1 | Reef/Site),
                       ziformula = ~1,
         family = "nbinom2", data = Coral_settlement_nGBR)
 
-pois_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected + (1 | Reef/Site), 
+pois_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site), 
       family = "poisson", data = Coral_settlement_nGBR)
 
-nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected +(1 | Reef/Site), 
+nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site), 
         family = "nbinom2", data = Coral_settlement_nGBR)
 
-zbin_total_yr2 <- glmmTMB(total ~ Shelf * Year_Collected + (1 | Reef/Site),
+zbin_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site),
                       ziformula = ~1,
         family = "nbinom2", data = Coral_settlement_nGBR)
 ```
@@ -592,8 +705,8 @@ When making a figure should I then be using summary statistics or raw count data
 ### Tukey tests
 
 ```{r}
-emm_shelf <- emmeans(nbin_total_yr2, ~Shelf)
-emm_shelf_response <- emmeans(nbin_total_yr2, ~Shelf, type = "response")
+emm_shelf <- emmeans(nbin_total_yr2, ~Shelf | Year)
+emm_shelf_response <- emmeans(nbin_total_yr2, ~Shelf| Year, type = "response")
 
 emm_shelf
 emm_shelf_response
@@ -603,36 +716,55 @@ pairs(emm_shelf_response, adjust = "tukey")
 ```
 
 ```{r}
-emm_year <- emmeans(nbin_total_yr2, ~Year_Collected)
+emm_year <- emmeans(nbin_total_yr2, ~Year | Shelf)
+emm_year_response <- emmeans(nbin_total_yr2, ~Year|Shelf, type = "response")
 
 emm_year
+emm_year_response
 
 pairs(emm_year, adjust = "tukey")
+pairs(emm_year_response, adjust = "tukey")
 ```
 
 
 ```{r}
-emm_year_shelf <- emmeans(nbin_total_yr2, ~Year_Collected*Shelf)
+emm_year_shelf <- emmeans(nbin_total_yr2, ~Year*Shelf)
 
 emm_year_shelf
 
 pairs(emm_year_shelf, adjust = "tukey", 
       #type = "response"
       )
+
+pairs(emm_year_shelf, adjust = "tukey", 
+      #type = "response"
+      ) |> 
+  write.csv(file = "emmeans_total.csv")
 ```
 
 ```{r}
+Coral_settlement_nGBR$pred_total <- predict(
+  nbin_total_yr2,
+  type = "response"
+)
+
 total_model_emm <- nbin_total_yr2|> 
-  emmeans(~Shelf | Year_Collected, type = "response") |> 
+  emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
   mutate(
     lower = response - 1.96*SE,
     upper = response + 1.96*SE
-  ) |>
-  ggplot(aes(x=Year_Collected,
+  ) 
+
+  ggplot()+
+    geom_jitter(data = Coral_settlement_nGBR, aes(x=Year, y = pred_total, group = Shelf), 
+                position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.5),
+    size = 0.5,
+    alpha = 0.5,
+    colour = "grey")+
+  geom_pointrange(data = total_model_emm,aes(x=Year,
              y=response, 
-             color=Shelf))+
-  geom_pointrange(aes(ymin=lower, ymax = upper),
+             color=Shelf,ymin=lower, ymax = upper),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(y = expression("Predicted recruits (" * tile^{-1} * ")"))+
@@ -647,7 +779,12 @@ total_model_emm <- nbin_total_yr2|>
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size =9))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
+total_model_emm
 ```
+
+the emmeans package computes estimated marginal means (previously known as least-squares means) for the fixed effects of any component, or predictions with type = "response" or type = "component" https://glmmtmb.github.io/glmmTMB/reference/downstream_methods.html
+
 
 ```{r}
 Figure_1 <- ggarrange(Fig1_mean, total_model_emm, ncol =1, labels = c("A", "B"))
@@ -791,22 +928,22 @@ The structure of your random effects (nested site within reef),
 Whether Year_Collected should be a fixed or random effect.
 
 ```{r poisson of total Recruits, message=FALSE}
-pois_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + Year_Collected+(1 | Reef/Site) , 
+pois_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + Year+(1 | Reef/Site) , 
       family = "poisson", data = Poritid) 
 
-pois_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year_Collected + (1 | Reef/Site), 
+pois_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site), 
       family = "poisson", data = Poritid)
 
-pois_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year_Collected+ (1 | Reef/Site), 
+pois_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year+ (1 | Reef/Site), 
       family = "poisson", data = Acroporidae)
 
-pois_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year_Collected + (1 | Reef/Site), 
+pois_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
       family = "poisson", data = Acroporidae)
 
-pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + Year_Collected  + (1 | Reef/Site), 
+pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + Year  + (1 | Reef/Site), 
       family = "poisson", data = Pocilloporidae)
 
-pois_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year_Collected + (1 | Reef/Site), 
+pois_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year + (1 | Reef/Site), 
       family = "poisson", data = Pocilloporidae)
 ```
 
@@ -814,23 +951,23 @@ Negative Binomial of Total Recruits (for a family)
 
 ```{r}
 ## Fixed
-nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + (1 | Reef/Site) + Year_Collected, 
+nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + (1 | Reef/Site) + Year, 
         family = "nbinom2", data = Poritid)
 
-nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + (1 | Reef/Site) + Year_Collected, 
+nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + (1 | Reef/Site) + Year, 
         family = "nbinom2", data = Pocilloporidae)
 
-nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + (1 | Reef/Site) + Year_Collected, 
+nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + (1 | Reef/Site) + Year, 
         family = "nbinom2", data = Acroporidae)
 
 ## Interaction
-nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year_Collected + (1 | Reef/Site), 
+nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site), 
         family = "nbinom2", data = Poritid)
 
-nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year_Collected + (1 | Reef/Site), 
+nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
         family = "nbinom2", data = Pocilloporidae)
 
-nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year_Collected + (1 | Reef/Site), 
+nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
         family = "nbinom2", data = Acroporidae)
 ```
 
@@ -841,30 +978,30 @@ Negative Binomial Zero Inflated of Total recruits (per family)
 #Fixed
 # Fit model with zero-inflated negative binomial distribution 
 
-zbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf+ Year_Collected + (1 | Reef/Site) ,
+zbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf+ Year + (1 | Reef/Site) ,
                         ziformula = ~1,
                         family = "nbinom2",
                         data = Poritid)
-zbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf * Year_Collected + (1 | Reef/Site),
+zbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf * Year + (1 | Reef/Site),
                         ziformula = ~1,
                         family = "nbinom2",
                         data = Poritid)
 
-zbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf+ Year_Collected + (1 | Reef/Site),
+zbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf+ Year + (1 | Reef/Site),
                                ziformula = ~1,
                         family = "nbinom2",
                         data = Pocilloporidae)
 
-zbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year_Collected + (1 | Reef/Site),
+zbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year + (1 | Reef/Site),
                                ziformula = ~1,
                         family = "nbinom2",
                         data = Pocilloporidae)
 
-zbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year_Collected+ (1 | Reef/Site),
+zbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year+ (1 | Reef/Site),
                             ziformula = ~1,
                         family = "nbinom2",
                         data = Acroporidae)
-zbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year_Collected + (1 | Reef/Site),
+zbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site),
                             ziformula = ~1,
                         family = "nbinom2",
                         data = Acroporidae)
@@ -873,7 +1010,7 @@ zbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year_Collected + (1 
 
 ### Acroporidae
 
-```{r include=FALSE}
+```{r include=FALSE, eval = FALSE}
 Acroporidae |> 
   ggplot(aes(x = Year_Collected, y = Acroporidae, fill = Reef)) +
   geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
@@ -933,22 +1070,25 @@ nbin_Acroporidae_interaction %>%
 Acroporidae abundance significantly different in the outer reefs than inshore reefs.
 
 ```{r}
-emm_acro_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf, type = "response")
+emm_acro_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf*Year, type = "response")
 
 emm_acro_shelf
 
 pairs(emm_acro_shelf, adjust = "tukey")
+
+pairs(emm_acro_shelf, adjust = "tukey") |> 
+  write.csv(file = "emmeans_Acroporidae.csv")
 ```
 
 ```{r}
 Fig2A_EMM <- nbin_Acroporidae_interaction|> 
-  emmeans(~Shelf | Year_Collected, type = "response") |> 
+  emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
   mutate(
     lower = response - 1.96*SE,
     upper = response + 1.96*SE
   ) |> 
-  ggplot(aes(x=Year_Collected,
+  ggplot(aes(x=Year,
              y=response, 
              color=Shelf))+
   geom_pointrange(aes(ymin=lower, ymax = upper),
@@ -1124,24 +1264,27 @@ nbin_Pocilloporidae_interaction %>%
 ```
 
 ```{r}
-emm_poci_shelf <- emmeans(nbin_Pocilloporidae_interaction, ~Shelf)
+emm_poci_shelf <- emmeans(nbin_Pocilloporidae_interaction, ~Shelf*Year)
 
 emm_poci_shelf
 
 pairs(emm_poci_shelf, adjust = "tukey")
+
+pairs(emm_poci_shelf, adjust = "tukey") |> 
+  write.csv(file = "emmeans_Pocilloporidae.csv")
 ```
 
 Significant difference in Pocilloporidae abundance in mid shore reefs compared to inshore reefs
 
 ```{r}
 Fig2B_EMM <- nbin_Pocilloporidae_interaction|> 
-  emmeans(~Shelf | Year_Collected, type = "response") |> 
+  emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
   mutate(
     lower = response - 1.96*SE,
     upper = response + 1.96*SE
   ) |>
-  ggplot(aes(x=Year_Collected,
+  ggplot(aes(x=Year,
              y=response, 
              color=Shelf))+
   geom_pointrange(aes(ymin=lower, ymax = upper),
@@ -1263,13 +1406,13 @@ AIC(nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Porit
 
 ```{r}
 Fig2C_EMM <- nbin_Poritid_interaction|> 
-  emmeans(~Shelf | Year_Collected, type = "response") |> 
+  emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
   mutate(
     lower = response - 1.96*SE,
     upper = response + 1.96*SE
   ) |>
-  ggplot(aes(x=Year_Collected,
+  ggplot(aes(x=Year,
              y=response, 
              color=Shelf))+
   geom_pointrange(aes(ymin=lower, ymax = upper),
@@ -1287,6 +1430,17 @@ Fig2C_EMM <- nbin_Poritid_interaction|>
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size = 9))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+```
+
+```{r}
+pori_emm <- emmeans(nbin_Poritid_interaction, ~Shelf * Year, type = "response")
+
+pori_emm
+
+pairs(pori_emm, adjust = "tukey")
+
+pairs(pori_emm, adjust = "tukey") |> 
+  write.csv(file = "emmeans_pocilloporidae.csv")
 ```
 
 
@@ -1361,7 +1515,6 @@ Table_3 <- model.sel(nb_total_family_fixed, nb_total_family_interaction, zi_tota
 ```
 
 ```{r}
-
 Fig2A_raw <- family_total_recruits |> 
   ggplot()+
 # Raw data
@@ -1445,6 +1598,14 @@ Fig2B_EMM
 ```
 
 ```{r}
+emmeans_total_family <- nb_total_family_interaction |> 
+  emmeans(~Family | Shelf | Year_Collected, type = "response") 
+
+pairs(emmeans_total_family, adjust = "tukey") |> 
+  write.csv(file = "emmeans_family_total.csv")
+```
+
+```{r}
 Figure2 <- ggarrange(Fig2A_raw, Fig2B_EMM, ncol =2, common.legend = TRUE, legend = "bottom", labels = c("A", "B"))
 Figure2
 ```
@@ -1469,9 +1630,7 @@ ggsave(filename = "Fig2.png",
 478/21168
 ```
 
-
 # Figure 3, Position on tiles
-
 
 ```{r message=FALSE, echo=FALSE}
 total_recruits %>% 
@@ -2038,23 +2197,23 @@ data = position_family_recruits)
 ```
 
 ```{r}
-sim5.1 <- simulateResiduals(nb_Ori_family_fixed)
-testResiduals(sim5.1) 
+sim6.1 <- simulateResiduals(nb_Ori_family_fixed)
+testResiduals(sim6.1) 
 
-sim5.2 <- simulateResiduals(nb_Ori_family_interaction) #this is the best
-testResiduals(sim5.2)
+sim6.2 <- simulateResiduals(nb_Ori_family_interaction) #this is the best
+testResiduals(sim6.2)
 
-sim5.3 <- simulateResiduals(zi_Ori_family_fixed)
-testResiduals(sim5.3)
+sim6.3 <- simulateResiduals(zi_Ori_family_fixed)
+testResiduals(sim6.3)
 
-sim5.4 <- simulateResiduals(zi_Ori_family_interaction)
-testResiduals(sim5.4)
+sim6.4 <- simulateResiduals(zi_Ori_family_interaction)
+testResiduals(sim6.4)
 
-sim5.5 <- simulateResiduals(pois_Ori_family_fixed)
-testResiduals(sim5.5)
+sim6.5 <- simulateResiduals(pois_Ori_family_fixed)
+testResiduals(sim6.5)
 
-sim5.6 <- simulateResiduals(pois_Ori_family_interaction)
-testResiduals(sim5.6)
+sim6.6 <- simulateResiduals(pois_Ori_family_interaction)
+testResiduals(sim6.6)
 ```
 
 ```{r}
@@ -2090,8 +2249,8 @@ Coral_settlement_nGBR |>
 raw data
 ```{r echo=FALSE}
 Acroporidae_orientation |> 
-  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
-  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+  ggplot(aes(x = Year, y = Recruits, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year, Site)), 
                position = position_dodge(width = 0.8),
                alpha = 0.6) +
   facet_grid(Shelf~Tile_Surface, scale = "free_y")
@@ -2123,23 +2282,23 @@ zi_orientation_Acro <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site),
 ```
 
 ```{r echo=FALSE}
-sim5.1 <- simulateResiduals(nb_Orientation_Acroporidae_fixed)
-testResiduals(sim5.1)
+sim7.1 <- simulateResiduals(nb_Orientation_Acroporidae_fixed)
+testResiduals(sim7.1)
 
-sim5.2 <- simulateResiduals(nb_Orientation_Acroporidae)
-testResiduals(sim5.2)
+sim7.2 <- simulateResiduals(nb_Orientation_Acroporidae)
+testResiduals(sim7.2)
 
-sim5.3 <- simulateResiduals(pois_Orientation_Acro_fixed)
-testResiduals(sim5.3)
+sim7.3 <- simulateResiduals(pois_Orientation_Acro_fixed)
+testResiduals(sim7.3)
 
-sim5.4 <- simulateResiduals(pois_Orientation_Acro)
-testResiduals(sim5.4)
+sim7.4 <- simulateResiduals(pois_Orientation_Acro)
+testResiduals(sim7.4)
 
-sim5.5 <- simulateResiduals(zi_orientation_Acro_fixed)
-testResiduals(sim5.5)
+sim7.5 <- simulateResiduals(zi_orientation_Acro_fixed)
+testResiduals(sim7.5)
 
-sim5.6 <- simulateResiduals(zi_orientation_Acro)
-testResiduals(sim5.6)
+sim7.6 <- simulateResiduals(zi_orientation_Acro)
+testResiduals(sim7.6)
 ```
 
 AIC to determine model of best fit
@@ -2160,8 +2319,8 @@ Raw abundances
 
 ```{r echo=FALSE}
 Pocilloporidae_orientation |> 
-  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
-  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+  ggplot(aes(x = Year, y = Recruits, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year, Site)), 
                position = position_dodge(width = 0.8),
                alpha = 0.6) +
   facet_grid(Shelf~Tile_Surface, scale = "free_y")+
@@ -2191,23 +2350,23 @@ zi_orientation_poci <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site),
 ```
 
 ```{r echo=FALSE}
-sim6.1 <- simulateResiduals(nb_Orientation_Acroporidae_fixed)
-testResiduals(sim6.1)
+sim8.1 <- simulateResiduals(nb_Orientation_Acroporidae_fixed)
+testResiduals(sim8.1)
 
-sim6.2 <- simulateResiduals(nb_Orientation_Acroporidae)
-testResiduals(sim6.2)
+sim8.2 <- simulateResiduals(nb_Orientation_Acroporidae)
+testResiduals(sim8.2)
 
-sim6.3 <- simulateResiduals(pois_Orientation_Acro_fixed)
-testResiduals(sim6.3)
+sim8.3 <- simulateResiduals(pois_Orientation_Acro_fixed)
+testResiduals(sim8.3)
 
-sim6.4 <- simulateResiduals(pois_Orientation_Acro)
-testResiduals(sim6.4)
+sim8.4 <- simulateResiduals(pois_Orientation_Acro)
+testResiduals(sim8.4)
 
-sim6.5 <- simulateResiduals(zi_orientation_Acro_fixed)
-testResiduals(sim6.5)
+sim8.5 <- simulateResiduals(zi_orientation_Acro_fixed)
+testResiduals(sim8.5)
 
-sim6.6 <- simulateResiduals(zi_orientation_Acro)
-testResiduals(sim6.6)
+sim8.6 <- simulateResiduals(zi_orientation_Acro)
+testResiduals(sim8.6)
 
 ```
 
@@ -2215,8 +2374,8 @@ testResiduals(sim6.6)
 
 ```{r}
 Poritidae_orientation |> 
-  ggplot(aes(x = Year_Collected, y = Recruits, fill = Reef)) +
-  geom_boxplot(aes(group = interaction(Year_Collected, Site)), 
+  ggplot(aes(x = Year, y = Recruits, fill = Reef)) +
+  geom_boxplot(aes(group = interaction(Year, Site)), 
                position = position_dodge(width = 0.8),
                alpha = 0.6) +
   facet_grid(Shelf~Tile_Surface, scale = "free_y")+
@@ -2247,23 +2406,23 @@ zi_orientation_por <- glmmTMB(Recruits ~ Shelf* Tile_Surface + (1 | Reef/Site),
 ```
 
 ```{r echo=FALSE}
-sim7.1 <- simulateResiduals(nb_Orientation_por_fixed)
-testResiduals(sim7.1)
+sim9.1 <- simulateResiduals(nb_Orientation_por_fixed)
+testResiduals(sim9.1)
 
-sim7.2 <- simulateResiduals(nb_Orientation_por)
-testResiduals(sim7.2)
+sim9.2 <- simulateResiduals(nb_Orientation_por)
+testResiduals(sim9.2)
 
-sim7.3 <- simulateResiduals(pois_Orientation_por_fixed)
-testResiduals(sim7.3)
+sim9.3 <- simulateResiduals(pois_Orientation_por_fixed)
+testResiduals(sim9.3)
 
-sim7.4 <- simulateResiduals(pois_Orientation_por)
-testResiduals(sim7.4)
+sim9.4 <- simulateResiduals(pois_Orientation_por)
+testResiduals(sim9.4)
 
-sim7.5 <- simulateResiduals(zi_orientation_por_fixed)
-testResiduals(sim7.5)
+sim9.5 <- simulateResiduals(zi_orientation_por_fixed)
+testResiduals(sim9.5)
 
-sim7.6 <- simulateResiduals(zi_orientation_por)
-testResiduals(sim7.6)
+sim9.6 <- simulateResiduals(zi_orientation_por)
+testResiduals(sim9.6)
 
 ```
 
@@ -2304,7 +2463,7 @@ Victor: I recommend including Year as a fixed effect since you are interested in
 ```{r}
 # Caterpillar plot
 nbin_total_yr2|> 
-  emmeans(~Shelf| Year_Collected, type = "response") |> 
+  emmeans(~Shelf| Year, type = "response") |> 
   as.data.frame() |>
   mutate(
     lower = response - 1.96*SE,
@@ -2313,7 +2472,7 @@ nbin_total_yr2|>
   ggplot(aes(x = response, y = Shelf, color=Shelf)) +
   geom_point() +
   geom_errorbarh(aes(xmin =lower, xmax = upper), height = 0.2) +
-  facet_wrap(~Year_Collected, scales = "free_y") +
+  facet_wrap(~Year, scales = "free_y") +
   labs(x = "Estimated marginal mean (response scale)",
        y = "Shelf Position",
        title = "Caterpillar plot of EMMs by Year") +
@@ -2788,33 +2947,33 @@ nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*mean_aco*Year_Collec
 ```
 
 ```{r}
-sim8.1 <- simulateResiduals(nbin_Acroporidae_interaction)
-testResiduals(sim8.1)
+sim10.1 <- simulateResiduals(nbin_Acroporidae_interaction)
+testResiduals(sim10.1)
 
-sim8.2 <- simulateResiduals(nbin_Acroporidae_fixed)
-testResiduals(sim8.2)
+sim10.2 <- simulateResiduals(nbin_Acroporidae_fixed)
+testResiduals(sim10.2)
 
 AIC(nbin_Acroporidae_fixed, nbin_Acroporidae_interaction)
 summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
 ```
 
 ```{r}
-sim9.1 <- simulateResiduals(nbin_Pocilloporidae_interaction)
-testResiduals(sim9.1)
+sim11.1 <- simulateResiduals(nbin_Pocilloporidae_interaction)
+testResiduals(sim11.1)
 
-sim9.2 <- simulateResiduals(nbin_Pocilloporidae_fixed)
-testResiduals(sim9.2)
+sim11.2 <- simulateResiduals(nbin_Pocilloporidae_fixed)
+testResiduals(sim11.2)
 
 summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
 ```
 
 
 ```{r}
-sim10.1 <- simulateResiduals(nbin_Poritid_interaction)
-testResiduals(sim10.1)
+sim12.1 <- simulateResiduals(nbin_Poritid_interaction)
+testResiduals(sim12.1)
 
-sim10.2 <- simulateResiduals(nbin_Poritid_fixed)
-testResiduals(sim10.2)
+sim12.2 <- simulateResiduals(nbin_Poritid_fixed)
+testResiduals(sim12.2)
 
 summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
 
@@ -2999,16 +3158,16 @@ Because the simulation suggests not overdispersed, that means I can either do Wa
 nbin_Family_yr <- glmmTMB(Total ~ 1+ Family * Shelf + Year_Collected + (1 | Reef/Site), 
         family = "nbinom2", data = total_recruits)
 
-sim11.1 <- simulateResiduals(nbin_Family_yr)
-testResiduals(sim11.1)
+sim13.1 <- simulateResiduals(nbin_Family_yr)
+testResiduals(sim13.1)
 
 #seems to be a good model
 
 zbin_Family_yr <- glmmTMB(Total ~ 1+Family * Shelf + Year_Collected + (1 | Reef/Site),
                       ziformula = ~1,
         family = "nbinom2", data = total_recruits)
-sim11.2 <- simulateResiduals(zbin_Family_yr)
-testResiduals(sim11.2)
+sim13.2 <- simulateResiduals(zbin_Family_yr)
+testResiduals(sim13.2)
 ```
 
 ```{r}
@@ -3131,6 +3290,7 @@ my_rda <- rda(recruit_hellinger~Year_Collected*Shelf, data = environment_data)
 
 summary(my_rda)
 ```
+
 ```{r}
 plot(my_rda)
 ```

@@ -163,7 +163,6 @@ PIT <- PIT |>
       TRUE ~ Site
     ))
 
-
 PIT<- PIT |> 
   mutate(
     Shelf = factor(Shelf),
@@ -232,14 +231,34 @@ nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site),
 
 ```{r}
 emm_shelf <- emmeans(nbin_total_yr2, ~Shelf | Year)
-pairs(emm_shelf, adjust = "tukey") #has estimate whereas the response has ratio
+pairs(emm_shelf, adjust = "tukey")#has estimate whereas the response has ratio
+
 emm_shelf_response <- emmeans(nbin_total_yr2, ~Shelf| Year, type = "response")
-pairs(emm_shelf_response, adjust = "tukey")
+#create dataframe
+emm_total_df <- as.data.frame(emm_shelf_response) |> 
+  rename(predicted_recruits = response)
+# Contrast Dataframe
+emm_total_pair_df <- pairs(emm_shelf_response, adjust = "tukey")
+
+#Calcualte additive differences in total recruits
+difference_total <- emm_total_df |> 
+  select(Year, Shelf, predicted_recruits) |> 
+  pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
+  mutate(
+    Mid_minus_Inner   = Mid - Inner,
+    Outer_minus_Inner = Outer - Inner,
+    Outer_minus_Mid   = Outer - Mid,
+    pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
+    pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
+    pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
+  )
+
+difference_total
 ```
 
 ```{r}
-emm_year <- emmeans(nbin_total_yr2, ~Year | Shelf)
-pairs(emm_year, adjust = "tukey")
+# emm_year <- emmeans(nbin_total_yr2, ~Year | Shelf)
+# pairs(emm_year, adjust = "tukey")
 emm_year_response <- emmeans(nbin_total_yr2, ~Year|Shelf, type = "response")
 pairs(emm_year_response, adjust = "tukey")
 ```
@@ -259,6 +278,27 @@ Acroporidae
 ```{r}
 emm_acro_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf|Year, type = "response")
 pairs(emm_acro_shelf, adjust = "tukey")
+#create dataframe
+emm_acro_df <- as.data.frame(emm_acro_shelf) |> 
+  rename(predicted_recruits = response)
+# Contrast Dataframe
+emm_acro_pair_df <- pairs(emm_acro_shelf, adjust = "tukey")
+
+#Calcualte additive differences in total recruits
+difference_acro <- emm_acro_df |> 
+  select(Year, Shelf, predicted_recruits) |> 
+  pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
+  mutate(
+    Mid_minus_Inner   = Mid - Inner,
+    Outer_minus_Inner = Outer - Inner,
+    Outer_minus_Mid   = Outer - Mid,
+    pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
+    pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
+    pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
+  )
+
+difference_acro
+
 emm_acro_year <- emmeans(nbin_Acroporidae_interaction, ~Year|Shelf, type = "response")
 pairs(emm_acro_year, adjust = "tukey")
 ```
@@ -267,19 +307,83 @@ pairs(emm_acro_year, adjust = "tukey")
 Pocilloporidae
 
 ```{r}
-emm_poci_shelf <- emmeans(nbin_Pocilloporidae_interaction, ~Shelf | Year)
+emm_poci_shelf <- emmeans(nbin_Pocilloporidae_interaction, ~Shelf | Year, type = "response")
 pairs(emm_poci_shelf, adjust = "tukey")
-emm_poci_year <- emmeans(nbin_Pocilloporidae_interaction, ~Year |Shelf)
+
+#create dataframe
+emm_poci_df <- as.data.frame(emm_poci_shelf) |> 
+  rename(predicted_recruits = response)
+# Contrast Dataframe
+emm_poci_pair_df <- pairs(emm_poci_shelf, adjust = "tukey")
+
+#Calcualte additive differences in total recruits
+difference_poci <- emm_poci_df |> 
+  select(Year, Shelf, predicted_recruits) |> 
+  pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
+  mutate(
+    Mid_minus_Inner   = Mid - Inner,
+    Outer_minus_Inner = Outer - Inner,
+    Outer_minus_Mid   = Outer - Mid,
+    pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
+    pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
+    pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
+  )
+
+difference_poci
+
+emm_poci_year <- emmeans(nbin_Pocilloporidae_interaction, ~Year |Shelf, type = "response")
 pairs(emm_poci_year, adjust = "tukey")
 ```
 
-Poritidae
+# Poritidae
+
+## Shelf
 
 ```{r}
-pori_emm <- emmeans(nbin_Poritid_interaction, ~Shelf | Year, type = "response")
+emm_pori_shelf <- emmeans(nbin_Poritid_interaction, ~Shelf | Year, type = "response")
+#create dataframe
+emm_pori_df <- as.data.frame(emm_pori_shelf) |> 
+  rename(predicted_recruits = response)
+# Contrast Dataframe
+emm_pori_pair_df <- pairs(emm_pori_shelf, adjust = "tukey")
+
+#Calcualte additive differences in total recruits
+difference_pori <- emm_pori_df |> 
+  select(Year, Shelf, predicted_recruits) |> 
+  pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
+  mutate(
+    Mid_minus_Inner   = Mid - Inner,
+    Outer_minus_Inner = Outer - Inner,
+    Outer_minus_Mid   = Outer - Mid,
+    pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
+    pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
+    pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
+  )
+difference_pori
+```
+
+## Year 
+
+```{r}
 emm_pori_year <- emmeans(nbin_Poritid_interaction, ~Year |Shelf, type = "response")
-pairs(pori_emm, adjust = "tukey")
-pairs(emm_pori_year, adjust = "tukey")
+#create dataframe
+emm_pori_df <- as.data.frame(emm_pori_year) |> 
+  rename(predicted_recruits = response)
+# Contrast Dataframe
+emm_pori_pair_df <- pairs(emm_pori_year, adjust = "tukey")
+
+#Calcualte additive differences in total recruits
+# difference_pori <- emm_pori_df |> 
+#   select(Year, Shelf, predicted_recruits) |> 
+#   pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
+#   mutate(
+#     "21/22_minus"   = Mid - Inner,
+#     Outer_minus_Inner = Outer - Inner,
+#     Outer_minus_Mid   = Outer - Mid,
+#     pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
+#     pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
+#     pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
+#   )
 ```
 
 All families

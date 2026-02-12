@@ -148,10 +148,7 @@ family_total_recruits <- Coral_settlement_nGBR %>%
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
   select(
-    Year, Reef, Shelf, Site, Transect,
-    prop_acro, prop_hard_coral, prop_poci, prop_pori,
-    prop_soft_coral, prop_other_hc,
-    prop_turf, Prop_Other, Prop_macroalgae, prop_brown, Prop_green, prop_red, 106:117
+    Year, Reef, Shelf, Site, Transect, 107:117
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
@@ -163,7 +160,7 @@ metadata_PIT <- site_by_PIT %>%
 PIT_matrix <- site_by_PIT %>%
   select(
     Site_ID,
-    18:21, 25:28
+    6:16
   )
 
 # Step 4: Remove all-zero rows BEFORE rownames
@@ -193,7 +190,6 @@ PIT_adonis_result <- adonis2(
   by = "term",
   permutations = 999
 )
- 
 print(PIT_adonis_result)
 
 # interaction term was significant so i think it should be included.
@@ -228,24 +224,94 @@ nmds_scores_PIT <- nmds_scores_PIT %>%
   )
 
 Figure6A <- ggplot() +
-  geom_point(data = nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf, shape = Year), size = 2, alpha = 0.8) +
+  geom_point(data = nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf), size = 2, alpha = 0.8) +
   stat_ellipse(data = nmds_scores_PIT, aes(NMDS1, NMDS2, colour = Shelf), type = "t") +
   theme_classic() +
   coord_equal() +
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
   theme(text =element_text(size =8),
         title = element_text(size = 8),
-        legend.position = "right")+
-  scale_x_continuous(limits = c(-1.1, 2.1))+
-  scale_y_continuous(limits = c(-1.1, 1.3))+
-  scale_shape_discrete(
-    "Deployment",
-    labels = c("2022" = "21/22",
-               "2023" = "22/23",
-               "2024" = "23/24",
-               "2025" = "24/25",
-               "2026" = "25/26"))
+        legend.position = "bottom")+
+  scale_x_continuous(limits = c(-1.1, 2.35))+
+  scale_y_continuous(limits = c(-1.35, 1.75))+
+  #labs(x = "")+
+  facet_wrap(~Year, ncol = 4)
+  # scale_shape_discrete(
+  #   "Deployment",
+  #   labels = c("2022" = "21/22",
+  #              "2023" = "22/23",
+  #              "2024" = "23/24",
+  #              "2025" = "24/25",
+  #              "2026" = "25/26"))
 ```
+
+```{r}
+Figure6a <- nmds_scores_PIT |> filter(Year == "2021-22") |> 
+  ggplot() +
+  geom_point(aes(NMDS1, NMDS2, colour = Shelf), size = 2, alpha = 0.8) +
+  stat_ellipse(aes(NMDS1, NMDS2, colour = Shelf), type = "t") +
+  theme_classic() +
+  coord_equal() +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        axis.title.x = element_blank(),
+        legend.position = "bottom")+
+  labs(x = "", y = "", title = "21/22")+
+  scale_x_continuous(limits = c(-1.1, 2.32))+
+  scale_y_continuous(limits = c(-1.33, 1.63))
+Figure6a
+  #labs(x = "")
+
+Figure6b <- nmds_scores_PIT |> filter(Year == "2022-23") |> 
+  ggplot() +
+  geom_point(aes(NMDS1, NMDS2, colour = Shelf), size = 2, alpha = 0.8) +
+  stat_ellipse(aes(NMDS1, NMDS2, colour = Shelf), type = "t") +
+  theme_classic() +
+  coord_equal() +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        axis.title.x = element_blank(),
+        legend.position = "bottom")+
+  labs(x = "", y = "", title = "22/23")+
+  scale_x_continuous(limits = c(-1.1, 2.32))+
+  scale_y_continuous(limits = c(-1.33, 1.63))
+Figure6b
+
+Figure6c <- nmds_scores_PIT |> filter(Year == "2023-24") |> 
+  ggplot() +
+  geom_point(aes(NMDS1, NMDS2, colour = Shelf), size = 2, alpha = 0.8) +
+  stat_ellipse(aes(NMDS1, NMDS2, colour = Shelf), type = "t") +
+  theme_classic() +
+  coord_equal() +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        axis.title.x = element_blank(),
+        legend.position = "bottom")+
+  labs(x = "", title = "23/24")+
+  scale_x_continuous(limits = c(-1.1, 2.32))+
+  scale_y_continuous(limits = c(-1.33, 1.63))
+Figure6c
+
+Figure6d <- nmds_scores_PIT |> filter(Year == "2024-25") |> 
+  ggplot() +
+  geom_point(aes(NMDS1, NMDS2, colour = Shelf), size = 2, alpha = 0.8) +
+  stat_ellipse(aes(NMDS1, NMDS2, colour = Shelf), type = "t") +
+  theme_classic() +
+  coord_equal() +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        axis.title.x = element_blank(),
+        legend.position = "bottom")+
+  labs(x = "", y = "", title = "24/25")+
+  scale_x_continuous(limits = c(-1.1, 2.32))+
+  scale_y_continuous(limits = c(-1.33, 1.63))
+Figure6d
+```
+
 
 ```{r}
 PIT_envfit <- envfit(
@@ -279,14 +345,16 @@ Figure6B <- ggplot()+
      theme(
         panel.grid = element_blank(),
          legend.position = "right",
-         text = element_text(size = 9)
+         text = element_text(size = 8),
+        title = element_text(size = 8)
      ) +
      labs(
-         x = "nMDS1",
-        y = "nMDS2"
+         x = "NMDS1",
+        y = "NMDS2"
     ) +
-   scale_x_continuous(limits = c(-1.1, 2.1))+
-  scale_y_continuous(limits = c(-1.1, 1.3))#+
+  labs(y = "")+
+   scale_x_continuous(limits = c(-1.1, 2.32))+
+  scale_y_continuous(limits = c(-1.33, 1.63))#+
     # annotate("text",
     #          x = min(scores_hellinger$NMDS1),
     #          y = min(scores_hellinger$NMDS2),              
@@ -299,5 +367,18 @@ Figure6B <- ggplot()+
 Figure6A
 Figure6B
 
-ggarrange(Figure6A, Figure6B, ncol = 1, common.legend = TRUE)
+ggarrange(Figure6a, Figure6b, Figure6c, Figure6d, Figure6B, ncol = 1, 
+          labels = c("A", "B", "C", "D", "E"),
+          #heights = c(4, 1),
+          common.legend = TRUE
+          )
+
+ggarrange(Figure6a, Figure6b, Figure6c, Figure6d, Figure6B, ncol = 1, 
+          labels = c("A", "B", "C", "D", "E"),
+          heights = c(1,1,1,1, 0.95),
+          common.legend = TRUE, legend = "right"
+          ) |> ggsave(file = "Figure6.png",
+                      height = 280,
+                      width = 80,
+                      unit = "mm")
 ```
