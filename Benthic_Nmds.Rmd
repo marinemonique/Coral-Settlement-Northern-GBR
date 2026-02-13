@@ -232,10 +232,9 @@ Figure6A <- ggplot() +
   theme(text =element_text(size =8),
         title = element_text(size = 8),
         legend.position = "bottom")+
-  scale_x_continuous(limits = c(-1.1, 2.35))+
-  scale_y_continuous(limits = c(-1.35, 1.75))+
+  scale_x_continuous(limits = c(-1.1, 2.32))+
+  scale_y_continuous(limits = c(-1.33, 1.63))
   #labs(x = "")+
-  facet_wrap(~Year, ncol = 4)
   # scale_shape_discrete(
   #   "Deployment",
   #   labels = c("2022" = "21/22",
@@ -257,7 +256,7 @@ Figure6a <- nmds_scores_PIT |> filter(Year == "2021-22") |>
         title = element_text(size = 8),
         axis.title.x = element_blank(),
         legend.position = "bottom")+
-  labs(x = "", y = "", title = "21/22")+
+  labs(x = "",, title = "21/22")+
   scale_x_continuous(limits = c(-1.1, 2.32))+
   scale_y_continuous(limits = c(-1.33, 1.63))
 Figure6a
@@ -274,7 +273,9 @@ Figure6b <- nmds_scores_PIT |> filter(Year == "2022-23") |>
         title = element_text(size = 8),
         axis.title.x = element_blank(),
         legend.position = "bottom")+
-  labs(x = "", y = "", title = "22/23")+
+  labs(x = "", 
+       #y = "",
+       title = "22/23")+
   scale_x_continuous(limits = c(-1.1, 2.32))+
   scale_y_continuous(limits = c(-1.33, 1.63))
 Figure6b
@@ -290,7 +291,9 @@ Figure6c <- nmds_scores_PIT |> filter(Year == "2023-24") |>
         title = element_text(size = 8),
         axis.title.x = element_blank(),
         legend.position = "bottom")+
-  labs(x = "", title = "23/24")+
+  labs(title = "23/24",
+       x= ""
+       )+
   scale_x_continuous(limits = c(-1.1, 2.32))+
   scale_y_continuous(limits = c(-1.33, 1.63))
 Figure6c
@@ -306,7 +309,7 @@ Figure6d <- nmds_scores_PIT |> filter(Year == "2024-25") |>
         title = element_text(size = 8),
         axis.title.x = element_blank(),
         legend.position = "bottom")+
-  labs(x = "", y = "", title = "24/25")+
+  labs(y = "", title = "24/25")+
   scale_x_continuous(limits = c(-1.1, 2.32))+
   scale_y_continuous(limits = c(-1.33, 1.63))
 Figure6d
@@ -352,7 +355,7 @@ Figure6B <- ggplot()+
          x = "NMDS1",
         y = "NMDS2"
     ) +
-  labs(y = "")+
+  # labs(y = "")+
    scale_x_continuous(limits = c(-1.1, 2.32))+
   scale_y_continuous(limits = c(-1.33, 1.63))#+
     # annotate("text",
@@ -367,18 +370,29 @@ Figure6B <- ggplot()+
 Figure6A
 Figure6B
 
-ggarrange(Figure6a, Figure6b, Figure6c, Figure6d, Figure6B, ncol = 1, 
-          labels = c("A", "B", "C", "D", "E"),
+Right <- ggarrange(Figure6a, Figure6b, Figure6c, Figure6d, ncol = 2, 
+                   nrow = 2,
+          labels = c("C", "D", "E", "F"),
           #heights = c(4, 1),
-          common.legend = TRUE
+          common.legend = TRUE, legend = "right"
+          )
+Left <- ggarrange(Figure6A, Figure6B, ncol = 1, 
+          labels = c("A", "B"),
+          #heights = c(4, 1),
+          common.legend = TRUE, legend = "none"
           )
 
-ggarrange(Figure6a, Figure6b, Figure6c, Figure6d, Figure6B, ncol = 1, 
-          labels = c("A", "B", "C", "D", "E"),
-          heights = c(1,1,1,1, 0.95),
+ggarrange(Left, Right, widths = c(1, 1.5), 
           common.legend = TRUE, legend = "right"
           ) |> ggsave(file = "Figure6.png",
-                      height = 280,
-                      width = 80,
+                      height = 200,
+                      width = 169,
+                      unit = "mm")
+
+ggarrange(Right, Figure6B,  ncol =1, nrow = 2, 
+          common.legend = TRUE, legend = "right"
+          ) |> ggsave(file = "Figure61.png",
+                      height = 225,
+                      width = 169,
                       unit = "mm")
 ```
