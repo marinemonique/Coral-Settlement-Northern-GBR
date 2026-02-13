@@ -254,6 +254,19 @@ difference_total <- emm_total_df |>
   )
 
 difference_total
+
+long_total_shelf <- emm_total_pair_df |> 
+  select(Shelf, contrast, ratio, p.value) 
+
+long_diff_total_shelf <- difference_total |> 
+  select(Year, starts_with("Mid"), starts_with("Outer")) |> 
+  pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
+
+final_shelf_total <- left_join(long_total_shelf, long_diff_total_shelf, by = c("Year", "contrast"))
+
+final_shelf_total
+
+write.csv(final_shelf_total, file = "final_shelf_total.csv")
 ```
 
 ```{r}
@@ -301,6 +314,7 @@ long_diff_total_year <- difference_totalyr |>
 final_yr_total <- left_join(long_total_yr, long_diff_total_year, by = c("Shelf", "contrast"))
 
 final_yr_total
+write.csv(final_yr_total, file = "final_yr_total.csv")
 ```
 
 
@@ -348,6 +362,10 @@ long_diff_acro_shelf <- difference_acro |>
   pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
 
 final_shelf_acro <- left_join(long_acro_shelf, long_diff_acro_shelf, by = c("Year", "contrast"))
+
+final_shelf_acro
+
+write.csv(final_shelf_acro, file = "final_shelf_acro.csv")
 ```
 
 ```{r}
@@ -393,6 +411,8 @@ long_diff_acro_year <- difference_acro_yr |>
 final_yr_acro <- left_join(long_acro_yr, long_diff_acro_year, by = c("Shelf", "contrast"))
 
 final_yr_acro
+
+write.csv(final_yr_acro, file = "final_yr_acro.csv")
 ```
 
 
@@ -430,6 +450,9 @@ long_diff_poci_shelf <- difference_poci |>
   pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
 
 final_shelf_poci <- left_join(long_poci_shelf, long_diff_poci_shelf, by = c("Year", "contrast"))
+
+final_shelf_poci
+write.csv(final_shelf_poci, file = "final_shelf_poci.csv")
 ```
 
 ```{r}
@@ -473,7 +496,9 @@ long_diff_poci_year <- difference_poci_yr |>
   pivot_longer(-Shelf, names_to = "contrast", values_to = "additive_difference")
 
 final_yr_poci <- left_join(long_poci_yr, long_diff_poci_year, by = c("Shelf", "contrast"))
+final_yr_poci
 
+write.csv(final_yr_poci, file = "final_yr_poci.csv")
 ```
 
 # Poritidae
