@@ -313,6 +313,11 @@ final_yr_total <- left_join(long_total_yr, long_diff_total_year, by = c("Shelf",
 
 Figure of total juveniles
 ```{r}
+nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
+
 total_plot <-  nbin |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
@@ -407,6 +412,11 @@ model.sel(pois, nbin) #nbin behaves better
 ```
 
 ```{r}
+nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
+
 Acro_plot <-  nbin |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
@@ -577,6 +587,328 @@ ggsave(file = "Juvenile_analysis.png",
 ```
 
 ```{r}
+## ----emm_table------------------------------------------------------------------
+emm_table <- function(fit_emm){
+  table_out <- data.table(summary(fit_emm))
+  if("response" %in% colnames(table_out)){
+    # if the lm with log(y) or glm with log link, use " / "
+    setnames(table_out,
+             old = c("response"),
+             new = c("emmean"))
+  }
+  if("asymp.LCL" %in% colnames(table_out)){
+    # if the lm with log(y) or glm with log link, use " / "
+    setnames(table_out,
+             old = c("asymp.LCL", "asymp.UCL"),
+             new = c("lower.CL", "upper.CL"))
+  }
+  return(table_out)
+}
+## ----effects_table--------------------------------------------------------------
+effects_table <- function(fit_pairs,
+                          digits = 2,
+                          accuracy = 1e-04,
+                          add.p = FALSE){
+  if(is.data.frame(fit_pairs) == TRUE){
+    pairs_dt <- data.table(fit_pairs)
+  }else{
+    pairs_dt <- summary(fit_pairs) %>%
+      data.table()
+  }
+ 
+  if("asymp.LCL" %in% colnames(pairs_dt)){
+    # if the lm with log(y) or glm with log link, use " / "
+    setnames(pairs_dt,
+             old = c("asymp.LCL", "asymp.UCL"),
+             new = c("lower.CL", "upper.CL"))
+  }
+  
+  # for simple = each,
+  if(which(colnames(pairs_dt)=="contrast") == 3){
+    # replace "." with blank
+    g_col <- colnames(fit_pairs)[1]
+    x_col <- colnames(fit_pairs)[2]
+    pairs_dt[get(g_col) == ".", 
+             (1) := ""]
+    pairs_dt[get(x_col) == ".", 
+             (2) := ""]
+
+    # beautify contrast column and group1, group2
+    pairs_dt[, contrast := paste0(get(names(pairs_dt)[1]),
+                                   get(names(pairs_dt)[2]),
+                                   ": ",
+                                   contrast)]
+  }
+  
+  # create a column of nicely formatted p-values for display.
+  # pairs_dt[, p := pvalString(p.value)]
+  pairs_dt[, p := p_format(p.value,
+                           digits = digits,
+                           accuracy = accuracy,
+                           add.p = add.p)]
+  pairs_dt[, contrast := factor(contrast, contrast)]
+  return(pairs_dt)
+}
+
+
+
+
+## ----pvalue_table---------------------------------------------------------------
+pvalue_table <- function(fit_pairs){
+  if(is.data.frame(fit_pairs) == TRUE){
+    pairs_dt <- data.table(fit_pairs)
+  }else{
+    pairs_dt <- summary(fit_pairs) %>%
+      data.table()
+  }
+  
+  if("ratio" %in% colnames(pairs_dt)){
+    # if the lm with log(y) or glm with log link, use " / "
+    groups <- unlist(str_split(pairs_dt$contrast, " / "))
+    setnames(pairs_dt, old = "ratio", new = "estimate")
+  }else{
+    # if lm use " - "
+    groups <- unlist(str_split(pairs_dt$contrast, " - "))
+  }
+
+  # remove parentheses if they exist from group cols
+  groups <- lapply(groups, remove_parentheses) %>%
+    unlist
+  
+  # add the group1 and group 2 columns
+  pairs_dt[, group1 := groups[odd(1:length(groups))]]
+  pairs_dt[, group2 := groups[even(1:length(groups))]]
+  
+  # match for simple and remove parentheses if they exist
+  if(names(pairs_dt)[1] != "contrast"){
+    x_col <- names(pairs_dt)[2]
+    g_col <- names(pairs_dt)[1]
+    x_col_levels <- unique(pairs_dt[, get(x_col)])
+    x_col_levels <- x_col_levels[x_col_levels != "."]
+    g_col_levels <- unique(pairs_dt[, get(g_col)])
+    g_col_levels <- g_col_levels[g_col_levels != "."]
+    repair <- pairs_dt[, group1] %in% c(x_col_levels, g_col_levels)
+    pairs_dt[, group1 := ifelse(repair,
+                                group1,
+                                gsub(")", "", group1, fixed = TRUE))]
+    pairs_dt[, group1 := ifelse(repair,
+                                group1,
+                                gsub("(", "", group1, fixed = TRUE))]
+    repair <- pairs_dt[, group2] %in% c(x_col_levels, g_col_levels)
+    pairs_dt[, group2 := ifelse(repair,
+                                group2,
+                                gsub(")", "", group2, fixed = TRUE))]
+    pairs_dt[, group2 := ifelse(repair,
+                                group2,
+                                gsub("(", "", group2, fixed = TRUE))]
+  }
+  
+  
+  if("asymp.LCL" %in% colnames(pairs_dt)){
+    # if the lm with log(y) or glm with log link, use " / "
+    setnames(pairs_dt,
+             old = c("asymp.LCL", "asymp.UCL"),
+             new = c("lower.CL", "upper.CL"))
+  }
+  
+  # for simple = each,
+  if(which(colnames(pairs_dt)=="contrast") == 3){
+    # replace "." with blank
+    pairs_dt[get(g_col) == ".", 
+             (1) := ""]
+    pairs_dt[get(x_col) == ".", 
+             (2) := ""]
+
+    # beautify contrast column and group1, group2
+    pairs_dt[, contrast := paste0(get(names(pairs_dt)[1]),
+                                   get(names(pairs_dt)[2]),
+                                   ": ",
+                                   contrast)]
+    pairs_dt[get(g_col) == "",
+             group1 := paste0(get(names(pairs_dt)[1]),
+                              get(names(pairs_dt)[2]),
+                              ",",
+                              group1)]
+    pairs_dt[get(g_col) == "",
+             group2 := paste0(get(names(pairs_dt)[1]),
+                              get(names(pairs_dt)[2]),
+                              ",",
+                              group2)]
+    pairs_dt[get(x_col) == "",
+             group1 := paste0(group1,
+                              ",",
+                              get(names(pairs_dt)[1]),
+                              get(names(pairs_dt)[2]))]
+    pairs_dt[get(x_col) == "",
+             group2 := paste0(group2,
+                              ",",
+                              get(names(pairs_dt)[1]),
+                              get(names(pairs_dt)[2]))]
+  }
+  
+  # create a column of nicely formatted p-values for display.
+  pairs_dt[, p := pvalString(p.value)]
+  pairs_dt[, contrast := factor(contrast, contrast)]
+  return(pairs_dt)
+}
+
+
+
+
+
+## ----response-plot--------------------------------------------------------------
+response_plot <- function(
+  fit, # model fit from lm, lmer, nlme, glmmTMB
+  fit_emm, # data frame with means, error
+  x_label = "none",
+  y_label = "Response (units)",
+  g_label = NULL,
+  dots = "sina",
+  dodge_width = 0.8,
+  adjust = 0.5,
+  palette = pal_okabe_ito,
+  legend_position = "top",
+  flip_horizontal = FALSE,
+  group_lines = FALSE
+){
+   dt <- model.frame(fit) %>% # correctly subsets
+    data.table()
+  y_col <- insight::find_response(fit)
+  
+  fit_emm_dt <- emm_table(fit_emm)
+  
+  # get number of pre emmean/ratio/rate columns
+  if("emmean" %in% names(fit_emm_dt)){response <- "emmean"}
+  if("rate" %in% names(fit_emm_dt)){response <- "rate"}
+  if("ratio" %in% names(fit_emm_dt)){response <- "ratio"}
+  
+  if(which(names(fit_emm_dt) == response) == 2){
+    x_col <- names(fit_emm_dt)[1]
+    g_col <- NA
+  }else{
+    x_col <- names(fit_emm_dt)[1]
+    g_col <- names(fit_emm_dt)[2]
+  }
+    
+  rand_int <- find_random(fit)
+  
+  if(is.na(g_col) & group_lines==TRUE){
+    group_lines <- FALSE
+  }
+  if(is.factor(dt[, get(x_col)]) == FALSE){
+    dt[, (x_col) := factor(get(x_col))]
+  }
+  if(!is.na(g_col)){
+    if(is.factor(dt[, get(g_col)]) == FALSE){
+      dt[, (g_col) := factor(get(g_col))]
+    }
+  } 
+  
+  if(is.na(g_col)){
+    pd <- position_dodge(width = 0)
+  }else{
+    pd <- position_dodge(width = dodge_width)
+  }
+  
+  if(is.na(g_col)){
+    color_col <- x_col
+  }else{
+    color_col <- g_col
+  }
+  
+  gg <- ggplot(data=dt, aes(x = get(x_col),
+                            y = get(y_col),
+                            color = get(color_col)))
+  # plot points
+  if(dots == "sina"){
+    gg <- gg + geom_sina(alpha = 0.5,
+                         position = pd,
+                         adjust = adjust)
+  }
+  if(dots == "jitter"){
+    gg <- gg + geom_point(alpha = 0.5,
+                          position = position_jitter(seed = 1))
+  }
+  if(dots == "dotplot"){
+    gg <- gg + geom_dotplot(binaxis='y',
+                            stackdir='center',
+                            alpha = 0.5,
+                            position = pd)
+  }
+  
+  # plot means and CI
+  gg <- gg +
+    geom_errorbar(data = fit_emm_dt, aes(y = get(response),
+                                         ymin = lower.CL,
+                                         ymax = upper.CL,
+                                         color = get(color_col)),
+                  width = 0,
+                  position = pd
+    ) +
+    geom_point(data = fit_emm_dt, aes(y = get(response),
+                                      color = get(color_col)),
+               size = 3,
+               position = pd
+    ) +
+    
+    # aesthetics
+    ylab(y_label) +
+    scale_color_manual(values = palette,
+                       name = color_col) +
+    theme_pubr() +
+    theme(legend.position = legend_position) +
+    
+    NULL
+  
+  # if(group_lines == TRUE | group_lines == g_col){
+  #   gg <- gg +
+  #     geom_line(data = fit_emm_dt,
+  #               aes(y = emmean,
+  #                   group = get(g_col)),
+  #               position = pd)
+  # }
+  # if(group_lines == x_col){
+  #   gg <- gg +
+  #     geom_line(data = fit_emm_dt,
+  #               aes(y = emmean,
+  #                   group = get(x_col)))
+  # }
+  
+  if(is.na(g_col)){
+    gg <- gg + theme(legend.position="none")
+  }
+  
+  if(is.null(g_label)){
+    gg <- gg + guides(color = guide_legend(title=g_col))
+  }else{
+    if(g_label == "none"){
+      gg <- gg + guides(color = guide_legend(title=NULL))
+    }else{
+      gg <- gg + guides(color = guide_legend(title=g_label))
+    }
+  }
+  
+  # remove x axis title
+  if(x_label == "none"){
+    gg <- gg + theme(axis.title.x = element_blank())
+  }else{
+    gg <- gg + xlab(x_label)}
+  
+  if(flip_horizontal == TRUE){
+    gg <- gg + coord_flip() +
+      theme(legend.position = legend_position)
+    gg <- gg + theme(axis.title.x = element_text())
+    if(x_label == "none"){
+      gg <- gg + theme(axis.title.y = element_blank())
+    }else{
+      gg <- gg + ylab(x_label)
+    }
+  }
+  
+  # gg
+  
+  return(gg) 
+}
 ## ----ggplot_the_response--------------------------------------------------------
 ggplot_the_response <- function(
  fit, # model fit from lm, lmer, nlme, glmmTMB
@@ -634,6 +966,10 @@ From the tutorial https://www.middleprofessor.com/files/applied-biostatistics_bo
 ```{r}
 nbin_emm <- nbin |> 
   emmeans(~Shelf | Year, type = "response") 
+nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
 
 nbin_simple <- contrast(nbin_emm,
                         method = "revpairwise") |> 
@@ -646,6 +982,5 @@ ggplot_the_response(
   fit_emm = nbin_emm,
   fit_pairs = nbin_simple
                     )
-
 ```
 
