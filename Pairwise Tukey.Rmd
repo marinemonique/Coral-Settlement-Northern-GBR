@@ -373,6 +373,11 @@ write.csv(final_shelf_acro, file = "final_shelf_acro.csv")
 emm_acro_year <- emmeans(nbin_Acroporidae_interaction, ~Year|Shelf, type = "response")
 pairs(emm_acro_year, adjust = "tukey")
 
+nbin_Acroporidae_interaction |> 
+emmeans(~Shelf | Year, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
+
 #create dataframe
 emm_acro_yr_df <- as.data.frame(emm_acro_year) |> 
   rename(predicted_recruits = response)
