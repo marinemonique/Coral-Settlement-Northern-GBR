@@ -199,6 +199,8 @@ ggplot()+
 Or, hypothesis could be based on 23/24 high larval supply, there was an increase in juveniles relative to the previous years?
 
 Is it driven by larval supply?
+
+
 ```{r}
 Model <- glmmTMB(mean_total~Shelf*Year_Collected + (1| Reef/Site), data = Combined1)
 
@@ -206,3 +208,140 @@ sim <- simulateResiduals(Model)
 testResiduals(sim) # okay so this default family isn't a good fit, not sure what to go though.
 ```
 
+```{r}
+pois <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Belt_10m)
+
+nbin <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Belt_10m)
+
+```
+
+```{r}
+sim <- simulateResiduals(pois)
+testResiduals(pois)
+```
+
+```{r}
+sim <- simulateResiduals(nbin)
+testResiduals(nbin) #not the best looking model ever but not significant deviation
+```
+
+```{r}
+summary(nbin)
+```
+Interaction terms significant so going to look at pairwise
+
+```{r}
+emm_shelf <- emmeans(nbin, ~Shelf | Year)
+pairs(emm_shelf, adjust = "tukey")#has estimate whereas the response has ratio
+
+emm_shelf_response <- emmeans(nbin, ~Shelf| Year, type = "response")
+#create dataframe
+emm_total_df <- as.data.frame(emm_shelf_response) |> 
+  rename(predicted_recruits = response)
+# Contrast Dataframe
+emm_total_pair_df <- as.data.frame(pairs(emm_shelf_response, adjust = "tukey"))
+
+#Calcualte additive differences in total recruits
+difference_total <- emm_total_df |> 
+  select(Year, Shelf, predicted_recruits) |> 
+  pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
+  mutate(
+    `Inner / Mid`   = Inner - Mid,
+    `Inner / Outer` = Inner - Outer,
+    `Mid / Outer`   = Mid - Outer,
+    pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
+    pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
+    pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
+  )
+
+difference_total
+
+long_total_shelf <- emm_total_pair_df |> 
+  select(Year, contrast, ratio, SE, z.ratio, p.value) 
+
+long_diff_total_shelf <- difference_total |> 
+  select(Year, starts_with("Inner"), starts_with("Mid")) |> 
+  pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
+
+final_shelf_total <- left_join(long_total_shelf, long_diff_total_shelf, by = c("Year", "contrast"))
+
+final_shelf_total
+```
+
+```{r}
+emm_year_response <- emmeans(nbin, ~Year|Shelf, type = "response")
+#create dataframe
+emm_totalyr_df <- as.data.frame(emm_year_response) |> 
+  rename(predicted_recruits = response)
+# Contrast Dataframe
+emm_totalyr_pair_df <- as.data.frame(pairs(emm_year_response, adjust = "tukey"))
+
+#Calcualte additive differences in total recruits
+difference_totalyr <- emm_totalyr_df |> 
+  select(Year, Shelf, predicted_recruits) |> 
+  pivot_wider(names_from = Year, values_from = predicted_recruits) |> 
+  mutate(
+    `(2021-22) / (2022-23)` = `2021-22` - `2022-23`,
+    `(2021-22) / (2023-24)` = `2021-22` - `2023-24`,
+    `(2021-22) / (2024-25)` = `2021-22` - `2024-25`,
+    `(2022-23) / (2023-24)` = `2022-23` - `2023-24`,
+    `(2022-23) / (2024-25)` = `2022-23` - `2024-25`,
+    `(2023-24) / (2024-25)` = `2023-24` - `2024-25`,
+    
+    pct_change_22_23 = 100 * (`2021-22` - `2022-23`) / `2021-22`,
+    pct_change_22_24 = 100 * (`2021-22` - `2023-24`) / `2021-22`,
+    pct_change_22_25 = 100 * (`2021-22` - `2024-25`) / `2021-22`,
+    pct_change_23_24 = 100 * (`2022-23` - `2023-24`) / `2022-23`,
+    pct_change_23_25 = 100 * (`2022-23` - `2024-25`) / `2022-23`,
+    pct_change_24_25 = 100 * (`2023-24` - `2024-25`) / `2023-24`
+  )
+
+
+difference_totalyr
+
+long_total_yr <- emm_totalyr_pair_df |> 
+  select(Shelf, contrast, ratio, SE, z.ratio, p.value)  
+
+long_diff_total_year <- difference_totalyr |> 
+  select(Shelf, starts_with("(2021-22)"), starts_with("(2022-23)"), starts_with("(2023-24)")) |> 
+  pivot_longer(-Shelf, names_to = "contrast", values_to = "additive_difference")
+
+final_yr_total <- left_join(long_total_yr, long_diff_total_year, by = c("Shelf", "contrast"))
+```
+
+
+Pivot longer
+```{r}
+Belt_long <- Belt_10m %>% 
+  select(Year, Shelf, Reef, Site, Transect, Acroporidae, Pocilloporidae, Poritidae) %>% 
+  pivot_longer(cols = 6:8, names_to = "Family", values_to = "Total") %>%
+  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritidae","Pocilloporidae")))
+```
+
+```{r}
+pois <- glmmTMB(Total ~ Family*Year*Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Belt_long)
+
+nbin <- glmmTMB(Total ~ Family*Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Belt_long)
+```
+
+```{r}
+sim <- simulateResiduals(pois)
+testResiduals(pois)
+```
+
+```{r}
+sim <- simulateResiduals(nbin)
+testResiduals(nbin) #fails outlier test
+```
+
+Will have to do individual families.
+```{r}
+ggplot()+
+  geom_boxplot(data = Belt_long, aes(x=Year, y=Total, colour = Shelf))+
+  facet_wrap(~Family, ncol =1)
+```
+Mid and outer have higher juvenile abundances of all families typically... This is the inverse of what we see in recruits.
