@@ -233,40 +233,10 @@ nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site),
 emm_shelf <- emmeans(nbin_total_yr2, ~Shelf | Year)
 pairs(emm_shelf, adjust = "tukey")#has estimate whereas the response has ratio
 
-emm_shelf_response <- emmeans(nbin_total_yr2, ~Shelf| Year, type = "response")
-#create dataframe
-emm_total_df <- as.data.frame(emm_shelf_response) |> 
-  rename(predicted_recruits = response)
-# Contrast Dataframe
-emm_total_pair_df <- as.data.frame(pairs(emm_shelf_response, adjust = "tukey"))
-
-#Calcualte additive differences in total recruits
-difference_total <- emm_total_df |> 
-  select(Year, Shelf, predicted_recruits) |> 
-  pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
-  mutate(
-    `Inner / Mid`   = Inner - Mid,
-    `Inner / Outer` = Inner - Outer,
-    `Mid / Outer`   = Mid - Outer,
-    pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
-    pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
-    pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
-  )
-
-difference_total
-
-long_total_shelf <- emm_total_pair_df |> 
-  select(Year, contrast, ratio, SE, z.ratio, p.value) 
-
-long_diff_total_shelf <- difference_total |> 
-  select(Year, starts_with("Inner"), starts_with("Mid")) |> 
-  pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
-
-final_shelf_total <- left_join(long_total_shelf, long_diff_total_shelf, by = c("Year", "contrast"))
-
-final_shelf_total
-
-write.csv(final_shelf_total, file = "final_shelf_total.csv")
+nbin_total_yr2 |> 
+emmeans(~Shelf | Year, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
 ```
 
 ```{r}
@@ -275,46 +245,10 @@ write.csv(final_shelf_total, file = "final_shelf_total.csv")
 emm_year_response <- emmeans(nbin_total_yr2, ~Year|Shelf, type = "response")
 pairs(emm_year_response, adjust = "tukey")
 
-#create dataframe
-emm_totalyr_df <- as.data.frame(emm_year_response) |> 
-  rename(predicted_recruits = response)
-# Contrast Dataframe
-emm_totalyr_pair_df <- as.data.frame(pairs(emm_year_response, adjust = "tukey"))
-
-#Calcualte additive differences in total recruits
-difference_totalyr <- emm_totalyr_df |> 
-  select(Year, Shelf, predicted_recruits) |> 
-  pivot_wider(names_from = Year, values_from = predicted_recruits) |> 
-  mutate(
-    `(2021-22) / (2022-23)` = `2021-22` - `2022-23`,
-    `(2021-22) / (2023-24)` = `2021-22` - `2023-24`,
-    `(2021-22) / (2024-25)` = `2021-22` - `2024-25`,
-    `(2022-23) / (2023-24)` = `2022-23` - `2023-24`,
-    `(2022-23) / (2024-25)` = `2022-23` - `2024-25`,
-    `(2023-24) / (2024-25)` = `2023-24` - `2024-25`,
-    
-    pct_change_22_23 = 100 * (`2021-22` - `2022-23`) / `2021-22`,
-    pct_change_22_24 = 100 * (`2021-22` - `2023-24`) / `2021-22`,
-    pct_change_22_25 = 100 * (`2021-22` - `2024-25`) / `2021-22`,
-    pct_change_23_24 = 100 * (`2022-23` - `2023-24`) / `2022-23`,
-    pct_change_23_25 = 100 * (`2022-23` - `2024-25`) / `2022-23`,
-    pct_change_24_25 = 100 * (`2023-24` - `2024-25`) / `2023-24`
-  )
-
-
-difference_totalyr
-
-long_total_yr <- emm_totalyr_pair_df |> 
-  select(Shelf, contrast, ratio, SE, z.ratio, p.value)  
-
-long_diff_total_year <- difference_totalyr |> 
-  select(Shelf, starts_with("(2021-22)"), starts_with("(2022-23)"), starts_with("(2023-24)")) |> 
-  pivot_longer(-Shelf, names_to = "contrast", values_to = "additive_difference")
-
-final_yr_total <- left_join(long_total_yr, long_diff_total_year, by = c("Shelf", "contrast"))
-
-final_yr_total
-write.csv(final_yr_total, file = "final_yr_total.csv")
+nbin_total_yr2 |> 
+emmeans(~Year| Shelf, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
 ```
 
 
@@ -333,91 +267,21 @@ Acroporidae
 ```{r}
 emm_acro_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf|Year, type = "response")
 pairs(emm_acro_shelf, adjust = "tukey")
-#create dataframe
-emm_acro_df <- as.data.frame(emm_acro_shelf) |> 
-  rename(predicted_recruits = response)
-# Contrast Dataframe
-emm_acro_pair_df <- as.data.frame(pairs(emm_acro_shelf, adjust = "tukey"))
-
-#Calcualte additive differences in total recruits
-difference_acro <- emm_acro_df |> 
-  select(Year, Shelf, predicted_recruits) |> 
-  pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
-  mutate(
-    `Inner / Mid`   = Inner - Mid,
-    `Inner / Outer` = Inner - Outer,
-    `Mid / Outer`   = Mid - Outer,
-    pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
-    pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
-    pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
-  )
-
-difference_acro
-
-long_acro_shelf <- emm_acro_pair_df |> 
-  select(Year, contrast, ratio, SE, z.ratio, p.value) 
-
-long_diff_acro_shelf <- difference_acro |> 
-  select(Year, starts_with("Inner"), starts_with("Mid")) |> 
-  pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
-
-final_shelf_acro <- left_join(long_acro_shelf, long_diff_acro_shelf, by = c("Year", "contrast"))
-
-final_shelf_acro
-
-write.csv(final_shelf_acro, file = "final_shelf_acro.csv")
-```
-
-```{r}
-
-emm_acro_year <- emmeans(nbin_Acroporidae_interaction, ~Year|Shelf, type = "response")
-pairs(emm_acro_year, adjust = "tukey")
 
 nbin_Acroporidae_interaction |> 
 emmeans(~Shelf | Year, type = "response") |> 
 regrid() |> #back transforms 
   pairs(reverse = TRUE) 
+```
 
-#create dataframe
-emm_acro_yr_df <- as.data.frame(emm_acro_year) |> 
-  rename(predicted_recruits = response)
-# Contrast Dataframe
-emm_acro_yr_pair_df <- as.data.frame(pairs(emm_acro_year, adjust = "tukey"))
+```{r}
+emm_acro_year <- emmeans(nbin_Acroporidae_interaction, ~Year|Shelf, type = "response")
+pairs(emm_acro_year, adjust = "tukey")
 
-#Calcualte additive differences in total recruits
-difference_acro_yr <- emm_acro_yr_df|> 
-  select(Year, Shelf, predicted_recruits) |> 
-  pivot_wider(names_from = Year, values_from = predicted_recruits) |> 
-  mutate(
-    `(2021-22) / (2022-23)` = `2021-22` - `2022-23`,
-    `(2021-22) / (2023-24)` = `2021-22` - `2023-24`,
-    `(2021-22) / (2024-25)` = `2021-22` - `2024-25`,
-    `(2022-23) / (2023-24)` = `2022-23` - `2023-24`,
-    `(2022-23) / (2024-25)` = `2022-23` - `2024-25`,
-    `(2023-24) / (2024-25)` = `2023-24` - `2024-25`,
-    
-    pct_change_22_23 = 100 * (`2021-22` - `2022-23`) / `2021-22`,
-    pct_change_22_24 = 100 * (`2021-22` - `2023-24`) / `2021-22`,
-    pct_change_22_25 = 100 * (`2021-22` - `2024-25`) / `2021-22`,
-    pct_change_23_24 = 100 * (`2022-23` - `2023-24`) / `2022-23`,
-    pct_change_23_25 = 100 * (`2022-23` - `2024-25`) / `2022-23`,
-    pct_change_24_25 = 100 * (`2023-24` - `2024-25`) / `2023-24`
-  )
-
-
-difference_acro_yr
-long_acro_yr <- emm_acro_yr_pair_df |> 
-  select(Shelf, contrast, ratio, SE, z.ratio, p.value) 
-
-long_diff_acro_year <- difference_acro_yr |> 
-  select(Shelf, starts_with("(2021-22)"), starts_with("(2022-23)"), starts_with("(2023-24)")) |> 
-  pivot_longer(-Shelf, names_to = "contrast", values_to = "additive_difference")
-
-final_yr_acro <- left_join(long_acro_yr, long_diff_acro_year, by = c("Shelf", "contrast"))
-
-final_yr_acro
-
-write.csv(final_yr_acro, file = "final_yr_acro.csv")
+nbin_Acroporidae_interaction |> 
+emmeans(~Year | Shelf, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
 ```
 
 
@@ -427,83 +291,20 @@ Pocilloporidae
 emm_poci_shelf <- emmeans(nbin_Pocilloporidae_interaction, ~Shelf | Year, type = "response")
 pairs(emm_poci_shelf, adjust = "tukey")
 
-#create dataframe
-emm_poci_df <- as.data.frame(emm_poci_shelf) |> 
-  rename(predicted_recruits = response)
-# Contrast Dataframe
-emm_poci_pair_df <- as.data.frame(pairs(emm_poci_shelf, adjust = "tukey"))
-
-#Calcualte additive differences in total recruits
-difference_poci <- emm_poci_df |> 
-  select(Year, Shelf, predicted_recruits) |> 
-  pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
-  mutate(
-    `Inner / Mid`   = Inner - Mid,
-    `Inner / Outer` = Inner - Outer,
-    `Mid / Outer`   = Mid - Outer,
-    pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
-    pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
-    pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
-  )
-
-difference_poci
-long_poci_shelf <- emm_poci_pair_df |> 
-  select(Year, contrast, ratio, SE, z.ratio, p.value) 
-
-long_diff_poci_shelf <- difference_poci |> 
-  select(Year, starts_with("Inner"), starts_with("Mid")) |> 
-  pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
-
-final_shelf_poci <- left_join(long_poci_shelf, long_diff_poci_shelf, by = c("Year", "contrast"))
-
-final_shelf_poci
-write.csv(final_shelf_poci, file = "final_shelf_poci.csv")
+nbin_Pocilloporidae_interaction |> 
+emmeans(~Shelf | Year, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
 ```
 
 ```{r}
 emm_poci_year <- emmeans(nbin_Pocilloporidae_interaction, ~Year |Shelf, type = "response")
 pairs(emm_poci_year, adjust = "tukey")
 
-#create dataframe
-emm_poci_yr_df <- as.data.frame(emm_poci_year) |> 
-  rename(predicted_recruits = response)
-# Contrast Dataframe
-emm_poci_yr_pair_df <- as.data.frame(pairs(emm_poci_year, adjust = "tukey"))
-
-#Calcualte additive differences in total recruits
-difference_poci_yr <- emm_poci_yr_df|> 
-  select(Year, Shelf, predicted_recruits) |> 
-  pivot_wider(names_from = Year, values_from = predicted_recruits) |> 
-  mutate(
-    `(2021-22) / (2022-23)` = `2021-22` - `2022-23`,
-    `(2021-22) / (2023-24)` = `2021-22` - `2023-24`,
-    `(2021-22) / (2024-25)` = `2021-22` - `2024-25`,
-    `(2022-23) / (2023-24)` = `2022-23` - `2023-24`,
-    `(2022-23) / (2024-25)` = `2022-23` - `2024-25`,
-    `(2023-24) / (2024-25)` = `2023-24` - `2024-25`,
-    
-    pct_change_22_23 = 100 * (`2021-22` - `2022-23`) / `2021-22`,
-    pct_change_22_24 = 100 * (`2021-22` - `2023-24`) / `2021-22`,
-    pct_change_22_25 = 100 * (`2021-22` - `2024-25`) / `2021-22`,
-    pct_change_23_24 = 100 * (`2022-23` - `2023-24`) / `2022-23`,
-    pct_change_23_25 = 100 * (`2022-23` - `2024-25`) / `2022-23`,
-    pct_change_24_25 = 100 * (`2023-24` - `2024-25`) / `2023-24`
-  )
-
-
-difference_poci_yr
-
-long_poci_yr <- emm_poci_yr_pair_df |> 
-  select(Shelf, contrast, ratio, SE, z.ratio, p.value) 
-
-long_diff_poci_year <- difference_poci_yr |> 
-  select(Shelf, starts_with("(2021-22)"), starts_with("(2022-23)"), starts_with("(2023-24)")) |> 
-  pivot_longer(-Shelf, names_to = "contrast", values_to = "additive_difference")
-
-final_yr_poci <- left_join(long_poci_yr, long_diff_poci_year, by = c("Shelf", "contrast"))
-final_yr_poci
-
-write.csv(final_yr_poci, file = "final_yr_poci.csv")
+nbin_Pocilloporidae_interaction |> 
+emmeans(~Year | Shelf, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
 ```
 
 # Poritidae
@@ -512,26 +313,11 @@ write.csv(final_yr_poci, file = "final_yr_poci.csv")
 
 ```{r}
 emm_pori_shelf <- emmeans(nbin_Poritid_interaction, ~Shelf | Year, type = "response")
-#create dataframe
-emm_pori_df <- as.data.frame(emm_pori_shelf) |> 
-  rename(predicted_recruits = response)
-# Contrast Dataframe
-emm_pori_pair_df <- as.data.frame(pairs(emm_pori_shelf, adjust = "tukey"))
 
-#Calcualte additive differences in total recruits
-difference_pori <- emm_pori_df |> 
-  select(Year, Shelf, predicted_recruits) |> 
-  pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
-  mutate(
-   `Inner / Mid`   = Inner - Mid,
-    `Inner / Outer` = Inner - Outer,
-    `Mid / Outer`   = Mid - Outer,
-    pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
-    pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
-    pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
-  )
-difference_pori
-
+nbin_Poritid_interaction |> 
+emmeans(~Shelf | Year, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
 
 ```
 
@@ -539,24 +325,11 @@ difference_pori
 
 ```{r}
 emm_pori_year <- emmeans(nbin_Poritid_interaction, ~Year |Shelf, type = "response")
-#create dataframe
-emm_pori_df <- as.data.frame(emm_pori_year) |> 
-  rename(predicted_recruits = response)
-# Contrast Dataframe
-emm_pori_pair_df <- as.data.frame(pairs(emm_pori_year, adjust = "tukey"))
 
-#Calcualte additive differences in total recruits
-# difference_pori <- emm_pori_df |> 
-#   select(Year, Shelf, predicted_recruits) |> 
-#   pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
-#   mutate(
-#     "21/22_minus"   = Mid - Inner,
-#     Outer_minus_Inner = Outer - Inner,
-#     Outer_minus_Mid   = Outer - Mid,
-#     pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
-#     pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
-#     pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
-#   )
+nbin_Poritid_interaction |> 
+emmeans(~Year | Shelf, type = "response") |> 
+regrid() |> #back transforms 
+  pairs(reverse = TRUE) 
 ```
 
 All families
