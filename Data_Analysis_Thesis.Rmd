@@ -86,6 +86,8 @@ mutate(
     TRUE ~ notes
   ))
 
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  filter(notes != "Dislodged")
 
 Pocilloporidae <- Coral_settlement_nGBR %>% 
   select(Year, Shelf, 
@@ -138,6 +140,11 @@ Poritidae_orientation <- Poritidae_orientation %>%
                names_to = "Tile_Surface",
                values_to = "Recruits")
 
+Other <- Coral_settlement_nGBR %>% 
+  select(Year, Shelf, 
+         Reef, Site, Tile, 
+         Other, Top_other, 
+         Under_oth, Side_other, total)
 
 # Benthic Data
 
@@ -372,8 +379,6 @@ Coral_settlement_nGBR |>
 
 #23/24 and 24/25
 59.24022/20.56497
-
-
 ```
 
 ### By Shelf Position
@@ -400,7 +405,6 @@ Coral_settlement_nGBR |>
     se = sd(total)/(n()^0.5),
     n= n()
   )
-
 ```
 
 Mid
@@ -649,18 +653,33 @@ zbin_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site),
 ```
 
 Use DHARMA to assess residuals
-
 ```{r}
-sim1.1 <- simulateResiduals(pois_total_yr) 
+sim1.1 <- simulateResiduals(pois_total_yr)
+sim1.2 <- simulateResiduals(pois_total_yr2)
+sim1.5 <- simulateResiduals(zbin_total_yr)
+sim1.6 <- simulateResiduals(zbin_total_yr2)
+```
+
+
+```{r eval=FALSE}
 testResiduals(sim1.1) #not good fit
 plot(sim1.1)
 sim1.1_plot <- plotResiduals(sim1.1, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
-sim1.2 <- simulateResiduals(pois_total_yr2)
 testResiduals(sim1.2) #not good fit
 plot(sim1.2)
 sim1.2_plot <- plotResiduals(sim1.2, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
+testResiduals(sim1.5) #good
+plot(sim1.5)
+sim1.5_plot <- plotResiduals(sim1.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+testResiduals(sim1.6) #good
+plot(sim1.6)
+sim1.6_plot <- plotResiduals(sim1.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+```
+
+```{r}
 sim1.3 <- simulateResiduals(nbin_total_yr)
 testResiduals(sim1.3) #good
 plot(sim1.3)
@@ -670,18 +689,7 @@ sim1.4 <- simulateResiduals(nbin_total_yr2)
 testResiduals(sim1.4) #good
 plot(sim1.4)
 sim1.4_plot <- plotResiduals(sim1.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
-
-sim1.5 <- simulateResiduals(zbin_total_yr)
-testResiduals(sim1.5) #good
-plot(sim1.5)
-sim1.5_plot <- plotResiduals(sim1.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
-
-sim1.6 <- simulateResiduals(zbin_total_yr2)
-testResiduals(sim1.6) #good
-plot(sim1.6)
-sim1.6_plot <- plotResiduals(sim1.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 ```
-
 
 
 Poisson model residuals were bad, therefore will only compare the four models that testResiduals were good for.
@@ -707,10 +715,8 @@ When making a figure should I then be using summary statistics or raw count data
 ```{r}
 emm_shelf <- emmeans(nbin_total_yr2, ~Shelf | Year)
 emm_shelf_response <- emmeans(nbin_total_yr2, ~Shelf| Year, type = "response")
-
-emm_shelf
-emm_shelf_response
-
+# emm_shelf
+# emm_shelf_response
 pairs(emm_shelf, adjust = "tukey") #has estimate whereas the response has ratio
 pairs(emm_shelf_response, adjust = "tukey")
 ```
@@ -718,10 +724,8 @@ pairs(emm_shelf_response, adjust = "tukey")
 ```{r}
 emm_year <- emmeans(nbin_total_yr2, ~Year | Shelf)
 emm_year_response <- emmeans(nbin_total_yr2, ~Year|Shelf, type = "response")
-
-emm_year
-emm_year_response
-
+# emm_year
+# emm_year_response
 pairs(emm_year, adjust = "tukey")
 pairs(emm_year_response, adjust = "tukey")
 ```
@@ -730,12 +734,10 @@ pairs(emm_year_response, adjust = "tukey")
 ```{r}
 emm_year_shelf <- emmeans(nbin_total_yr2, ~Year*Shelf)
 
-emm_year_shelf
-
+# emm_year_shelf
 pairs(emm_year_shelf, adjust = "tukey", 
       #type = "response"
       )
-
 pairs(emm_year_shelf, adjust = "tukey", 
       #type = "response"
       ) |> 
@@ -811,7 +813,6 @@ ggsave(filename = "Figure_1mean.png",
        units = "mm")
 ```
 
-
 # Figure 2
 
 ```{r eval =FALSE, include=FALSE}
@@ -841,8 +842,7 @@ group_by(Year_Collected, Reef, Family, Shelf)  %>%
       dodge.width  = 1.5
     ),
     size = 0.35,
-    alpha = 0.5,
-    
+    alpha = 0.5
   )
 
 Figure.2
@@ -945,6 +945,9 @@ pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + Year  + (1 | Reef/
 
 pois_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year + (1 | Reef/Site), 
       family = "poisson", data = Pocilloporidae)
+
+pois_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
+      family = "poisson", data = Other)
 ```
 
 Negative Binomial of Total Recruits (for a family)
@@ -969,6 +972,9 @@ nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | 
 
 nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
         family = "nbinom2", data = Acroporidae)
+
+nbin_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Other)
 ```
 
 
@@ -977,7 +983,6 @@ Negative Binomial Zero Inflated of Total recruits (per family)
 ```{r}
 #Fixed
 # Fit model with zero-inflated negative binomial distribution 
-
 zbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf+ Year + (1 | Reef/Site) ,
                         ziformula = ~1,
                         family = "nbinom2",
@@ -1005,7 +1010,6 @@ zbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Sit
                             ziformula = ~1,
                         family = "nbinom2",
                         data = Acroporidae)
-
 ```
 
 ### Acroporidae
@@ -1107,8 +1111,43 @@ Fig2A_EMM <- nbin_Acroporidae_interaction|>
         text = element_text(size = 9))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 
+nbin_acroa_data <- nbin_Acroporidae_interaction|> 
+  emmeans(~ Year | Shelf, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+  
+Acroporidae_figure <- ggplot()+
+     geom_jitter(data =Acroporidae,aes(x=Year, y=Acroporidae, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+    size = 0.5,
+    alpha = 0.5,
+    colour = "grey"
+  )+
+  geom_pointrange(data = nbin_acroa_data,aes(ymin=lower, ymax = upper,x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.6))+
+  theme_classic()+
+  labs(y=expression("Acroporidae recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
 Fig2A_EMM
 ```
+
 ```{r}
 Fig2A_raw <- total_recruits |> 
   filter(Family == "Acroporidae") |> 
@@ -1302,6 +1341,39 @@ Fig2B_EMM <- nbin_Pocilloporidae_interaction|>
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size = 9))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
+nbin_poci_df <- nbin_Pocilloporidae_interaction|> 
+  emmeans(~Shelf | Year, type = "response") |>
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+Pocilloporidae_figure <- ggplot()+
+  geom_jitter(data =Pocilloporidae,aes(x=Year, y=Pocilloporidae, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+    size = 0.5,
+    alpha = 0.5,
+    colour = "grey")+
+  geom_pointrange(data = nbin_poci_df, aes(ymin=lower, ymax = upper, x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.6))+
+  theme_classic()+
+  labs(y =expression("Pocilloporidae recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
 ```
 
 ```{r}
@@ -1318,7 +1390,6 @@ Fig2_mid <- ggarrange(Fig2B_Raw, Fig2B_EMM, labels = c("C", "D"))
 #                position = position_dodge(width = 0.8),
 #                alpha = 0.6) +
 #   facet_wrap(~Shelf, ncol = 1, scale = "free_y")
-
 
 Poritid |> 
   filter(Poritid>60)
@@ -1430,6 +1501,38 @@ Fig2C_EMM <- nbin_Poritid_interaction|>
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size = 9))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
+nbin_pori_df <- nbin_Poritid_interaction|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame()|> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+Poritidae_figure <- ggplot()+
+  geom_jitter(data = Poritid, aes(x=Year, y=Poritid, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+    size = 0.5,
+    alpha = 0.5,
+    colour = "grey")+
+  geom_pointrange(data = nbin_pori_df, aes(ymin=lower, ymax = upper, x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(y =expression("Poritidae recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 ```
 
 ```{r}
@@ -1452,6 +1555,60 @@ Fig2bot <- ggarrange(Fig2C_Raw, Fig2C_EMM, labels = c("E", "F"))
 ```{r}
 ggarrange(Fig2_top, Fig2_mid, Fig2bot, ncol =1) #This will likely be figure 2, but also need Other recruits as well.
 ```
+# Other
+
+```{r}
+nbin_other_df <- nbin_other_interaction|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame()|> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+Other_figure <- ggplot()+
+  geom_jitter(data = Other, aes(x=Year, y=Other, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+    size = 0.5,
+    alpha = 0.5,
+    colour = "grey")+
+  geom_pointrange(data = nbin_other_df, aes(ymin=lower, ymax = upper, x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(y =expression("Other hard coral recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2022" = "21/22",
+               "2023" = "22/23",
+               "2024" = "23/24",
+               "2025" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+```
+
+```{r}
+ggarrange(Acroporidae_figure, Pocilloporidae_figure, Poritidae_figure, Other_figure, 
+          labels = c("A", "B", "C", "D"),
+          ncol = 1, nrow = 4, common.legend = TRUE, legend = "right") |> 
+ggsave(filename = "Fig2.png",
+       height = 275,
+       width = 189,
+       unit = "mm")
+
+ggarrange(Acroporidae_figure, Pocilloporidae_figure, Poritidae_figure, Other_figure, 
+          labels = c("A", "B", "C", "D"),
+          ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom") |> 
+ggsave(filename = "Figure2.png",
+       height = 225,
+       width = 230,
+       unit = "mm")
+```
+
 
 Trying a different method here
 

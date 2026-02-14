@@ -292,8 +292,8 @@ Figure5A1 <-  ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                
              x = min(scores_hellinger$NMDS1),
              y = min(scores_hellinger$NMDS2),              
              label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
-              hjust = 0, vjust = 0, size = 5)+
-   facet_wrap(~ Deployment, ncol = 1)+
+              hjust = 0, vjust = -0.5, size = 3)+
+   facet_wrap(~ Deployment, ncol = 2)+
   scale_x_continuous(limits = c(-1, 1.6))+
   scale_y_continuous(limits = c(-1.5, 1))
 ```
@@ -348,16 +348,13 @@ Recruits_envfit <- Recruits_envfit |>
   rownames_to_column(var = "label_family")
 
  #check p values to determine whether to include
-
 # Prop other not significant at p<0.05
-
 # plot(PIT_nmds)
 # plot(PIT_envfit, p.max = 0.05, col = "black")
 ```
 
 ```{r}
 library(ggrepel)
-
 # Decide limits of x and y axis, so that both plots will be the same
 scores_hellinger |> 
   summarise(
@@ -441,9 +438,9 @@ Fig5.A <- ggplot() +
     ))+
     annotate("text",
              x = min(scores_hellinger$NMDS1),
-             y = min(scores_hellinger$NMDS2),              
+             y = min(scores_hellinger$NMDS2),
              label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
-              hjust = 0, vjust = 0, size = 4)+
+              hjust = 0, vjust = 0, size = 3)+
   scale_x_continuous(limits = c(-1, 1.6))+
   scale_y_continuous(limits = c(-1.35, 0.85))
 
@@ -459,7 +456,9 @@ Fig5.B <- ggplot()+
                   inherit.aes = FALSE,
                   size = 5,
                   box.padding = 0.5, 
-                  min.segment.length = Inf)+
+                  min.segment.length = Inf,
+                  nudge_x = 0.15,
+                  nudge_y = -0.2)+
   theme_bw() +
      theme(
         panel.grid = element_blank(),
@@ -475,14 +474,15 @@ Fig5.B <- ggplot()+
   scale_x_continuous(limits = c(-1, 1.6))+
   scale_y_continuous(limits = c(-1.35, 0.85))
 
-Figure5 <- ggpubr::ggarrange(Fig5.A, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right")
+#Figure5 <- ggpubr::ggarrange(Fig5.A, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right")
 
-#Figure5 <- ggpubr::ggarrange(Figure5A1, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right", heights = c(1.75, 0.5))
+Figure5 <- ggpubr::ggarrange(Figure5A1, Fig5.B, ncol =1, common.legend = TRUE, labels = c("A", "B"), legend = "right", heights = c(1, 0.5))
+Figure5
 
 
 ggsave(filename = "Fig5.png",
        plot = Figure5,
-       height = 250,
+       height = 215,
        width = 169,
        unit = "mm")
 ```
@@ -539,7 +539,7 @@ betadisper(bray_h_adj, environment_data$Shelf)
 anova(betadisper(bray_h_adj, environment_data$Shelf))
 ```
 
-```{r}
+```{r eval = FALSE}
 set.seed(999)     # for reproducibility
 
 nmds_h_adj <- metaMDS(recruit_h_adj, distance = "bray", k = 2, trymax = 100)
@@ -552,7 +552,7 @@ site_scores_h_adj <- as.data.frame(vegan::scores(nmds_h_adj, display = "sites"))
 scores_h_adj <- cbind(site_scores_h_adj, environment_data[, c("Year_Collected", "Shelf", "Reef", "Site")])
 ```
 
-```{r}
+```{r eval = FALSE}
 p_h_adj <- ggplot(scores_h_adj, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
                          shape = Year_Collected)) +
      geom_point(size = 3, alpha = 0.9) +
@@ -579,7 +579,7 @@ p_h_adj <- ggplot(scores_h_adj, aes(x = NMDS1, y = NMDS2,                       
 ```
 
 I am going to do the same thing, but do the mutate prior to the transformation.
-```{r}
+```{r eval = FALSE}
 Recruit_adj <- Coral_settlement_nGBR |> 
    select(Acroporidae, Pocilloporidae, Poritid, Other) |> 
   mutate(
@@ -592,7 +592,7 @@ environment_data <- Coral_settlement_nGBR|>
   select(Year_Collected, Site, Reef, Shelf)
 ```
 
-```{r}
+```{r eval=FALSE}
 # Bray–Curtis PERMANOVA
 adonis2(recruit_h_adj ~ Year_Collected * Shelf, data = environment_data, method = "bray")
 
@@ -600,14 +600,14 @@ adonis2(recruit_h_adj ~ Year_Collected * Shelf, data = environment_data, method 
 adonis2(recruit_h_adj ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef )
 ```
 
-```{r}
+```{r eval=FALSE}
 bray_h_adj <- vegdist(recruit_h_adj, method = "bray")
 
 betadisper(bray_h_adj, environment_data$Shelf)
 anova(betadisper(bray_h_adj, environment_data$Shelf))
 ```
 
-```{r}
+```{r eval=FALSE}
 set.seed(999)     # for reproducibility
 
 nmds_h_adj <- metaMDS(recruit_h_adj, distance = "bray", k = 2, trymax = 100)
@@ -619,7 +619,7 @@ nmds_h_adj$stress
 site_scores_h_adj <- as.data.frame(vegan::scores(nmds_h_adj, display = "sites"))
 scores_h_adj <- cbind(site_scores_h_adj, environment_data[, c("Year_Collected", "Shelf", "Reef", "Site")])
 ```
-```{r}
+```{r eval=FALSE}
 p_h_adj <- ggplot(scores_h_adj, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
                          shape = Year_Collected)) +
      geom_point(size = 3, alpha = 0.9) +
@@ -649,7 +649,7 @@ p_h_adj <- ggplot(scores_h_adj, aes(x = NMDS1, y = NMDS2,                       
 
 Asking the question: how does the coral recruitment composition differ in vegetated tiles...
 
-```{r}
+```{r eval=FALSE}
 #Create a site-by-species matrix which includes year and reef as the "site"
 
 # Step 1: Create Site column and keep only species data
@@ -679,7 +679,7 @@ NMDS$stress
 
 ## Zero-adjusted Bray-curtis following methods in Harrison and dela cruz, 2024
 
-```{r}
+```{r eval=FALSE}
 za_recruits <- Coral_settlement_nGBR |> 
   select(Acroporidae, Pocilloporidae, Poritid, Other) |> 
   mutate(
@@ -694,19 +694,18 @@ za_env <- Coral_settlement_nGBR |>
 ```
 
 Transformation
-```{r}
+```{r eval=FALSE}
 # Bray–Curtis PERMANOVA
 adonis2(za_sqrt ~ Year_Collected * Shelf, data = za_env, method = "bray")
 ```
 
-```{r}
+```{r eval=FALSE}
 set.seed(999)     # for reproducibility
 
 za_nmds <- metaMDS(za_sqrt, distance = "bray", k = 2, trymax = 100)
-
 ```
 
-```{r}
+```{r eval=FALSE}
 print(za_nmds)
 
 za_nmds$stress
@@ -715,7 +714,7 @@ za_site_scores <- as.data.frame(vegan::scores(za_nmds, display = "sites"))
 za_scores <- cbind(za_site_scores, za_env[, c("Year_Collected", "Shelf", "Reef", "Site")])
 ```
 
-```{r}
+```{r eval=FALSE}
 za_nmds_plot <- ggplot(za_scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
                          shape = Year_Collected)) +
      geom_point(size = 3, alpha = 0.9) +
@@ -745,7 +744,7 @@ Oh dear oh dear, when I do the zero-adjust and keep in the tiles that had no rec
 
 ### 0.01
 Including all tiles.
-```{r}
+```{r eval=FALSE}
 za2_recruits <- Coral_settlement_nGBR |> 
   select(Acroporidae, Pocilloporidae, Poritid, Other) |> 
   mutate(
@@ -760,7 +759,7 @@ za2_env <- Coral_settlement_nGBR |>
 ```
 
 Transformation
-```{r}
+```{r eval=FALSE}
 # Bray–Curtis PERMANOVA
 adonis2(za2_sqrt ~ Year_Collected * Shelf, data = za2_env, method = "bray")
 #not sure why i do sqrt here, need to determine that.
@@ -768,7 +767,7 @@ adonis2(za2_sqrt ~ Year_Collected * Shelf, data = za2_env, method = "bray")
 adonis2(za2_recruits ~ Year_Collected * Shelf, data = za2_env, method = "bray")
 ```
 
-```{r}
+```{r eval=FALSE}
 set.seed(999)     # for reproducibility
 
 za2_nmds <- metaMDS(za2_sqrt, distance = "bray", k = 2, trymax = 100)
@@ -777,7 +776,7 @@ za2_nmds <- metaMDS(za2_recruits, distance = "bray", k = 2, trymax = 100)
 
 ```
 
-```{r}
+```{r eval=FALSE}
 print(za2_nmds)
 
 
@@ -787,7 +786,7 @@ za2_site_scores <- as.data.frame(vegan::scores(za2_nmds, display = "sites"))
 za2_scores <- cbind(za2_site_scores, za2_env[, c("Year_Collected", "Shelf", "Reef", "Site")])
 ```
 
-```{r}
+```{r eval=FALSE}
 za2_nmds_plot <- ggplot(za2_scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
                          shape = Year_Collected)) +
      geom_point(size = 3, alpha = 0.9) +
@@ -818,7 +817,7 @@ za2_nmds_plot
 ## Trying to weight by dispersion... 
 So I will need to group by site x reef x year for a given family, calculate the var and mean. (based on https://www.int-res.com/articles/meps2006/320/m320p011.pdf)
 
-```{r}
+```{r eval=FALSE}
 dispersion_weighting <- Coral_settlement_nGBR |> 
   group_by(Year_Collected, Shelf, Reef, Site) |> 
   summarise(

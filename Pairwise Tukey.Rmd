@@ -238,16 +238,16 @@ emm_shelf_response <- emmeans(nbin_total_yr2, ~Shelf| Year, type = "response")
 emm_total_df <- as.data.frame(emm_shelf_response) |> 
   rename(predicted_recruits = response)
 # Contrast Dataframe
-emm_total_pair_df <- pairs(emm_shelf_response, adjust = "tukey")
+emm_total_pair_df <- as.data.frame(pairs(emm_shelf_response, adjust = "tukey"))
 
 #Calcualte additive differences in total recruits
 difference_total <- emm_total_df |> 
   select(Year, Shelf, predicted_recruits) |> 
   pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
   mutate(
-    Mid_minus_Inner   = Mid - Inner,
-    Outer_minus_Inner = Outer - Inner,
-    Outer_minus_Mid   = Outer - Mid,
+    `Inner / Mid`   = Inner - Mid,
+    `Inner / Outer` = Inner - Outer,
+    `Mid / Outer`   = Mid - Outer,
     pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
     pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
     pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
@@ -256,10 +256,10 @@ difference_total <- emm_total_df |>
 difference_total
 
 long_total_shelf <- emm_total_pair_df |> 
-  select(Shelf, contrast, ratio, p.value) 
+  select(Year, contrast, ratio, SE, z.ratio, p.value) 
 
 long_diff_total_shelf <- difference_total |> 
-  select(Year, starts_with("Mid"), starts_with("Outer")) |> 
+  select(Year, starts_with("Inner"), starts_with("Mid")) |> 
   pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
 
 final_shelf_total <- left_join(long_total_shelf, long_diff_total_shelf, by = c("Year", "contrast"))
@@ -305,7 +305,7 @@ difference_totalyr <- emm_totalyr_df |>
 difference_totalyr
 
 long_total_yr <- emm_totalyr_pair_df |> 
-  select(Shelf, contrast, ratio, p.value)  
+  select(Shelf, contrast, ratio, SE, z.ratio, p.value)  
 
 long_diff_total_year <- difference_totalyr |> 
   select(Shelf, starts_with("(2021-22)"), starts_with("(2022-23)"), starts_with("(2023-24)")) |> 
@@ -344,9 +344,9 @@ difference_acro <- emm_acro_df |>
   select(Year, Shelf, predicted_recruits) |> 
   pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
   mutate(
-    Mid_minus_Inner   = Mid - Inner,
-    Outer_minus_Inner = Outer - Inner,
-    Outer_minus_Mid   = Outer - Mid,
+    `Inner / Mid`   = Inner - Mid,
+    `Inner / Outer` = Inner - Outer,
+    `Mid / Outer`   = Mid - Outer,
     pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
     pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
     pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
@@ -355,10 +355,10 @@ difference_acro <- emm_acro_df |>
 difference_acro
 
 long_acro_shelf <- emm_acro_pair_df |> 
-  select(Year, contrast, ratio, p.value) 
+  select(Year, contrast, ratio, SE, z.ratio, p.value) 
 
 long_diff_acro_shelf <- difference_acro |> 
-  select(Year, starts_with("Mid"), starts_with("Outer")) |> 
+  select(Year, starts_with("Inner"), starts_with("Mid")) |> 
   pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
 
 final_shelf_acro <- left_join(long_acro_shelf, long_diff_acro_shelf, by = c("Year", "contrast"))
@@ -377,7 +377,7 @@ pairs(emm_acro_year, adjust = "tukey")
 emm_acro_yr_df <- as.data.frame(emm_acro_year) |> 
   rename(predicted_recruits = response)
 # Contrast Dataframe
-emm_acro_yr_pair_df <- pairs(emm_acro_year, adjust = "tukey")
+emm_acro_yr_pair_df <- as.data.frame(pairs(emm_acro_year, adjust = "tukey"))
 
 #Calcualte additive differences in total recruits
 difference_acro_yr <- emm_acro_yr_df|> 
@@ -402,7 +402,7 @@ difference_acro_yr <- emm_acro_yr_df|>
 
 difference_acro_yr
 long_acro_yr <- emm_acro_yr_pair_df |> 
-  select(Year, contrast, ratio, p.value) 
+  select(Shelf, contrast, ratio, SE, z.ratio, p.value) 
 
 long_diff_acro_year <- difference_acro_yr |> 
   select(Shelf, starts_with("(2021-22)"), starts_with("(2022-23)"), starts_with("(2023-24)")) |> 
@@ -433,9 +433,9 @@ difference_poci <- emm_poci_df |>
   select(Year, Shelf, predicted_recruits) |> 
   pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
   mutate(
-    Mid_minus_Inner   = Mid - Inner,
-    Outer_minus_Inner = Outer - Inner,
-    Outer_minus_Mid   = Outer - Mid,
+    `Inner / Mid`   = Inner - Mid,
+    `Inner / Outer` = Inner - Outer,
+    `Mid / Outer`   = Mid - Outer,
     pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
     pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
     pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
@@ -443,10 +443,10 @@ difference_poci <- emm_poci_df |>
 
 difference_poci
 long_poci_shelf <- emm_poci_pair_df |> 
-  select(Shelf, contrast, ratio, p.value) 
+  select(Year, contrast, ratio, SE, z.ratio, p.value) 
 
 long_diff_poci_shelf <- difference_poci |> 
-  select(Year, starts_with("Mid"), starts_with("Outer")) |> 
+  select(Year, starts_with("Inner"), starts_with("Mid")) |> 
   pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
 
 final_shelf_poci <- left_join(long_poci_shelf, long_diff_poci_shelf, by = c("Year", "contrast"))
@@ -463,7 +463,7 @@ pairs(emm_poci_year, adjust = "tukey")
 emm_poci_yr_df <- as.data.frame(emm_poci_year) |> 
   rename(predicted_recruits = response)
 # Contrast Dataframe
-emm_poci_yr_pair_df <- pairs(emm_poci_year, adjust = "tukey")
+emm_poci_yr_pair_df <- as.data.frame(pairs(emm_poci_year, adjust = "tukey"))
 
 #Calcualte additive differences in total recruits
 difference_poci_yr <- emm_poci_yr_df|> 
@@ -489,7 +489,7 @@ difference_poci_yr <- emm_poci_yr_df|>
 difference_poci_yr
 
 long_poci_yr <- emm_poci_yr_pair_df |> 
-  select(Year, contrast, ratio, p.value) 
+  select(Shelf, contrast, ratio, SE, z.ratio, p.value) 
 
 long_diff_poci_year <- difference_poci_yr |> 
   select(Shelf, starts_with("(2021-22)"), starts_with("(2022-23)"), starts_with("(2023-24)")) |> 
@@ -518,9 +518,9 @@ difference_pori <- emm_pori_df |>
   select(Year, Shelf, predicted_recruits) |> 
   pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
   mutate(
-    Mid_minus_Inner   = Mid - Inner,
-    Outer_minus_Inner = Outer - Inner,
-    Outer_minus_Mid   = Outer - Mid,
+   `Inner / Mid`   = Inner - Mid,
+    `Inner / Outer` = Inner - Outer,
+    `Mid / Outer`   = Mid - Outer,
     pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
     pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
     pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
