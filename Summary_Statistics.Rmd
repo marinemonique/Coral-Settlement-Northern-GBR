@@ -621,6 +621,30 @@ Coral_settlement_nGBR |>
   )
 ```
 
+# Poritidae
+
+```{r}
+Coral_settlement_nGBR |> 
+  # group_by(Shelf) |> 
+  summarise(
+    mean = mean(Poritid),
+    se = sd(Poritid)/(n()^0.5),
+    min = min(Poritid),
+    max = max(Poritid),
+    n= n()
+  )
+Coral_settlement_nGBR |> 
+  group_by(Shelf) |> 
+  summarise(
+    mean = mean(Poritid),
+    se = sd(Poritid)/(n()^0.5),
+    min = min(Poritid),
+    max = max(Poritid),
+    n= n()
+  )
+```
+
+
 # Position on tile
 
 ```{r}
@@ -758,4 +782,52 @@ Coral_settlement_nGBR |>
   )
 ```
 
+# Benthic cover 
+
+## Raw
+
+```{r}
+PIT |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_aco = mean(prop_acro),
+    sd_aco = sd(prop_acro),
+    mean_poci = mean(prop_poci),
+    sd_poci = sd(prop_poci),
+    mean_por = mean(prop_pori),
+    sd_por = sd(prop_pori),
+    mean_macroalgae = mean(Prop_macroalgae),
+    sd_macroalgae = sd(Prop_macroalgae),
+    PIT = n()
+  )
+```
+
+
+```{r}
+PIT |> 
+  group_by(Year, Shelf, Reef) |> 
+  summarise(
+    mean_aco = mean(Acroporidae),
+    sd_aco = sd(Acroporidae),
+    min_acro = min(Acroporidae),
+    max_acro = max(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    min_poci = min(Pocilloporidae),
+    max_pocif = max(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    min_por = min(Poritidae),
+    max_por = max(Poritidae),
+    mean_macroalgae = mean(Macroalgae),
+    sd_macroalgae = sd(Macroalgae),
+    min_macroalgae = min(Macroalgae),
+    max_macroalgae = max(Macroalgae),
+    mean_turf = mean(Turf),
+    sd_turf = sd(Turf),
+    min_turf = min(Turf),
+    max_turf = max(Turf),
+    PIT = n()
+  )
+```
 

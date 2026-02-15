@@ -273,19 +273,18 @@ p_h <- ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                       
  
  
 Figure5A1 <-  ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
-     geom_point(size = 1.5, alpha = 0.9) +
+     geom_point(size = 1.5, alpha = 0.8) +
     stat_ellipse(aes(group = Shelf, colour = Shelf),
                  level = 0.75, linewidth = 1) +
      theme_bw(base_size = 14) +
      theme(
         panel.grid = element_blank(),
          legend.position = "right",
-         text = element_text(size = 9)) +
+         text = element_text(size = 8)) +
      labs(
-         x = "nMDS1",
-        y = "nMDS2",
-         colour = "Shelf",
-        shape = "Year Collected"
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf"
     ) +
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
     annotate("text",
@@ -380,8 +379,8 @@ ggplot() +
          axis.title = element_text(face = "bold")
      ) +
      labs(
-         x = "nMDS1",
-        y = "nMDS2",
+         x = "NMDS1",
+        y = "NMDS2",
          colour = "Shelf Position",
         shape = "Year Collected"
     ) +
@@ -390,7 +389,7 @@ ggplot() +
              x = min(scores_hellinger$NMDS1),
              y = min(scores_hellinger$NMDS2),              
              label = paste0("Stress = ", round(nmds_hellinger$stress, 3)),
-              hjust = 0, vjust = 0, size = 5)+
+              hjust = 0, vjust = 0, size = 3)+
 geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
              arrow = arrow(length = unit(1/3, "picas")),
              linetype = "solid",
@@ -424,8 +423,8 @@ Fig5.A <- ggplot() +
      ) +
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
      labs(
-         x = "nMDS1",
-        y = "nMDS2",
+         x = "NMDS1",
+        y = "NMDS2",
          colour = "Shelf",
         shape = "Deployment"
     ) +
@@ -455,7 +454,7 @@ Fig5.B <- ggplot()+
   geom_text_repel(data = Recruits_envfit,
                   aes(x = NMDS1, y= NMDS2, label = label_family),
                   inherit.aes = FALSE,
-                  size = 5,
+                  size = 3,
                   box.padding = 0.5, 
                   min.segment.length = Inf,
                   nudge_x = 0.15,
@@ -467,8 +466,8 @@ Fig5.B <- ggplot()+
          text = element_text(size = 9)
      ) +
      labs(
-         x = "nMDS1",
-        y = "nMDS2",
+         x = "NMDS1",
+        y = "NMDS2",
          colour = "Shelf",
         shape = "Year Collected"
     ) +
@@ -875,7 +874,7 @@ PIT <- PIT |>
 ```
 
 
-```{r}
+```{r eval = FALSE}
 environment_data <- Coral_settlement_nGBR %>%
   filter(total >0) |> 
   select(Year_Collected, Site, Reef, Shelf) #worried because environment data is nested here.
