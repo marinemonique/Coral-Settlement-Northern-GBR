@@ -236,7 +236,13 @@ pairs(emm_shelf, adjust = "tukey")#has estimate whereas the response has ratio
 nbin_total_yr2 |> 
 emmeans(~Shelf | Year, type = "response") |> 
 regrid() |> #back transforms 
-  pairs(reverse = TRUE) 
+  pairs(reverse = FALSE) |>
+  as.data.frame() |> 
+  mutate(
+    lower = estimate - 1.96*SE,
+    upper = estimate + 1.96*SE, CI = 1.96*SE
+  ) |> 
+  write.csv(file = "emm_total_shelf.csv")
 ```
 
 ```{r}
@@ -248,7 +254,13 @@ pairs(emm_year_response, adjust = "tukey")
 nbin_total_yr2 |> 
 emmeans(~Year| Shelf, type = "response") |> 
 regrid() |> #back transforms 
-  pairs(reverse = TRUE) 
+  pairs(reverse = FALSE) |>
+  as.data.frame() |>
+  mutate(
+    lower  = estimate - 1.96*SE,
+    upper  = estimate + 1.96*SE, CI = 1.96*SE
+  ) |> 
+  write.csv(file = "emm_total_yr.csv")
 ```
 
 
@@ -271,7 +283,13 @@ pairs(emm_acro_shelf, adjust = "tukey")
 nbin_Acroporidae_interaction |> 
 emmeans(~Shelf | Year, type = "response") |> 
 regrid() |> #back transforms 
-  pairs(reverse = TRUE) 
+  pairs(reverse = FALSE)|>
+  as.data.frame() |> 
+  mutate(
+    lower  = estimate - 1.96*SE,
+    upper  = estimate + 1.96*SE, CI = 1.96*SE
+  ) |> 
+  write.csv(file = "emm_acro_shelf.csv") 
 ```
 
 ```{r}
@@ -281,7 +299,13 @@ pairs(emm_acro_year, adjust = "tukey")
 nbin_Acroporidae_interaction |> 
 emmeans(~Year | Shelf, type = "response") |> 
 regrid() |> #back transforms 
-  pairs(reverse = TRUE) 
+  pairs(reverse = FALSE) |>
+  as.data.frame() |> 
+  mutate(
+    lower  = estimate - 1.96*SE,
+    upper  = estimate + 1.96*SE, CI = 1.96*SE
+  ) |> 
+  write.csv(file = "emm_acro_yr.csv")
 ```
 
 
@@ -294,7 +318,13 @@ pairs(emm_poci_shelf, adjust = "tukey")
 nbin_Pocilloporidae_interaction |> 
 emmeans(~Shelf | Year, type = "response") |> 
 regrid() |> #back transforms 
-  pairs(reverse = TRUE) 
+  pairs(reverse = FALSE) |>
+  as.data.frame() |> 
+  mutate(
+    lower  = estimate - 1.96*SE,
+    upper  = estimate + 1.96*SE, CI = 1.96*SE
+  ) |> 
+  write.csv(file = "emm_poci_shelf.csv")
 ```
 
 ```{r}
@@ -304,7 +334,13 @@ pairs(emm_poci_year, adjust = "tukey")
 nbin_Pocilloporidae_interaction |> 
 emmeans(~Year | Shelf, type = "response") |> 
 regrid() |> #back transforms 
-  pairs(reverse = TRUE) 
+  pairs(reverse = FALSE) |>
+  as.data.frame() |>
+  mutate(
+    lower  = estimate - 1.96*SE,
+    upper  = estimate +1.96*SE, CI = 1.96*SE
+  ) |> 
+  write.csv(file = "emm_poci_yr.csv")
 ```
 
 # Poritidae
@@ -317,7 +353,13 @@ emm_pori_shelf <- emmeans(nbin_Poritid_interaction, ~Shelf | Year, type = "respo
 nbin_Poritid_interaction |> 
 emmeans(~Shelf | Year, type = "response") |> 
 regrid() |> #back transforms 
-  pairs(reverse = TRUE) 
+  pairs(reverse = FALSE) |>
+  as.data.frame() |> 
+  mutate(
+    lower  = estimate - 1.96*SE,
+    upper  = estimate +1.96*SE, CI = 1.96*SE
+  ) |> 
+  write.csv(file = "emm_por_shelf.csv")
 
 ```
 
@@ -329,7 +371,14 @@ emm_pori_year <- emmeans(nbin_Poritid_interaction, ~Year |Shelf, type = "respons
 nbin_Poritid_interaction |> 
 emmeans(~Year | Shelf, type = "response") |> 
 regrid() |> #back transforms 
-  pairs(reverse = TRUE) 
+  pairs(reverse = FALSE) |> 
+  as.data.frame() |> 
+  mutate(
+    lower  = estimate - 1.96*SE,
+    upper  = estimate +1.96*SE, CI = 1.96*SE,
+    CI = 1.96*SE
+  ) |> 
+  write.csv(file = "emm_por_yr.csv")
 ```
 
 All families
@@ -369,3 +418,79 @@ pairs(emm_pos, adjust = "tukey")
 ```
 
 
+```{r}
+nbin_total_yr2 |> summary()
+```
+```{r}
+nbin_Acroporidae_interaction |> summary()
+```
+
+
+```{r}
+nbin_Pocilloporidae_interaction |> summary()
+```
+
+```{r}
+nbin_Poritid_interaction |> summary()
+```
+
+## Summary statistics based on predictions
+```{r}
+Coral_settlement_nGBR$pred_total <- predict(
+  nbin_total_yr2,
+  type = "response"
+)
+
+Coral_settlement_nGBR |>
+  group_by(Shelf, Year) |> 
+  summarise(
+    mean = mean(pred_total),
+    se = sd(pred_total)/(n()^0.5),
+    n= n()
+  )
+```
+
+```{r}
+Acroporidae$pred_total <- predict(
+  nbin_Acroporidae_interaction,
+  type = "response"
+)
+
+Acroporidae |> group_by(Shelf, Year) |> 
+  summarise(
+    mean = mean(pred_total),
+    se = sd(pred_total)/(n()^0.5),
+    n= n()
+  )
+
+```
+
+```{r}
+Pocilloporidae$pred_total <- predict(
+  nbin_Pocilloporidae_interaction,
+  type = "response"
+)
+
+Pocilloporidae |> 
+  group_by(Shelf, Year) |> 
+  summarise(
+    mean = mean(pred_total),
+    se = sd(pred_total)/(n()^0.5),
+    n= n()
+  )
+```
+
+```{r}
+Poritid$pred_total <- predict(
+  nbin_Poritid_interaction,
+  type = "response"
+)
+
+Poritid |> 
+  group_by(Shelf, Year) |> 
+  summarise(
+    mean = mean(pred_total),
+    se = sd(pred_total)/(n()^0.5),
+    n= n()
+  )
+```

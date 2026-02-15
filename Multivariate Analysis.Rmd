@@ -273,7 +273,7 @@ p_h <- ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                       
  
  
 Figure5A1 <-  ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
-     geom_point(size = 3, alpha = 0.9) +
+     geom_point(size = 1.5, alpha = 0.9) +
     stat_ellipse(aes(group = Shelf, colour = Shelf),
                  level = 0.75, linewidth = 1) +
      theme_bw(base_size = 14) +
@@ -295,10 +295,11 @@ Figure5A1 <-  ggplot(scores_hellinger, aes(x = NMDS1, y = NMDS2,                
               hjust = 0, vjust = -0.5, size = 3)+
    facet_wrap(~ Deployment, ncol = 2)+
   scale_x_continuous(limits = c(-1, 1.6))+
-  scale_y_continuous(limits = c(-1.5, 1))
+  scale_y_continuous(limits = c(-1.35, 0.85))
+Figure5A1
 ```
 
-```{r}
+```{r eval = FALSE}
 p_h <- ggplot(scores_hellinger,
               aes(x = NMDS1, y = NMDS2,
                   colour = Shelf,
@@ -310,10 +311,10 @@ p_h <- ggplot(scores_hellinger,
                     "<br>Poritid:", Poritid,
                     "<br>Other:", Other
                   ))) +
-  geom_point(size = 3, alpha = 0.9) +
+  geom_point(size = 2, alpha = 0.9) +
   stat_ellipse(aes(group = Shelf, colour = Shelf),
                level = 0.75, linewidth = 1) +
-  theme_bw(base_size = 14) +
+  theme_bw() +
  theme(
         panel.grid = element_blank(),
          legend.position = "right",

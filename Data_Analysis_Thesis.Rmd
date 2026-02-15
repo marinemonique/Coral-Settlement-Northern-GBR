@@ -748,7 +748,7 @@ pairs(emm_year_shelf, adjust = "tukey",
 Coral_settlement_nGBR$pred_total <- predict(
   nbin_total_yr2,
   type = "response"
-)
+) 
 
 total_model_emm <- nbin_total_yr2|> 
   emmeans(~Shelf | Year, type = "response") |> 
