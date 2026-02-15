@@ -163,6 +163,9 @@ PIT_matrix <- site_by_PIT %>%
     6:16
   )
 
+PIT_matrix <- PIT_matrix |> 
+  select(Site_ID, Acroporidae, Pocilloporidae, Poritidae, `Brown Macroalgae`, `Red Macroalgae`, `Green Macroalgae`, Turf, `Soft Coral`)
+
 # Step 4: Remove all-zero rows BEFORE rownames
 PIT_matrix_filtered <- PIT_matrix %>%
   filter(rowSums(across(-Site_ID)) > 0) %>%
