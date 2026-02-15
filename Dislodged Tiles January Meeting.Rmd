@@ -32,9 +32,6 @@ library(ggeffects)
 Clean data
 
 ```{r message=FALSE, echo=FALSE}
-Coral_settlement_nGBR_CS <- read.csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
-  mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
-
 Coral_settlement_nGBR <- Coral_settlement_nGBR_CS %>% 
   filter(Shelf.posn != "Coral Sea", #remove coral sea data
         !Obs %in% c(1499, 1621, 1622)) #Remove loose tiles with heavy biofouling
@@ -50,7 +47,7 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR %>%
   
 
 Coral_settlement_nGBR <- Coral_settlement_nGBR |>
-  filter(Shelf == "Outer" | (Shelf %in% c("Inner", "Mid") & Tile %in% c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")))
+  filter(Shelf == "Outer" | (Shelf %in% c("Inner", "Mid") & Tile %in% as.character(1:10)))
 
 Coral_settlement_nGBR$Year_Collected <- factor(Coral_settlement_nGBR$Year_Collected)
 
@@ -62,11 +59,25 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR |>
       Year_Collected == "2024" ~ "2023-24",
       Year_Collected == "2025" ~ "2024-25",
       Year_Collected == "2026" ~ "2025-26"
+  ),
+  Deployment = case_when(
+      Year_Collected == "2022" ~ "21/22",
+      Year_Collected == "2023" ~ "22/23",
+      Year_Collected == "2024" ~ "23/24",
+      Year_Collected == "2025" ~ "24/25",
+      Year_Collected == "2026" ~ "25/26"
   )) |> 
 mutate(
   notes = case_when(
-    notes %in% c("dislodged", "dislodged tile", "dettached tile") ~ "dislodged",
-    notes == "tile loose on sand, lots of tube worms" ~ "tile loose on sand,\nlots of tube worms",
+    notes %in% c("dislodged", "dislodged tile", "dettached tile") ~ "Dislodged",
+    notes %in% c("lots of tube worms") ~ "Lots of tube worms",
+    TRUE ~ notes
+  ))
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+mutate(
+  notes = case_when(
+    !notes %in% c("Dislodged", "Lots of tube worms")~"No notes",
     TRUE ~ notes
   ))
 
@@ -122,13 +133,13 @@ The tiles with lots of tube worms were slightly lower than those without lots of
 
 *also run with year as a random variable*
 ```{r}
-dettached_mod <- glmmTMB(total ~ notes + (1 | Reef/Site) + (1| Year_Collected), 
+dettached_mod2 <- glmmTMB(total ~ notes + (1 | Reef/Site) + (1| Year_Collected), 
       family = "nbinom2", data = Coral_settlement_nGBR)
 ```
 
 ```{r}
-sim_mod <- simulateResiduals(dettached_mod)
-testResiduals(sim_mod)
+sim_mod2 <- simulateResiduals(dettached_mod2)
+testResiduals(sim_mod2)
 
 plot(ggpredict(dettached_mod, terms = "notes"))+
   labs(y= expression("Predicted no. recruits (" * tile^{-1}*")" ), x= "Notes")+
@@ -137,8 +148,19 @@ plot(ggpredict(dettached_mod, terms = "notes"))+
         text = element_text(size=8),
         title = element_blank())
 
-d_tukey <- emmeans(dettached_mod, ~notes)
-pairs(d_tukey, adjust = "tukey")
+AIC(dettached_mod, dettached_mod2)
+#detached model behaved better
+
+d_tukey <- emmeans(dettached_mod, ~notes) |> 
+  regrid() |> #back transforms 
+  pairs(reverse = FALSE) |> 
+  as.data.frame() |> 
+  mutate(
+    lower  = estimate - 1.96*SE,
+    upper  = estimate + 1.96*SE,
+    CI = 1.96*SE
+  )
+d_tukey
 ```
 
 ```{r}
