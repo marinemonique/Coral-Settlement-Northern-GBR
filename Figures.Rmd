@@ -250,12 +250,12 @@ total_mean_site <- Coral_settlement_nGBR |>
 ```
 
 ```{r}
-  ggplot()+
+A <- ggplot()+
     geom_jitter(data = total_mean_site, aes(x=Year, y = mean_site, group = Shelf), 
                 position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.85),
     size = 0.9,
     alpha = 0.5,
-    colour = "grey")+
+    colour = "#A8A8A8")+
   geom_pointrange(data = total_model_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin=lower, ymax = upper),
@@ -273,6 +273,7 @@ total_mean_site <- Coral_settlement_nGBR |>
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size =9))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+A
 ```
 
 # Acroporidae
@@ -299,7 +300,7 @@ acro_mean_site <- Acroporidae |>
 ```
 
 ```{r}
-ggplot()+
+B <- ggplot()+
      geom_jitter(data =acro_mean_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
     size = 0.9,
@@ -314,26 +315,257 @@ ggplot()+
   labs(y=expression("Acroporidae recruits ( " * tile^{-1} * ")"))+
   scale_x_discrete(
     "Deployment",
-    labels = c("2022" = "21/22",
-               "2023" = "22/23",
-               "2024" = "23/24",
-               "2025" = "24/25",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
                "2026" = "25/26")
     )+
-  theme(legend.position = c(1,1), legend.justification = c(1,1),
+  theme(
+    #legend.position = c(1,1), legend.justification = c(1,1),
+        legend = element_blank(),
         text = element_text(size = 9))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+B
 ```
 
 # Pocilloporidae
 
+Model
+```{r}
+nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Pocilloporidae)
+```
+
+Create data
+```{r}
+nbin_poci_data <- nbin_Pocilloporidae_interaction|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+poci_mean_site <- Pocilloporidae |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Pocilloporidae),
+    se_site = sd(Pocilloporidae)/(n()^0.5)
+  )
+```
+
+
+Generate figure
+```{r}
+C <- ggplot()+
+     geom_jitter(data =poci_mean_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8"
+  )+
+  geom_pointrange(data = nbin_poci_data,aes(ymin=lower, ymax = upper,x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y=expression("Pocilloporidae recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(
+    #legend.position = c(1,1), legend.justification = c(1,1),
+        legend= element_blank(),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+C
+```
+
 # Poritidae
+Model
+```{r}
+nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Poritid)
+```
+
+Create data
+```{r}
+nbin_pori_data <- nbin_Poritid_interaction|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+pori_mean_site <- Poritid |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Poritid),
+    se_site = sd(Poritid)/(n()^0.5)
+  )
+```
+
+Generate figure
+```{r}
+D <- ggplot()+
+     geom_jitter(data =pori_mean_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8"
+  )+
+  geom_pointrange(data = nbin_pori_data,aes(ymin=lower, ymax = upper,x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y=expression("Poritidae recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(
+    #legend.position = c(1,1), legend.justification = c(1,1),
+        legend = element_blank(),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+D
+```
+
+# Other 
+Model
+```{r}
+nbin_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Other)
+```
+Create data
+```{r}
+nbin_other_data <- nbin_other_interaction|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+other_mean_site <- Other |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Other),
+    se_site = sd(Other)/(n()^0.5)
+  )
+```
+
+```{r}
+E <- ggplot()+
+     geom_jitter(data =other_mean_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8"
+  )+
+  geom_pointrange(data = nbin_other_data,aes(ymin=lower, ymax = upper,x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y=expression("Other recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(
+    #legend.position = c(1,1), legend.justification = c(1,1),
+        legend = element_blank(),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+E
+```
 
 # Combined figure
 
 ```{r}
-ggarrange( ,ncol =2, labels = c("B", "C", "D", "E"))
+bottom <- ggarrange(B, C, D, E, ncol =2, nrow = 2, labels = c("B", "C", "D", "E"), common.legend = TRUE, legend = "none")
+bottom
 
-ggarrange(ncol = 1, labels = c("A", ""))
+ggarrange(A, bottom, ncol = 1, labels = c("A", ""), heights = c(1, 1.5)) |> 
+  ggsave(filename = "Figure2.PNG", 
+         #width = 189,
+         height = 240, units = "mm"
+        )
 ```
+
+
+# Benthic Cover
+```{r}
+PIT_plot <- PIT |> 
+  select(Shelf, Year, Reef, Site, Acroporidae, Pocilloporidae, Poritidae, Macroalgae,
+         Rubble_and_Sand, `Hard Coral`,
+         #`Brown Macroalgae`, `Red Macroalgae`, `Green Macroalgae`, 
+         Turf, `Soft Coral`)
+
+PIT_long <- PIT_plot |> pivot_longer(cols = 5:12, names_to = "Benthic Cover", values_to = "Cover")
+
+PIT_long <- PIT_long |> 
+  mutate(`Benthic Cover` = factor(`Benthic Cover`, levels = c("Hard Coral", "Acroporidae", "Pocilloporidae","Poritidae", "Rubble_and_Sand", "Macroalgae", "Turf", "Soft Coral")))
+
+PIT_long <- PIT_long|> 
+  mutate(
+    "percent_cover" = Cover/100
+    )
+```
+
+Reorder so that Acroporidae, Pocilloporidae, Poritidae, and then Macroalgae, Turf, and then Soft Coral
+Model for this
+
+
+```{r}
+ggplot(data = PIT_long)+
+  geom_jitter(aes(x = Year, y = Cover, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+    size = 0.5,
+    alpha = 0.5,
+    colour = "grey"
+  )+
+   # Mean points
+  stat_summary(aes(x = Year, y = Cover, colour = Shelf),
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2.25
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(aes(x = Year, y = Cover, colour = Shelf),
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.45
+  ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  theme_bw()+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        axis.title.x = element_blank(),
+        panel.grid.major = element_blank(),
+        legend.position = "bottom")+
+  labs(y = "Percent Cover (%)")+
+  facet_wrap(~`Benthic Cover`, scale = "free_y", ncol = 2)
+```
+
+
 

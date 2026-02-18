@@ -1026,6 +1026,7 @@ Whether the response is aggregated or split by tile facet (side/top/bottom),
 The structure of your random effects (nested site within reef),
 
 Whether Year_Collected should be a fixed or random effect.
+## Models for families
 
 ```{r poisson of total Recruits, message=FALSE}
 pois_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + Year+(1 | Reef/Site) , 
