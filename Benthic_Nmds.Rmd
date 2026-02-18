@@ -522,3 +522,128 @@ ggplot(data = PIT_long)+
   facet_wrap(~`Benthic Cover`, scale = "free_y", ncol = 2)
 ```
 
+Macroalgae Model
+```{r}
+nbin_macro_i <- glmmTMB(Macroalgae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_macro_i)
+testResiduals(sim1)
+
+nbin_macro_f <- glmmTMB(Macroalgae ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_macro_f)
+testResiduals(sim1)
+```
+```{r}
+model.sel(nbin_macro_f, nbin_macro_i)
+```
+
+Rubble and Sand model
+```{r}
+nbin_sand_i <- glmmTMB(Rubble_and_Sand ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_sand_i)
+testResiduals(sim1)
+
+nbin_sand_f <- glmmTMB(Rubble_and_Sand ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_sand_f)
+testResiduals(sim1)
+```
+
+```{r}
+model.sel(nbin_sand_f, nbin_sand_i)
+```
+
+
+Turf Model
+```{r}
+nbin_turf_i <- glmmTMB(Turf ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_turf_i)
+testResiduals(sim1)
+
+nbin_turf_f <- glmmTMB(Turf ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_turf_f)
+testResiduals(sim1)
+```
+
+```{r}
+model.sel(nbin_turf_f, nbin_turf_i)
+```
+
+Acroporidae cover
+```{r}
+nbin_Acro_i <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+
+sim1 <- simulateResiduals(nbin_Acro_i)
+testResiduals(sim1)
+
+nbin_Acro_f <- glmmTMB(Acroporidae ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_Acro_f)
+testResiduals(sim1)
+```
+
+```{r}
+model.sel(nbin_Acro_f, nbin_Acro_i)
+```
+
+Pocilloporidae cover
+
+```{r}
+nbin_poci_i <- glmmTMB(Pocilloporidae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+
+sim1 <- simulateResiduals(nbin_poci_i)
+testResiduals(sim1)
+
+nbin_poci_f <- glmmTMB(Pocilloporidae ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_poci_f)
+testResiduals(sim1)
+```
+
+```{r}
+model.sel(nbin_poci_f, nbin_poci_i)
+```
+
+Poritidae cover
+
+```{r}
+nbin_pori_i <- glmmTMB(Poritidae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+
+sim1 <- simulateResiduals(nbin_pori_i)
+testResiduals(sim1)
+
+nbin_pori_f <- glmmTMB(Poritidae ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_pori_f)
+testResiduals(sim1)
+```
+```{r}
+model.sel(nbin_pori_f, nbin_pori_i)
+```
+
+Soft Coral
+
+```{r}
+nbin_sc_i <- glmmTMB(`Soft Coral` ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+
+sim1 <- simulateResiduals(nbin_sc_i)
+testResiduals(sim1)
+
+nbin_sc_f <- glmmTMB(`Soft Coral` ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_sc_f)
+testResiduals(sim1)
+```
+
+```{r}
+model.sel(nbin_sc_f, nbin_sc_i)
+```
+

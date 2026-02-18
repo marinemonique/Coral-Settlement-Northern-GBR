@@ -831,3 +831,31 @@ PIT |>
   )
 ```
 
+```{r}
+PIT |> 
+  group_by(Shelf) |> 
+  summarise(
+    mean_aco = mean(Acroporidae),
+    sd_aco = sd(Acroporidae),
+    min_acro = min(Acroporidae),
+    max_acro = max(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    min_poci = min(Pocilloporidae),
+    max_pocif = max(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    min_por = min(Poritidae),
+    max_por = max(Poritidae),
+    mean_macroalgae = mean(Macroalgae),
+    sd_macroalgae = sd(Macroalgae),
+    min_macroalgae = min(Macroalgae),
+    max_macroalgae = max(Macroalgae),
+    mean_turf = mean(Turf),
+    sd_turf = sd(Turf),
+    min_turf = min(Turf),
+    max_turf = max(Turf),
+    PIT = n()
+  )
+```
+
