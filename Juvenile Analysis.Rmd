@@ -166,6 +166,17 @@ join <- PIT |>
 Combined <- left_join(Coral_settlement_nGBR, join)
 ```
 
+```{r}
+Belt_10m |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    transect = n()
+  )
+
+# appears that PIT and belt have the same sample size / no. repeats
+
+```
+
 Relationship between Juveniles and recruits
 
 ```{r}
@@ -350,6 +361,37 @@ total_plot <-  nbin |>
 total_plot
 ```
 
+```{r}
+total_plot <-  nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
+  ggplot(aes(x=Year,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(
+    y = expression("Predicted juvenile abundance (" * belt~transect^{-1} * ")"),,
+    colour = "Shelf"
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2025-26" = "25/26")
+    )+
+  #facet_wrap(~Family, ncol = 1, scales = "free_y")+
+  theme(legend.position = "bottom",
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+```
 
 
 Pivot longer
@@ -450,6 +492,42 @@ Acro_plot <-  nbin |>
 Acro_plot
 ```
 
+```{r}
+Acro_plot <-  nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
+  ggplot(aes(x=Year,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(
+    y = expression("Predicted juvenile Acroporidae abundance (" * belt~transect^{-1} * ")"),,
+    colour = "Shelf"
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2025-26" = "25/26")
+    )+
+  #facet_wrap(~Family, ncol = 1, scales = "free_y")+
+  theme(legend.position = "bottom",
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
+Acro_plot
+
+```
+
+
 Pocilloporidae
 ```{r}
 Poc <- Belt_10m |> 
@@ -487,6 +565,41 @@ Poci_plot <-  nbin |>
              y=response, 
              color=Shelf))+
   geom_pointrange(aes(ymin=lower, ymax = upper),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(
+    y = expression("Predicted Pocilloporidae juvenile abundance (" * belt~transect^{-1} * ")"),,
+    colour = "Shelf"
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2025-26" = "25/26")
+    )+
+  #facet_wrap(~Family, ncol = 1, scales = "free_y")+
+  theme(legend.position = "bottom",
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
+Poci_plot
+```
+
+Asymp instead of the calculated 1.96 x SE
+```{r}
+Poci_plot <-  nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
+  ggplot(aes(x=Year,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(
@@ -574,6 +687,40 @@ Poritidae_plot+geom_jitter(data = Por, aes(x=Year, y=Poritidae, group = Shelf),
 ```
 
 ```{r}
+Poritidae_plot <-  nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) |>
+  ggplot(aes(x=Year,
+             y=response, 
+             color=Shelf))+
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.5))+
+  theme_classic()+
+  labs(
+    y = expression("Predicted Poritidae juvenile abundance (" * belt~transect^{-1} * ")"),,
+    colour = "Shelf"
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2025-26" = "25/26")
+    )+
+  #facet_wrap(~Family, ncol = 1, scales = "free_y")+
+  theme(legend.position = "bottom",
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
+```
+
+
+```{r}
 ggarrange(total_plot, Acro_plot, Poci_plot, Poritidae_plot, 
           ncol = 1,
           common.legend = TRUE, 
@@ -649,9 +796,6 @@ effects_table <- function(fit_pairs,
   pairs_dt[, contrast := factor(contrast, contrast)]
   return(pairs_dt)
 }
-
-
-
 
 ## ----pvalue_table---------------------------------------------------------------
 pvalue_table <- function(fit_pairs){
@@ -751,10 +895,6 @@ pvalue_table <- function(fit_pairs){
   pairs_dt[, contrast := factor(contrast, contrast)]
   return(pairs_dt)
 }
-
-
-
-
 
 ## ----response-plot--------------------------------------------------------------
 response_plot <- function(

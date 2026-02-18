@@ -158,6 +158,9 @@ The 2D ordination is capturing the major differences in assemblages
 Patterns you see between groups (Shelf, Year, Reef) are trustworthy
 *(ChatGPT output - further investigation required)*
 
+
+
+
 ```{r eval = FALSE}
 p <- ggplot(data =scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf,
                          shape = Year_Collected)) +
@@ -229,6 +232,15 @@ nmds_hellinger$stress
 site_scores_hellinger <- as.data.frame(vegan::scores(nmds_hellinger, display = "sites"))
 scores_hellinger <- cbind(site_scores_hellinger, environment_data[, c("Year_Collected", "Shelf", "Reef", "Site")])
 ```
+
+```{r}
+nmds_hellinger$stress
+```
+
+```{r}
+stressplot(nmds_hellinger)
+```
+
 
 ```{r}
 Recruits_tile <- Coral_settlement_nGBR %>%

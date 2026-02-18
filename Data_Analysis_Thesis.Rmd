@@ -688,7 +688,9 @@ sim1.3_plot <- plotResiduals(sim1.3, quantreg = FALSE, plot = FALSE) # Returns g
 sim1.4 <- simulateResiduals(nbin_total_yr2)
 testResiduals(sim1.4) #good
 plot(sim1.4)
-sim1.4_plot <- plotResiduals(sim1.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+plotResiduals(sim1.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+sim1.4_plot
+
 ```
 
 
@@ -745,10 +747,25 @@ pairs(emm_year_shelf, adjust = "tukey",
 ```
 
 ```{r}
-Coral_settlement_nGBR$pred_total <- predict(
-  nbin_total_yr2,
-  type = "response"
-) 
+Coral_settlement_nGBR$fitted_residuals_total <- sim1.4$fittedResiduals # fitted residuals does come up on a reasonable values for the y axis.
+
+Coral_settlement_nGBR$fitted_predicted_response <- sim1.4$fittedPredictedResponse
+
+Coral_settlement_nGBR$simulated_response <- sim1.4$simulatedResponse
+Coral_settlement_nGBR$scaled_residuals <- sim1.4$scaledResiduals
+
+plotResiduals(sim1.4, form = Coral_settlement_nGBR$Shelf)
+plotResiduals(sim1.4, form = Coral_settlement_nGBR$Year)
+
+Coral_settlement_nGBR|> 
+  summarise(
+    min = min(fitted_residuals_total),
+    max = max(fitted_residuals_total),
+    min2 = min(fitted_predicted_response),
+    max2 = max(fitted_predicted_response),
+    min3 = min(scaled_residuals),
+    max3 = max(scaled_residuals),
+  )
 
 total_model_emm <- nbin_total_yr2|> 
   emmeans(~Shelf | Year, type = "response") |> 
@@ -759,23 +776,51 @@ total_model_emm <- nbin_total_yr2|>
   ) 
 
   ggplot()+
-    geom_jitter(data = Coral_settlement_nGBR, aes(x=Year, y = pred_total, group = Shelf), 
-                position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.5),
+    geom_jitter(data = Coral_settlement_nGBR, aes(x=Year, y = scaled_residuals, group = Shelf), 
+                position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
     size = 0.5,
     alpha = 0.5,
     colour = "grey")+
   geom_pointrange(data = total_model_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin=lower, ymax = upper),
-                  position = position_dodge(width = 0.5))+
+                  position = position_dodge(width = 0.8))+
   theme_classic()+
   labs(y = expression("Predicted recruits (" * tile^{-1} * ")"))+
   scale_x_discrete(
     "Deployment",
-    labels = c("2022" = "21/22",
-               "2023" = "22/23",
-               "2024" = "23/24",
-               "2025" = "24/25",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size =9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+  
+  ggplot()+
+    geom_jitter(data = Coral_settlement_nGBR, aes(x=Year, y = scaled_residuals, group = Shelf), 
+                position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8))
+  
+  ggplot()+
+    # geom_jitter(data = Coral_settlement_nGBR, aes(x=Year, y = total, group = Shelf), 
+    #             position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    # size = 0.5,
+    # alpha = 0.5,
+    # colour = "grey")+
+  geom_pointrange(data = total_model_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y = expression("Predicted recruits (" * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
                "2026" = "25/26")
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
@@ -786,6 +831,12 @@ total_model_emm
 ```
 
 the emmeans package computes estimated marginal means (previously known as least-squares means) for the fixed effects of any component, or predictions with type = "response" or type = "component" https://glmmtmb.github.io/glmmTMB/reference/downstream_methods.html
+
+```{r}
+simulationOutput <-  recalculateResiduals(sim1.4, group = Coral_settlement_nGBR$Shelf)
+
+
+```
 
 
 ```{r}
@@ -846,6 +897,55 @@ group_by(Year_Collected, Reef, Family, Shelf)  %>%
   )
 
 Figure.2
+```
+
+```{r}
+ total_recruits |> 
+  ggplot()+
+# Raw data
+  geom_jitter(aes(x=Year_Collected, y=Total, group = Family),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.9),
+    size = 0.5,
+    alpha = 0.5,
+    colour = "grey"
+  ) +
+  # Mean points
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Family),
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.9),
+    size = 2.25
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(aes(x=Year_Collected, y=Total, colour = Family),
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.9),
+    width = 0.45
+  ) +
+  theme_classic() +
+  labs(
+    y = expression("Recruits (" * tile^{-1} * ")"),
+    x = "Year",
+    colour = "Shelf"
+  ) +
+ #scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  theme(
+    # legend.position = c(1, 0.4),
+    # legend.justification = c(1, 1)
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c(
+      "2022" = "21/22",
+      "2023" = "22/23",
+      "2024" = "23/24",
+      "2025" = "24/25"
+    )
+  )+
+  facet_wrap(~Shelf, scales = "free_y", ncol =1)+
+  theme(text = element_text(size=9),
+        legend.position = "bottom")
 ```
 
 
