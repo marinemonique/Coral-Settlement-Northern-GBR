@@ -627,6 +627,10 @@ testResiduals(sim1)
 ```{r}
 model.sel(nbin_pori_f, nbin_pori_i)
 ```
+```{r}
+summary(nbin_pori_f)
+```
+
 
 Soft Coral
 
@@ -645,5 +649,8 @@ testResiduals(sim1)
 
 ```{r}
 model.sel(nbin_sc_f, nbin_sc_i)
+```
+```{r}
+summary(nbin_sc_f)
 ```
 

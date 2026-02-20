@@ -700,7 +700,7 @@ Poisson model residuals were bad, therefore will only compare the four models th
 AIC(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2) |>  #nbin has the lowest AIC with interaction terms
   knitr::kable()
 
-Table_2 <- model.sel(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2)
+model.sel(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2)
 ```
 
 negative binomial model has the lowest AIC so I will get the summary of that model.
@@ -716,11 +716,12 @@ When making a figure should I then be using summary statistics or raw count data
 
 ```{r}
 emm_shelf <- emmeans(nbin_total_yr2, ~Shelf | Year)
+
 emm_shelf_response <- emmeans(nbin_total_yr2, ~Shelf| Year, type = "response")
 # emm_shelf
 # emm_shelf_response
 pairs(emm_shelf, adjust = "tukey") #has estimate whereas the response has ratio
-pairs(emm_shelf_response, adjust = "tukey")
+pairs(emm_shelf_response)
 ```
 
 ```{r}
@@ -1175,13 +1176,13 @@ nbin_Acroporidae_interaction %>%
 Acroporidae abundance significantly different in the outer reefs than inshore reefs.
 
 ```{r}
-emm_acro_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf*Year, type = "response")
+emm_acro_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf | Year, type = "response")
+
 
 emm_acro_shelf
 
-pairs(emm_acro_shelf, adjust = "tukey")
-
-pairs(emm_acro_shelf, adjust = "tukey") |> 
+pairs(emm_acro_shelf)
+ |> 
   write.csv(file = "emmeans_Acroporidae.csv")
 ```
 
@@ -1404,11 +1405,11 @@ nbin_Pocilloporidae_interaction %>%
 ```
 
 ```{r}
-emm_poci_shelf <- emmeans(nbin_Pocilloporidae_interaction, ~Shelf*Year)
+emm_poci_shelf <- emmeans(nbin_Pocilloporidae_interaction, ~Shelf|Year, type = "response")
 
 emm_poci_shelf
 
-pairs(emm_poci_shelf, adjust = "tukey")
+pairs(emm_poci_shelf, adjust = "tukey", reverse = TRUE)
 
 pairs(emm_poci_shelf, adjust = "tukey") |> 
   write.csv(file = "emmeans_Pocilloporidae.csv")

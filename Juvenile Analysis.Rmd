@@ -81,6 +81,24 @@ mutate(
 Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
   filter(notes != "Dislodged")
 
+# Mean or median no. tiles per site / year
+Join_Coral <- Coral_settlement_nGBR |> 
+  group_by(Shelf, Year, Site, Reef) |> 
+  summarise(
+    st_mean_acro = mean(Acroporidae),
+    st_sd_acro = sd(Acroporidae),
+    st_median_acro = median(Acroporidae),
+    st_mean_poci = mean(Pocilloporidae),
+    st_sd_poci = sd(Pocilloporidae),
+    st_median_poci = median(Pocilloporidae),
+    st_mean_por = mean(Poritid),
+    st_sd_por = sd(Poritid),
+    st_median_por = median(Poritid),
+    st_mean_total = mean(total),
+    st_sd_total = sd(total),
+    Tiles = n()
+  )
+
 # Juvenile data
 Belt_10m <- read_csv("Belt_10m.csv") |> 
   mutate(across(8:28, ~replace_na(.x, 0)))
@@ -1124,3 +1142,91 @@ ggplot_the_response(
                     )
 ```
 
+
+```{r}
+combine_belt_st <- left_join(join_belt, Join_Coral)
+```
+
+```{r}
+combine_belt_st <- combine_belt_st |> 
+  mutate(Year_start = as.numeric(substr(Year, 1, 4)))
+```
+
+```{r}
+gropd_df2 <- combine_belt_st %>%
+  arrange(Reef, Site, Year_start) %>%   # make sure data are ordered
+  group_by(Reef, Site) %>%              # or group_by(Reef) if Site not needed
+  mutate(
+    st_median_acro_lag1 = lag(st_median_acro, 1)
+  ) %>%
+  ungroup()
+```
+
+Remove first year rows
+```{r}
+model_df <- gropd_df2 %>%
+  filter(!is.na(st_median_acro_lag1))
+```
+
+Fit model. check if mean_acro is approximately normal
+```{r}
+m1 <- lmer(mean_acro ~ st_median_acro_lag1 + (1|Reef/Site),
+           data = model_df)
+
+m1
+summary(m1)
+```
+```{r}
+ggplot()+
+  geom_point(data = gropd_df2, aes(x=st_median_acro_lag1, y = mean_acro, colour = Shelf))
+```
+
+
+# Total recruits related to total juveniles
+
+```{r}
+
+total_group <- combine_belt_st %>%
+  arrange(Reef, Site, Year_start) %>%   # make sure data are ordered
+  group_by(Reef, Site) %>%              # or group_by(Reef) if Site not needed
+  mutate(
+    st_mean_total_lag1 = lag(st_mean_total, 1)
+  ) %>%
+  ungroup()
+```
+
+Remove first year rows
+```{r}
+model_df <- total_group %>%
+  filter(!is.na(st_mean_total_lag1))
+```
+
+```{r}
+ggplot()+
+  geom_point(data = model_df, aes(x=st_mean_total_lag1, y = mean_total, colour = Shelf))+
+  labs(
+    x= "Mean number of recruits per tile (t-1)",
+    y= "Mean number of juvenile colonies per 10m2 (t)"
+  )
+```
+
+We would expect that when larval supply is high (e.g., x is high), that the number of juveniles the following year will also be high (i.e., y high). 
+
+```{r}
+ggplot()+
+  geom_point(data = model_df, aes(x=st_mean_total_lag1, y = mean_total, colour = Shelf))+
+  labs(
+    x= "Mean number of recruits per tile (t-1)",
+    y= "Mean number of juvenile colonies per 10m2 (t)"
+  )+
+  theme_bw()+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  facet_wrap(~Shelf, ncol = 1)+
+  theme(panel.grid.minor =  element_blank(),
+        panel.grid.major.x = element_blank())
+```
+
+This relationship doesn't seem to hold. Likely reflecting the fact that 
+particularly in inner and outer shelf positions. Outer shelf not many larval settle on tile so unlikely to be a good representation of larval supply
+
+Inner shelf doesn't translate into juveniles due to high competition and settlement tile perhaps acting as a better substrate than the actual substrate available.
