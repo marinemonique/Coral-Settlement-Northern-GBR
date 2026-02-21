@@ -148,7 +148,6 @@ family_total_recruits <- Coral_settlement_nGBR %>%
 
 
 
-
 ```{r}
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
@@ -159,7 +158,7 @@ site_by_PIT <- PIT %>%
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_PIT <- site_by_PIT %>%
-  select(Site_ID, Shelf, Year)
+  select(Site_ID, Shelf, Year, Reef, Site)
 
 # Step 3: Species matrix
 PIT_matrix <- site_by_PIT %>%
@@ -218,25 +217,26 @@ PIT_nmds <- metaMDS(
 ```
 
 After PERMANOVA, run ANOSIM
+Check dispersion is correct for this
+
 ```{r}
 # create a distance matrix
 PIT_dist <- vegdist(PIT_matrix_filtered, method = "bray")
 
-anosim(
-  x= PIT_matrix_filtered,
-  grouping = metadata_PIT$Shelf,
-  permutations = 999
-) |> 
-  plot()
-
-anosim(
-  x= PIT_matrix_filtered,
-  grouping = metadata_PIT$Year,
-  permutations = 999
-) |> 
-  plot()
+# With respect to Shelf
+betadisper(PIT_dist, metadata_PIT$Shelf)
+anova(betadisper(PIT_dist, metadata_PIT$Shelf))
 ```
-Box-and-whisker plots showing the ranks of distances among pairs of sample units where those sample units are in different groups ('Between'), both in the 'Inner' group, both in the 'Mid' group, or both in the 'Outer' group.
+
+Well this doesn't meet the assumptions for either shelf or for year.
+
+```{r}
+# with respect to year
+betadisper(PIT_dist, metadata_PIT$Year)
+anova(betadisper(PIT_dist, metadata_PIT$Year))
+
+```
+
 
 This article notes that ANOSIM is fully non-parametric and cannot test interactions; instead it “provides a robust, comparable and globally interpretable measure of magnitude of overall community change associated with each factor, having excised any possible effect from the factor(s) it is crossed with, irrespective of whether the factors interact or not” (p. 911). https://uw.pressbooks.pub/appliedmultivariatestatistics/chapter/anosim/#:~:text=Analysis%20of%20similarities%20(ANOSIM)%20is%20a%20non%2Dparametric,significant%20differences%20between%20two%20or%20more%20groups.
 

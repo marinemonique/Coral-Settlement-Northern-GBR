@@ -1,0 +1,571 @@
+---
+title: "Figures"
+author: "Monique White"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(car)
+library(emmeans)
+library("FactoMineR")
+library("factoextra")
+library(FactoMineR)
+library(factoextra)
+library(vegan) #to do NMDS
+library(PCAmixdata)
+library(ggfortify)
+library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
+library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
+library(ggpubr)
+library(ggeffects) #to be able to do ggpredict
+library(ggh4x) # to specify x and y axis if desired
+library(MuMIn) #model selection function
+library(ggrepel)
+
+
+# Import and clean data
+## Recruitment data
+Coral_settlement_nGBR_CS <- read.csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
+  mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR_CS %>% 
+  filter(Shelf.posn != "Coral Sea", #remove coral sea data
+        !Obs %in% c(1499, 1621, 1622)) #Remove loose tiles with heavy biofouling
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR %>% 
+  rename("Shelf"= Shelf.posn,
+         "Year_Collected"= Year..Jan.,
+         "Site_#"= Site..,
+         "Acroporidae" =Acropora,
+         "Pocilloporidae" = Pocillopora,
+         "Poritid" = Porites) |> 
+  mutate(Year_Collected = factor(Year_Collected))
+  
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |>
+  filter(Shelf == "Outer" | (Shelf %in% c("Inner", "Mid") & Tile %in% as.character(1:10)))
+
+Coral_settlement_nGBR$Year_Collected <- factor(Coral_settlement_nGBR$Year_Collected)
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  mutate(
+    Year = case_when(
+      Year_Collected == "2022" ~ "2021-22",
+      Year_Collected == "2023" ~ "2022-23",
+      Year_Collected == "2024" ~ "2023-24",
+      Year_Collected == "2025" ~ "2024-25",
+      Year_Collected == "2026" ~ "2025-26"
+  ),
+  Deployment = case_when(
+      Year_Collected == "2022" ~ "21/22",
+      Year_Collected == "2023" ~ "22/23",
+      Year_Collected == "2024" ~ "23/24",
+      Year_Collected == "2025" ~ "24/25",
+      Year_Collected == "2026" ~ "25/26"
+  )) |> 
+mutate(
+  notes = case_when(
+    notes %in% c("dislodged", "dislodged tile", "dettached tile") ~ "Dislodged",
+    notes %in% c("lots of tube worms") ~ "Lots of tube worms",
+    TRUE ~ notes
+  ))
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+mutate(
+  notes = case_when(
+    !notes %in% c("Dislodged", "Lots of tube worms")~"No notes",
+    TRUE ~ notes
+  ))
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  filter(notes != "Dislodged")
+
+Pocilloporidae <- Coral_settlement_nGBR %>% 
+  select(Year, Shelf, 
+         Reef, Site, Tile, 
+         Pocilloporidae, Top_Pocil, 
+         Under_Pocil, Side_Pocil, total)
+
+Pocilloporidae_orientation <- Pocilloporidae %>% 
+  rename(Top = Top_Pocil,
+                   Bottom = Under_Pocil,
+                   Side = Side_Pocil,
+         Recruits_per_tile = total)
+
+Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Acroporidae <- Coral_settlement_nGBR %>% 
+  select(Year, Shelf, 
+         Reef, Site, Tile, 
+         Acroporidae, Top_Acr, 
+         Under_Acr, Side_Acr, total)
+
+Acroporidae_orientation <- Acroporidae %>% 
+  rename(Top = Top_Acr,
+                   Bottom = Under_Acr,
+                   Side = Side_Acr,
+         Recruits_per_tile = total)
+
+Acroporidae_orientation <- Acroporidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Poritid <- Coral_settlement_nGBR %>% 
+  select(Year, Shelf, 
+         Reef, Site, Tile, 
+         Poritid, Top_Por, Under_Por, 
+         Side_Por, total)
+
+Poritidae_orientation <- Poritid %>% 
+  rename(Top = Top_Por,
+                   Bottom = Under_Por,
+                   Side = Side_Por,
+         Recruits_per_tile = total) 
+
+Poritidae_orientation <- Poritidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Other <- Coral_settlement_nGBR %>% 
+  select(Year, Shelf, 
+         Reef, Site, Tile, 
+         Other, Top_other, 
+         Under_oth, Side_other, total)
+
+# Benthic Data
+
+PIT <- read_csv("PIT_50m.csv") %>%
+  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ))
+
+
+PIT<- PIT |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site))
+
+join <- PIT |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_aco = mean(prop_acro),
+    sd_aco = sd(prop_acro),
+    mean_poci = mean(prop_poci),
+    sd_poci = sd(prop_poci),
+    mean_por = mean(prop_pori),
+    sd_por = sd(prop_pori),
+    mean_macroalgae = mean(Prop_macroalgae),
+    sd_macroalgae = sd(Prop_macroalgae),
+    PIT = n()
+  )
+
+Combined <- left_join(Coral_settlement_nGBR, join)
+
+## Total recuits
+total_recruits <- Coral_settlement_nGBR %>%
+  select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total")
+
+#Order so that Other is last in Family
+total_recruits <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 6:9, names_to = "Family", values_to = "Total") %>%
+  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
+
+total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
+
+## Position on tile
+
+position_total_recruits <- Coral_settlement_nGBR %>%
+  select(2:9, 15:29, 32) %>% 
+  pivot_longer(cols = 21:23, names_to = "Pos", values_to = "Total")
+
+position_total_recruits <- position_total_recruits |> 
+  mutate(Pos = case_when(
+      Pos == "Top.Total" ~ "Top",
+      Pos == "Side.Total" ~ "Side",
+      Pos == "Under.Total" ~ "Bottom"
+  ))
+ 
+position_total_recruits <- position_total_recruits |>                           
+mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")))
+
+position_total_recruits <- left_join(position_total_recruits, join)
+
+## Family recruitment data
+family_total_recruits <- Coral_settlement_nGBR %>%
+  select(2:13) %>% 
+  pivot_longer(cols = 9:12, names_to = "Family", values_to = "Total") |> 
+  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
+```
+
+Figure 1
+
+```{r}
+nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+total_model_emm <- nbin_total_yr2|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  ) 
+
+total_mean_site <- Coral_settlement_nGBR |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(total),
+    se_site = sd(total)/(n()^0.5)
+  )
+```
+
+```{r}
+A <- ggplot()+
+    geom_jitter(data = total_mean_site, aes(x=Year, y = mean_site, group = Shelf), 
+                position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.85),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8")+
+  geom_pointrange(data = total_model_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin = asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.85))+
+  theme_classic()+
+  labs(y = expression("Total recruits (" * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size =9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+A
+```
+
+# Acroporidae
+
+Create data
+```{r}
+nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Acroporidae)
+
+nbin_acroa_data <- nbin_Acroporidae_interaction|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+acro_mean_site <- Acroporidae |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Acroporidae),
+    se_site = sd(Acroporidae)/(n()^0.5)
+  )
+```
+
+```{r}
+B <- ggplot()+
+     geom_jitter(data =acro_mean_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "grey"
+  )+
+  geom_pointrange(data = nbin_acroa_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y=expression("Acroporidae recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(
+    #legend.position = c(1,1), legend.justification = c(1,1),
+        legend = element_blank(),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+B
+```
+
+# Pocilloporidae
+
+Model
+```{r}
+nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Pocilloporidae)
+```
+
+Create data
+```{r}
+nbin_poci_data <- nbin_Pocilloporidae_interaction|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+poci_mean_site <- Pocilloporidae |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Pocilloporidae),
+    se_site = sd(Pocilloporidae)/(n()^0.5)
+  )
+```
+
+
+Generate figure
+```{r}
+C <- ggplot()+
+     geom_jitter(data =poci_mean_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8"
+  )+
+  geom_pointrange(data = nbin_poci_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y=expression("Pocilloporidae recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(
+    #legend.position = c(1,1), legend.justification = c(1,1),
+        legend= element_blank(),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+C
+```
+
+# Poritidae
+Model
+```{r}
+nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Poritid)
+```
+
+Create data
+```{r}
+nbin_pori_data <- nbin_Poritid_interaction|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+pori_mean_site <- Poritid |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Poritid),
+    se_site = sd(Poritid)/(n()^0.5)
+  )
+```
+
+Generate figure
+```{r}
+D <- ggplot()+
+     geom_jitter(data =pori_mean_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8"
+  )+
+  geom_pointrange(data = nbin_pori_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y=expression("Poritidae recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(
+    #legend.position = c(1,1), legend.justification = c(1,1),
+        legend = element_blank(),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+D
+```
+
+# Other 
+Model
+```{r}
+nbin_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Other)
+```
+Create data
+```{r}
+nbin_other_data <- nbin_other_interaction|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame() |> 
+  mutate(
+    lower = response - 1.96*SE,
+    upper = response + 1.96*SE
+  )
+
+other_mean_site <- Other |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Other),
+    se_site = sd(Other)/(n()^0.5)
+  )
+```
+
+```{r}
+E <- ggplot()+
+     geom_jitter(data =other_mean_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8"
+  )+
+  geom_pointrange(data = nbin_other_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
+             y=response, 
+             color=Shelf),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y=expression("Other recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(
+    #legend.position = c(1,1), legend.justification = c(1,1),
+        legend = element_blank(),
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+E
+```
+
+# Combined figure
+
+```{r}
+bottom <- ggarrange(B, C, D, E, ncol =2, nrow = 2, labels = c("B", "C", "D", "E"), common.legend = TRUE, legend = "none")
+bottom
+
+ggarrange(A, bottom, ncol = 1, labels = c("A", ""), heights = c(1, 1.5)) |> 
+  ggsave(filename = "Figure2.PNG", 
+         #width = 189,
+         height = 240, units = "mm"
+        )
+```
+
+
+# Benthic Cover
+```{r}
+PIT_plot <- PIT |> 
+  select(Shelf, Year, Reef, Site, Acroporidae, Pocilloporidae, Poritidae, Macroalgae,
+         Rubble_and_Sand, `Hard Coral`,
+         #`Brown Macroalgae`, `Red Macroalgae`, `Green Macroalgae`, 
+         Turf, `Soft Coral`)
+
+PIT_long <- PIT_plot |> pivot_longer(cols = 5:12, names_to = "Benthic Cover", values_to = "Cover")
+
+PIT_long <- PIT_long |> 
+  mutate(`Benthic Cover` = factor(`Benthic Cover`, levels = c("Hard Coral", "Acroporidae", "Pocilloporidae","Poritidae", "Rubble_and_Sand", "Macroalgae", "Turf", "Soft Coral")))
+
+PIT_long <- PIT_long|> 
+  mutate(
+    "percent_cover" = Cover/100
+    )
+```
+
+Reorder so that Acroporidae, Pocilloporidae, Poritidae, and then Macroalgae, Turf, and then Soft Coral
+Model for this
+
+
+```{r}
+ggplot(data = PIT_long)+
+  geom_jitter(aes(x = Year, y = Cover, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+    size = 0.5,
+    alpha = 0.5,
+    colour = "grey"
+  )+
+   # Mean points
+  stat_summary(aes(x = Year, y = Cover, colour = Shelf),
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2.25
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(aes(x = Year, y = Cover, colour = Shelf),
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.45
+  ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  theme_bw()+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        axis.title.x = element_blank(),
+        panel.grid.major = element_blank(),
+        legend.position = "bottom")+
+  labs(y = "Percent Cover (%)")+
+  facet_wrap(~`Benthic Cover`, scale = "free_y", ncol = 2)
+```
+
+
+

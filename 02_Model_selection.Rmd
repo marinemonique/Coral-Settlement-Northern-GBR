@@ -1,0 +1,660 @@
+---
+title: "02_Model_Selection"
+author: "Monique White"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(car)
+library(emmeans)
+library("FactoMineR")
+library("factoextra")
+library(FactoMineR)
+library(factoextra)
+library(vegan) #to do NMDS
+library(PCAmixdata)
+library(ggfortify)
+library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
+library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
+library(ggpubr)
+library(ggeffects) #to be able to do ggpredict
+library(ggh4x) # to specify x and y axis if desired
+library(MuMIn) #model selection function
+library(ggrepel)
+
+
+# Import and clean data
+## Recruitment data
+Coral_settlement_nGBR_CS <- read.csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
+  mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR_CS %>% 
+  filter(Shelf.posn != "Coral Sea", #remove coral sea data
+        !Obs %in% c(1499, 1621, 1622)) #Remove loose tiles with heavy biofouling
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR %>% 
+  rename("Shelf"= Shelf.posn,
+         "Year_Collected"= Year..Jan.,
+         "Site_#"= Site..,
+         "Acroporidae" =Acropora,
+         "Pocilloporidae" = Pocillopora,
+         "Poritid" = Porites) |> 
+  mutate(Year_Collected = factor(Year_Collected))
+  
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |>
+  filter(Shelf == "Outer" | (Shelf %in% c("Inner", "Mid") & Tile %in% as.character(1:10)))
+
+Coral_settlement_nGBR$Year_Collected <- factor(Coral_settlement_nGBR$Year_Collected)
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  mutate(
+    Year = case_when(
+      Year_Collected == "2022" ~ "2021-22",
+      Year_Collected == "2023" ~ "2022-23",
+      Year_Collected == "2024" ~ "2023-24",
+      Year_Collected == "2025" ~ "2024-25",
+      Year_Collected == "2026" ~ "2025-26"
+  ),
+  Deployment = case_when(
+      Year_Collected == "2022" ~ "21/22",
+      Year_Collected == "2023" ~ "22/23",
+      Year_Collected == "2024" ~ "23/24",
+      Year_Collected == "2025" ~ "24/25",
+      Year_Collected == "2026" ~ "25/26"
+  )) |> 
+mutate(
+  notes = case_when(
+    notes %in% c("dislodged", "dislodged tile", "dettached tile") ~ "Dislodged",
+    notes %in% c("lots of tube worms") ~ "Lots of tube worms",
+    TRUE ~ notes
+  ))
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+mutate(
+  notes = case_when(
+    !notes %in% c("Dislodged", "Lots of tube worms")~"No notes",
+    TRUE ~ notes
+  ))
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  filter(notes != "Dislodged")
+
+Pocilloporidae <- Coral_settlement_nGBR %>% 
+  select(Year, Shelf, 
+         Reef, Site, Tile, 
+         Pocilloporidae, Top_Pocil, 
+         Under_Pocil, Side_Pocil, total)
+
+Pocilloporidae_orientation <- Pocilloporidae %>% 
+  rename(Top = Top_Pocil,
+                   Bottom = Under_Pocil,
+                   Side = Side_Pocil,
+         Recruits_per_tile = total)
+
+Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Acroporidae <- Coral_settlement_nGBR %>% 
+  select(Year, Shelf, 
+         Reef, Site, Tile, 
+         Acroporidae, Top_Acr, 
+         Under_Acr, Side_Acr, total)
+
+Acroporidae_orientation <- Acroporidae %>% 
+  rename(Top = Top_Acr,
+                   Bottom = Under_Acr,
+                   Side = Side_Acr,
+         Recruits_per_tile = total)
+
+Acroporidae_orientation <- Acroporidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Poritid <- Coral_settlement_nGBR %>% 
+  select(Year, Shelf, 
+         Reef, Site, Tile, 
+         Poritid, Top_Por, Under_Por, 
+         Side_Por, total)
+
+Poritidae_orientation <- Poritid %>% 
+  rename(Top = Top_Por,
+                   Bottom = Under_Por,
+                   Side = Side_Por,
+         Recruits_per_tile = total) 
+
+Poritidae_orientation <- Poritidae_orientation %>% 
+  pivot_longer(cols = 7:9,
+               names_to = "Tile_Surface",
+               values_to = "Recruits")
+
+Other <- Coral_settlement_nGBR %>% 
+  select(Year, Shelf, 
+         Reef, Site, Tile, 
+         Other, Top_other, 
+         Under_oth, Side_other, total)
+
+# Benthic Data
+
+PIT <- read_csv("PIT_50m.csv") %>%
+  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ))
+
+
+PIT<- PIT |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site))
+
+join <- PIT |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_aco = mean(prop_acro),
+    sd_aco = sd(prop_acro),
+    mean_poci = mean(prop_poci),
+    sd_poci = sd(prop_poci),
+    mean_por = mean(prop_pori),
+    sd_por = sd(prop_pori),
+    mean_macroalgae = mean(Prop_macroalgae),
+    sd_macroalgae = sd(Prop_macroalgae),
+    PIT = n()
+  )
+
+Combined <- left_join(Coral_settlement_nGBR, join)
+
+
+## Total recuits
+total_recruits <- Coral_settlement_nGBR %>%
+  select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total")
+
+#Order so that Other is last in Family
+total_recruits <- Coral_settlement_nGBR %>% 
+  select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  pivot_longer(cols = 6:9, names_to = "Family", values_to = "Total") %>%
+  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
+
+total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
+
+## Family recruitment data
+family_total_recruits <- Coral_settlement_nGBR %>%
+  select(2:13) %>% 
+  pivot_longer(cols = 9:12, names_to = "Family", values_to = "Total") |> 
+  mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
+```
+
+# Total Recruitment
+```{r warning=FALSE, message=FALSE}
+pois_total_yr <- glmmTMB(total ~ Shelf + Year + (1 | Reef/Site), 
+      family = "poisson", data = Coral_settlement_nGBR)
+
+nbin_total_yr <- glmmTMB(total ~ Shelf +  Year +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+zbin_total_yr <- glmmTMB(total ~ Shelf + Year + (1 | Reef/Site),
+                      ziformula = ~1,
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+pois_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site), 
+      family = "poisson", data = Coral_settlement_nGBR)
+
+nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+zbin_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site),
+                      ziformula = ~1,
+        family = "nbinom2", data = Coral_settlement_nGBR)
+```
+
+```{r eval=FALSE}
+testResiduals(sim1.1) #not good fit
+plot(sim1.1)
+plotResiduals(sim1.1, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+testResiduals(sim1.2) #not good fit
+plot(sim1.2)
+plotResiduals(sim1.2, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+testResiduals(sim1.5) #good
+plot(sim1.5)
+plotResiduals(sim1.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+testResiduals(sim1.6) #good
+plot(sim1.6)
+ plotResiduals(sim1.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+```
+
+```{r}
+sim1.3 <- simulateResiduals(nbin_total_yr)
+testResiduals(sim1.3) #good
+plot(sim1.3)
+sim1.3_plot <- plotResiduals(sim1.3, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim1.4 <- simulateResiduals(nbin_total_yr2)
+testResiduals(sim1.4) #good
+plot(sim1.4)
+plotResiduals(sim1.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+
+```
+
+model.sel(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2)
+```{r}
+model.sel(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2)
+```
+
+# Family Recruitment
+```{r poisson of total Recruits, message=FALSE}
+pois_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + Year+(1 | Reef/Site) , 
+      family = "poisson", data = Poritid) 
+
+pois_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site), 
+      family = "poisson", data = Poritid)
+
+pois_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year+ (1 | Reef/Site), 
+      family = "poisson", data = Acroporidae)
+
+pois_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
+      family = "poisson", data = Acroporidae)
+
+pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + Year  + (1 | Reef/Site), 
+      family = "poisson", data = Pocilloporidae)
+
+pois_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year + (1 | Reef/Site), 
+      family = "poisson", data = Pocilloporidae)
+
+pois_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
+      family = "poisson", data = Other)
+```
+
+Negative Binomial of Total Recruits (for a family)
+
+```{r}
+## Fixed
+nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + (1 | Reef/Site) + Year, 
+        family = "nbinom2", data = Poritid)
+
+nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + (1 | Reef/Site) + Year, 
+        family = "nbinom2", data = Pocilloporidae)
+
+nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + (1 | Reef/Site) + Year, 
+        family = "nbinom2", data = Acroporidae)
+
+## Interaction
+nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Poritid)
+
+nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Pocilloporidae)
+
+nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Acroporidae)
+
+nbin_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = Other)
+```
+
+
+Negative Binomial Zero Inflated of Total recruits (per family)
+
+```{r}
+#Fixed
+# Fit model with zero-inflated negative binomial distribution 
+zbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf+ Year + (1 | Reef/Site) ,
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = Poritid)
+zbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf * Year + (1 | Reef/Site),
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = Poritid)
+
+zbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf+ Year + (1 | Reef/Site),
+                               ziformula = ~1,
+                        family = "nbinom2",
+                        data = Pocilloporidae)
+
+zbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year + (1 | Reef/Site),
+                               ziformula = ~1,
+                        family = "nbinom2",
+                        data = Pocilloporidae)
+
+zbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year+ (1 | Reef/Site),
+                            ziformula = ~1,
+                        family = "nbinom2",
+                        data = Acroporidae)
+zbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site),
+                            ziformula = ~1,
+                        family = "nbinom2",
+                        data = Acroporidae)
+```
+
+## Acroporidae
+
+Simulate residuals for models
+
+```{r}
+sim2.1 <- simulateResiduals(nbin_Acroporidae_fixed) 
+testResiduals(sim2.1) #fine
+plot(sim2.1) #bad
+sim2.1_plot <- plotResiduals(sim2.1, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim2.2 <- simulateResiduals(nbin_Acroporidae_interaction)
+testResiduals(sim2.2) #fine
+plot(sim2.2) #fine
+sim2.2_plot <- plotResiduals(sim2.2, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim2.3 <- simulateResiduals(zbin_Acroporidae_fixed)
+testResiduals(sim2.3) #fine
+plot(sim2.3) #bad
+sim2.3_plot <- plotResiduals(sim2.3, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim2.4 <- simulateResiduals(zbin_Acroporidae_interaction)
+testResiduals(sim2.4) #fine
+plot(sim2.4) #fine
+sim2.4_plot <- plotResiduals(sim2.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim2.5 <- simulateResiduals(pois_Acroporidae_fixed) #not a good fit
+testResiduals(sim2.5) #bad
+plot(sim2.5) #bad
+sim2.5_plot <- plotResiduals(sim2.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim2.6 <- simulateResiduals(pois_Acroporidae_interaction) #not a good fit
+testResiduals(sim2.6) #bad
+plot(sim2.6) #bad
+sim2.6_plot <- plotResiduals(sim2.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+```
+
+Compare AIC of those models
+
+```{r}
+AIC( nbin_Acroporidae_interaction, zbin_Acroporidae_interaction)
+
+model.sel(nbin_Acroporidae_interaction, zbin_Acroporidae_interaction)
+```
+
+## Pocilloporidae
+```{r}
+sim3.1 <- simulateResiduals(pois_Pocilloporidae_fixed)
+testResiduals(sim3.1)
+sim3.1_plot <- plotResiduals(sim3.1, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim3.2 <- simulateResiduals(pois_Pocilloporidae_interaction)
+testResiduals(sim3.2)
+sim3.2_plot <- plotResiduals(sim3.2, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim3.3 <- simulateResiduals(nbin_Pocilloporidae_interaction)
+testResiduals(sim3.3)
+sim3.3_plot <- plotResiduals(sim3.3, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim3.4 <- simulateResiduals(nbin_Pocilloporidae_fixed)
+testResiduals(sim3.4)
+sim3.4_plot <- plotResiduals(sim3.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim3.5 <- simulateResiduals(zbin_Pocilloporidae_fixed)
+testResiduals(sim3.5)
+sim3.5_plot <- plotResiduals(sim3.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
+sim3.6 <- simulateResiduals(zbin_Pocilloporidae_interaction)
+testResiduals(sim3.6)
+sim3.6_plot <- plotResiduals(sim3.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+```
+
+```{r}
+AIC(pois_Pocilloporidae_fixed, nbin_Pocilloporidae_fixed, zbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
+
+model.sel(pois_Pocilloporidae_fixed, nbin_Pocilloporidae_fixed, zbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
+```
+
+## Poritidae
+```{r}
+sim4.1 <- simulateResiduals(pois_Poritid_fixed)
+testResiduals(sim4.1) # bad fit
+
+sim4.2 <- simulateResiduals(pois_Poritid_interaction)
+testResiduals(sim4.2) # bad fit
+
+sim4.3 <- simulateResiduals(nbin_Poritid_interaction)
+testResiduals(sim4.3)
+
+sim4.4 <- simulateResiduals(nbin_Poritid_fixed)
+testResiduals(sim4.4)
+
+sim4.5 <- simulateResiduals(zbin_Poritid_fixed)
+testResiduals(sim4.5)
+
+sim4.6 <- simulateResiduals(zbin_Poritid_interaction)
+testResiduals(sim4.6)
+```
+
+
+Both nbin_interaction, and zbin_interaction for Portidae have significant dispersion.
+Don't see much of a difference in Poritid across shelf position. Although slightly less in mid shore reefs (p<0.1)
+
+```{r echo=FALSE}
+AIC(nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Poritid_interaction)
+
+model.sel(nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Poritid_interaction)
+```
+
+
+## All family option
+Models of family total recruits
+
+```{r}
+pois_total_family_fixed <- glmmTMB(Total ~ Family +Shelf + Year_Collected+ (1 | Reef/Site), 
+      family = "poisson",
+      data = family_total_recruits)
+
+pois_total_family_interaction <-  glmmTMB(Total ~ Family * Shelf * Year_Collected + (1 | Reef/Site), 
+      family = "poisson",
+      data = family_total_recruits)
+
+nb_total_family_fixed <- glmmTMB(Total ~ Family + Shelf + Year_Collected + (1 | Reef/Site) ,
+                        family = "nbinom2",
+                        data = family_total_recruits)
+
+nb_total_family_interaction <- glmmTMB(Total ~ Family * Shelf * Year_Collected + (1 | Reef/Site) ,
+                        family = "nbinom2",
+                        data = family_total_recruits)
+
+zi_total_family_fixed <- glmmTMB(Total ~ Family + Shelf + Year_Collected + (1 | Reef/Site) ,
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = family_total_recruits)
+
+zi_total_family_interaction <-  glmmTMB(Total ~ Family * Shelf * Year_Collected + (1 | Reef/Site) ,
+                        ziformula = ~1,
+                        family = "nbinom2",
+                        data = family_total_recruits)
+```
+
+simulate and test residuals
+
+```{r}
+sim4.1 <- simulateResiduals(pois_total_family_fixed)
+testResiduals(sim4.1) 
+
+sim4.2 <- simulateResiduals(pois_total_family_interaction) 
+testResiduals(sim4.2)
+
+sim4.3 <- simulateResiduals(nb_total_family_fixed) #middle plot doesn't look great, but okay
+testResiduals(sim4.3)
+
+sim4.4 <- simulateResiduals(nb_total_family_interaction) #good
+testResiduals(sim4.4)
+
+sim4.5 <- simulateResiduals(zi_total_family_fixed) # middle plot doesn't look great but okay
+testResiduals(sim4.5)
+
+sim4.6 <- simulateResiduals(zi_total_family_interaction)  #good
+testResiduals(sim4.6)
+```
+
+```{r}
+AIC(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fixed, zi_total_family_interaction) #nb family interaction is best
+
+model.sel(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fixed, zi_total_family_interaction)
+```
+
+
+
+# Brood Stock and Recruitment
+
+Does Adult brood stock relate to the number of recruits, accounting for shelf position and year collected
+```{r}
+## Fixed
+nbin_Poritid_fixed <- glmmTMB(Poritid ~ mean_aco + (1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Combined)
+
+nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ mean_poci + (1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Combined)
+
+nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ mean_por +(1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Combined)
+
+## Interaction
+nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*mean_por + (1|Year_Collected) + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+
+nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf *mean_poci + (1|Year_Collected) + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+
+nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*mean_aco + (1|Year_Collected) + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+```
+
+
+```{r}
+sim10.1 <- simulateResiduals(nbin_Acroporidae_interaction)
+testResiduals(sim10.1)
+
+sim10.2 <- simulateResiduals(nbin_Acroporidae_fixed) # significant deviation so not sure to include
+testResiduals(sim10.2)
+
+AIC(nbin_Acroporidae_fixed, nbin_Acroporidae_interaction)
+summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
+
+model.sel(nbin_Acroporidae_interaction)
+```
+
+```{r}
+sim11.1 <- simulateResiduals(nbin_Pocilloporidae_interaction)
+testResiduals(sim11.1)
+
+sim11.2 <- simulateResiduals(nbin_Pocilloporidae_fixed)
+testResiduals(sim11.2)
+
+summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
+
+model.sel(nbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
+```
+
+
+```{r}
+sim12.1 <- simulateResiduals(nbin_Poritid_interaction) #outlier test significant and the test on the bottom of qqplot
+testResiduals(sim12.1)
+
+sim12.2 <- simulateResiduals(nbin_Poritid_fixed) 
+testResiduals(sim12.2)
+
+summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
+
+model.sel(nbin_Poritid_fixed, nbin_Poritid_interaction)
+```
+
+
+When year and shelf are included in model.
+```{r}
+## Fixed
+nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + mean_aco + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Combined)
+
+nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf+mean_poci + (1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Combined)
+
+nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + mean_por +(1 | Reef/Site) + Year_Collected, 
+        family = "nbinom2", data = Combined)
+
+## Interaction
+nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*mean_por*Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+
+nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf *mean_poci* Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+
+nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*mean_aco*Year_Collected + (1 | Reef/Site), 
+        family = "nbinom2", data = Combined)
+```
+
+```{r}
+sim10.1 <- simulateResiduals(nbin_Acroporidae_interaction)
+testResiduals(sim10.1)
+
+sim10.2 <- simulateResiduals(nbin_Acroporidae_fixed)
+testResiduals(sim10.2)
+
+AIC(nbin_Acroporidae_fixed, nbin_Acroporidae_interaction)
+summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
+
+model.sel(nbin_Acroporidae_fixed, nbin_Acroporidae_interaction)
+```
+
+
+
+```{r}
+sim11.1 <- simulateResiduals(nbin_Pocilloporidae_interaction)
+testResiduals(sim11.1)
+
+sim11.2 <- simulateResiduals(nbin_Pocilloporidae_fixed)
+testResiduals(sim11.2)
+
+summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
+
+model.sel(nbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
+```
+
+
+```{r}
+sim12.1 <- simulateResiduals(nbin_Poritid_interaction)
+testResiduals(sim12.1)
+
+sim12.2 <- simulateResiduals(nbin_Poritid_fixed)
+testResiduals(sim12.2)
+
+summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
+
+model.sel(nbin_Poritid_fixed, nbin_Poritid_interaction)
+```
+
+# Recruitment and Juveniles
+These models will need to be lagged. 
+One question I should potentially ask Andy and Victor, and then if not sure on answer ask Murray is whether I should 
+
