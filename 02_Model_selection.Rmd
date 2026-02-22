@@ -551,6 +551,31 @@ nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*mean_aco + (1|Year_C
         family = "nbinom2", data = Combined)
 ```
 
+```{r}
+# Fixed
+zbin_Poritid_fixed <- glmmTMB(Poritid ~ mean_aco + (1 | Shelf/Site) + (1 | Year_Collected), 
+                              ziformula = ~1,
+        family = "nbinom2", data = Combined)
+
+zbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ mean_poci + (1 | Shelf/Site) + (1 | Year_Collected),
+                                     ziformula = ~1,
+        family = "nbinom2", data = Combined)
+
+zbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ mean_por +(1 | Shelf/Site) + (1 | Year_Collected), 
+                                  ziformula = ~1,
+        family = "nbinom2", data = Combined)
+
+# Fixed
+pois_Poritid_fixed <- glmmTMB(Poritid ~ mean_aco + (1 | Shelf/Site) + (1 | Year_Collected),
+        family = "poisson", data = Combined)
+
+pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ mean_poci + (1 | Shelf/Site) + (1 | Year_Collected),
+        family = "poisson", data = Combined)
+
+pois_Acroporidae_fixed <- glmmTMB(Acroporidae ~ mean_por +(1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "poisson", data = Combined)
+```
+
 
 ```{r}
 sim10.1 <- simulateResiduals(nbin_Acroporidae_interaction)
@@ -558,6 +583,12 @@ testResiduals(sim10.1)
 
 sim10.2 <- simulateResiduals(nbin_Acroporidae_fixed) # significant deviation so not sure to include
 testResiduals(sim10.2)
+
+sim10.3 <- simulateResiduals(zbin_Acroporidae_fixed)
+testResiduals(sim10.3) #significant deviation
+
+sim10.4 <- simulateResiduals(pois_Acroporidae_fixed)
+testResiduals(sim10.4) # significant devaiton
 
 AIC(nbin_Acroporidae_fixed, nbin_Acroporidae_interaction)
 summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
