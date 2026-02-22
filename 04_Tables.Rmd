@@ -227,6 +227,29 @@ family_total_recruits <- Coral_settlement_nGBR %>%
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 ```
 
+# Table 1. sample sizes
+```{r}
+PIT |> group_by(Shelf,Reef,Site, Year) |> 
+  summarise(
+    n = n()
+  )
+```
+
+```{r}
+Coral_settlement_nGBR |> group_by(Shelf,Reef,Site, Year) |> 
+  summarise(
+    n = n()
+  )
+```
+
+*inset belt data here*
+```{r}
+#belt data |>  group_by(Shelf,Reef,Site, Year) |> 
+  #summarise(
+   # n = n()
+ # )
+```
+
 
 # Tukey HSD contrasts
 
