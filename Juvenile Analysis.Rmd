@@ -2,7 +2,7 @@
 title: "Belt Transects"
 author: "Monique White"
 date: '`r Sys.Date()`'
-output: html_document
+output: pdf_document
 ---
 
 
@@ -184,7 +184,7 @@ join <- PIT |>
 Combined <- left_join(Coral_settlement_nGBR, join)
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 Belt_10m |> 
   group_by(Year, Shelf, Reef, Site) |> 
   summarise(
@@ -197,17 +197,17 @@ Belt_10m |>
 
 Relationship between Juveniles and recruits
 
-```{r}
+```{r include=FALSE}
 ggplot()+
   geom_point(data = Combined1, aes(x=mean_acro, y= Acroporidae, colour = Shelf))
 ```
 
-```{r}
+```{r include=FALSE}
 ggplot()+
   geom_point(data = Combined1, aes(x=mean_poci, y= Pocilloporidae, colour = Shelf))
 ```
 
-```{r}
+```{r include=FALSE}
 ggplot()+
   geom_point(data = Combined1, aes(x=mean_por, y= Poritid, colour = Shelf))
 ```
@@ -218,24 +218,16 @@ Is there a significant difference in the number of Juveniles across the shelf?
 
 Mean is not a integer, so would need to look at a different model family, such as log.normal, gamma dist, or normal dist.
 I also have a feeling that I need to create the variable year + 1 for juveniles, as that would suggest the larval supply from the previous year translated to increased juveniles.
-```{r}
+```{r include=FALSE}
 ggplot()+
   geom_bar(data = Combined1, aes(x=mean_total))+
   facet_wrap(~Year)
 ```
 
-
 Or, hypothesis could be based on 23/24 high larval supply, there was an increase in juveniles relative to the previous years?
 
 Is it driven by larval supply?
 
-
-```{r}
-Model <- glmmTMB(mean_total~Shelf*Year_Collected + (1| Reef/Site), data = Combined1)
-
-sim <- simulateResiduals(Model)
-testResiduals(sim) # okay so this default family isn't a good fit, not sure what to go though.
-```
 
 ```{r}
 pois <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
@@ -262,86 +254,17 @@ summary(nbin)
 Interaction terms significant so going to look at pairwise
 
 ```{r}
-emm_shelf <- emmeans(nbin, ~Shelf | Year)
-pairs(emm_shelf, adjust = "tukey")#has estimate whereas the response has ratio
-
-emm_shelf_response <- emmeans(nbin, ~Shelf| Year, type = "response")
-#create dataframe
-emm_total_df <- as.data.frame(emm_shelf_response) |> 
-  rename(predicted_recruits = response)
-# Contrast Dataframe
-emm_total_pair_df <- as.data.frame(pairs(emm_shelf_response, adjust = "tukey"))
-
-#Calcualte additive differences in total recruits
-difference_total <- emm_total_df |> 
-  select(Year, Shelf, predicted_recruits) |> 
-  pivot_wider(names_from = Shelf, values_from = predicted_recruits) |> 
-  mutate(
-    `Inner / Mid`   = Inner - Mid,
-    `Inner / Outer` = Inner - Outer,
-    `Mid / Outer`   = Mid - Outer,
-    pct_change_Mid_Inner   = 100 * (Mid - Inner)/Inner,
-    pct_change_Outer_Inner = 100 * (Outer - Inner)/Inner,
-    pct_change_Outer_Mid   = 100 * (Outer - Mid)/Mid
-  )
-
-difference_total
-
-long_total_shelf <- emm_total_pair_df |> 
-  select(Year, contrast, ratio, SE, z.ratio, p.value) 
-
-long_diff_total_shelf <- difference_total |> 
-  select(Year, starts_with("Inner"), starts_with("Mid")) |> 
-  pivot_longer(-Year, names_to = "contrast", values_to = "additive_difference")
-
-final_shelf_total <- left_join(long_total_shelf, long_diff_total_shelf, by = c("Year", "contrast"))
-
-final_shelf_total
+emm_shelf <- emmeans(nbin, ~Shelf | Year, type = "response")
+pairs(emm_shelf)
 ```
 
 ```{r}
 emm_year_response <- emmeans(nbin, ~Year|Shelf, type = "response")
-#create dataframe
-emm_totalyr_df <- as.data.frame(emm_year_response) |> 
-  rename(predicted_recruits = response)
-# Contrast Dataframe
-emm_totalyr_pair_df <- as.data.frame(pairs(emm_year_response, adjust = "tukey"))
-
-#Calcualte additive differences in total recruits
-difference_totalyr <- emm_totalyr_df |> 
-  select(Year, Shelf, predicted_recruits) |> 
-  pivot_wider(names_from = Year, values_from = predicted_recruits) |> 
-  mutate(
-    `(2021-22) / (2022-23)` = `2021-22` - `2022-23`,
-    `(2021-22) / (2023-24)` = `2021-22` - `2023-24`,
-    `(2021-22) / (2024-25)` = `2021-22` - `2024-25`,
-    `(2022-23) / (2023-24)` = `2022-23` - `2023-24`,
-    `(2022-23) / (2024-25)` = `2022-23` - `2024-25`,
-    `(2023-24) / (2024-25)` = `2023-24` - `2024-25`,
-    
-    pct_change_22_23 = 100 * (`2021-22` - `2022-23`) / `2021-22`,
-    pct_change_22_24 = 100 * (`2021-22` - `2023-24`) / `2021-22`,
-    pct_change_22_25 = 100 * (`2021-22` - `2024-25`) / `2021-22`,
-    pct_change_23_24 = 100 * (`2022-23` - `2023-24`) / `2022-23`,
-    pct_change_23_25 = 100 * (`2022-23` - `2024-25`) / `2022-23`,
-    pct_change_24_25 = 100 * (`2023-24` - `2024-25`) / `2023-24`
-  )
-
-
-difference_totalyr
-
-long_total_yr <- emm_totalyr_pair_df |> 
-  select(Shelf, contrast, ratio, SE, z.ratio, p.value)  
-
-long_diff_total_year <- difference_totalyr |> 
-  select(Shelf, starts_with("(2021-22)"), starts_with("(2022-23)"), starts_with("(2023-24)")) |> 
-  pivot_longer(-Shelf, names_to = "contrast", values_to = "additive_difference")
-
-final_yr_total <- left_join(long_total_yr, long_diff_total_year, by = c("Shelf", "contrast"))
+pairs(emm_year_response)
 ```
 
 Figure of total juveniles
-```{r}
+```{r echo=FALSE}
 nbin |> 
   emmeans(~Shelf | Year, type = "response") |> 
 regrid() |> #back transforms 
@@ -357,7 +280,7 @@ total_plot <-  nbin |>
   ggplot(aes(x=Year,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=lower, ymax = upper),
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(
@@ -379,7 +302,7 @@ total_plot <-  nbin |>
 total_plot
 ```
 
-```{r}
+```{r echo = FALSE}
 total_plot <-  nbin |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
@@ -420,6 +343,8 @@ Belt_long <- Belt_10m %>%
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritidae","Pocilloporidae")))
 ```
 
+Models for the total don't meet assumptions. Poisson has both KS deviation and significant outliers.
+negative binomial has significant outliers. Therefore, I will just model families instead.
 ```{r}
 pois <- glmmTMB(Total ~ Family*Year*Shelf+(1 | Reef/Site), 
       family = "poisson", data = Belt_long)
@@ -428,18 +353,18 @@ nbin <- glmmTMB(Total ~ Family*Year*Shelf+(1 | Reef/Site),
         family = "nbinom2", data = Belt_long)
 ```
 
-```{r}
-sim <- simulateResiduals(pois)
+```{r eval=FALSE}
+sim <- simulateResiduals(pois) # KS deviation significant and outliers significant
 testResiduals(pois)
 ```
 
-```{r}
+```{r eval=FALSE}
 sim <- simulateResiduals(nbin)
 testResiduals(nbin) #fails outlier test
 ```
 
-Will have to do individual families.
-```{r}
+Will have to do individual families. Just using a boxplot to see how the data typically looks.
+```{r echo=FALSE}
 ggplot()+
   geom_boxplot(data = Belt_long, aes(x=Year, y=Total, colour = Shelf))+
   facet_wrap(~Family, ncol =1)
@@ -471,12 +396,7 @@ Both meet assumptions
 model.sel(pois, nbin) #nbin behaves better
 ```
 
-```{r}
-nbin |> 
-  emmeans(~Shelf | Year, type = "response") |> 
-regrid() |> #back transforms 
-  pairs(reverse = TRUE) 
-
+```{r echo=FALSE}
 Acro_plot <-  nbin |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
@@ -487,7 +407,7 @@ Acro_plot <-  nbin |>
   ggplot(aes(x=Year,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=lower, ymax = upper),
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(
@@ -510,7 +430,7 @@ Acro_plot <-  nbin |>
 Acro_plot
 ```
 
-```{r}
+```{r echo=FALSE}
 Acro_plot <-  nbin |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
@@ -571,7 +491,7 @@ testResiduals(nbin)
 model.sel(pois, nbin) #nbin behaves better
 ```
 
-```{r}
+```{r eval = FALSE, echo=FALSE}
 Poci_plot <-  nbin |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
@@ -582,7 +502,7 @@ Poci_plot <-  nbin |>
   ggplot(aes(x=Year,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=lower, ymax = upper),
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(
@@ -606,7 +526,7 @@ Poci_plot
 ```
 
 Asymp instead of the calculated 1.96 x SE
-```{r}
+```{r echo=FALSE}
 Poci_plot <-  nbin |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
@@ -668,7 +588,7 @@ Both models have outliers as significant.
 model.sel(pois, nbin) #nbin behaves better
 ```
 
-```{r}
+```{r echo=FALSE}
 Poritidae_plot <-  nbin |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
@@ -679,11 +599,11 @@ Poritidae_plot <-  nbin |>
   ggplot(aes(x=Year,
              y=response, 
              color=Shelf))+
-  geom_pointrange(aes(ymin=lower, ymax = upper),
+  geom_pointrange(aes(ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.5))+
   theme_classic()+
   labs(
-    y = expression("Predicted Poritidae juvenile abundance (" * belt~transect^{-1} * ")"),,
+    y = expression("Predicted Poritidae juvenile abundance (" * 10~m^{2} * ")"),,
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -704,7 +624,7 @@ Poritidae_plot+geom_jitter(data = Por, aes(x=Year, y=Poritidae, group = Shelf),
                            colour = "grey")
 ```
 
-```{r}
+```{r eval=FALSE, echo=FALSE}
 Poritidae_plot <-  nbin |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame() |> 
@@ -749,397 +669,6 @@ ggsave(file = "Juvenile_analysis.png",
        height = 200,
        width = 189,
        units = "mm")
-```
-
-```{r}
-## ----emm_table------------------------------------------------------------------
-emm_table <- function(fit_emm){
-  table_out <- data.table(summary(fit_emm))
-  if("response" %in% colnames(table_out)){
-    # if the lm with log(y) or glm with log link, use " / "
-    setnames(table_out,
-             old = c("response"),
-             new = c("emmean"))
-  }
-  if("asymp.LCL" %in% colnames(table_out)){
-    # if the lm with log(y) or glm with log link, use " / "
-    setnames(table_out,
-             old = c("asymp.LCL", "asymp.UCL"),
-             new = c("lower.CL", "upper.CL"))
-  }
-  return(table_out)
-}
-## ----effects_table--------------------------------------------------------------
-effects_table <- function(fit_pairs,
-                          digits = 2,
-                          accuracy = 1e-04,
-                          add.p = FALSE){
-  if(is.data.frame(fit_pairs) == TRUE){
-    pairs_dt <- data.table(fit_pairs)
-  }else{
-    pairs_dt <- summary(fit_pairs) %>%
-      data.table()
-  }
- 
-  if("asymp.LCL" %in% colnames(pairs_dt)){
-    # if the lm with log(y) or glm with log link, use " / "
-    setnames(pairs_dt,
-             old = c("asymp.LCL", "asymp.UCL"),
-             new = c("lower.CL", "upper.CL"))
-  }
-  
-  # for simple = each,
-  if(which(colnames(pairs_dt)=="contrast") == 3){
-    # replace "." with blank
-    g_col <- colnames(fit_pairs)[1]
-    x_col <- colnames(fit_pairs)[2]
-    pairs_dt[get(g_col) == ".", 
-             (1) := ""]
-    pairs_dt[get(x_col) == ".", 
-             (2) := ""]
-
-    # beautify contrast column and group1, group2
-    pairs_dt[, contrast := paste0(get(names(pairs_dt)[1]),
-                                   get(names(pairs_dt)[2]),
-                                   ": ",
-                                   contrast)]
-  }
-  
-  # create a column of nicely formatted p-values for display.
-  # pairs_dt[, p := pvalString(p.value)]
-  pairs_dt[, p := p_format(p.value,
-                           digits = digits,
-                           accuracy = accuracy,
-                           add.p = add.p)]
-  pairs_dt[, contrast := factor(contrast, contrast)]
-  return(pairs_dt)
-}
-
-## ----pvalue_table---------------------------------------------------------------
-pvalue_table <- function(fit_pairs){
-  if(is.data.frame(fit_pairs) == TRUE){
-    pairs_dt <- data.table(fit_pairs)
-  }else{
-    pairs_dt <- summary(fit_pairs) %>%
-      data.table()
-  }
-  
-  if("ratio" %in% colnames(pairs_dt)){
-    # if the lm with log(y) or glm with log link, use " / "
-    groups <- unlist(str_split(pairs_dt$contrast, " / "))
-    setnames(pairs_dt, old = "ratio", new = "estimate")
-  }else{
-    # if lm use " - "
-    groups <- unlist(str_split(pairs_dt$contrast, " - "))
-  }
-
-  # remove parentheses if they exist from group cols
-  groups <- lapply(groups, remove_parentheses) %>%
-    unlist
-  
-  # add the group1 and group 2 columns
-  pairs_dt[, group1 := groups[odd(1:length(groups))]]
-  pairs_dt[, group2 := groups[even(1:length(groups))]]
-  
-  # match for simple and remove parentheses if they exist
-  if(names(pairs_dt)[1] != "contrast"){
-    x_col <- names(pairs_dt)[2]
-    g_col <- names(pairs_dt)[1]
-    x_col_levels <- unique(pairs_dt[, get(x_col)])
-    x_col_levels <- x_col_levels[x_col_levels != "."]
-    g_col_levels <- unique(pairs_dt[, get(g_col)])
-    g_col_levels <- g_col_levels[g_col_levels != "."]
-    repair <- pairs_dt[, group1] %in% c(x_col_levels, g_col_levels)
-    pairs_dt[, group1 := ifelse(repair,
-                                group1,
-                                gsub(")", "", group1, fixed = TRUE))]
-    pairs_dt[, group1 := ifelse(repair,
-                                group1,
-                                gsub("(", "", group1, fixed = TRUE))]
-    repair <- pairs_dt[, group2] %in% c(x_col_levels, g_col_levels)
-    pairs_dt[, group2 := ifelse(repair,
-                                group2,
-                                gsub(")", "", group2, fixed = TRUE))]
-    pairs_dt[, group2 := ifelse(repair,
-                                group2,
-                                gsub("(", "", group2, fixed = TRUE))]
-  }
-  
-  
-  if("asymp.LCL" %in% colnames(pairs_dt)){
-    # if the lm with log(y) or glm with log link, use " / "
-    setnames(pairs_dt,
-             old = c("asymp.LCL", "asymp.UCL"),
-             new = c("lower.CL", "upper.CL"))
-  }
-  
-  # for simple = each,
-  if(which(colnames(pairs_dt)=="contrast") == 3){
-    # replace "." with blank
-    pairs_dt[get(g_col) == ".", 
-             (1) := ""]
-    pairs_dt[get(x_col) == ".", 
-             (2) := ""]
-
-    # beautify contrast column and group1, group2
-    pairs_dt[, contrast := paste0(get(names(pairs_dt)[1]),
-                                   get(names(pairs_dt)[2]),
-                                   ": ",
-                                   contrast)]
-    pairs_dt[get(g_col) == "",
-             group1 := paste0(get(names(pairs_dt)[1]),
-                              get(names(pairs_dt)[2]),
-                              ",",
-                              group1)]
-    pairs_dt[get(g_col) == "",
-             group2 := paste0(get(names(pairs_dt)[1]),
-                              get(names(pairs_dt)[2]),
-                              ",",
-                              group2)]
-    pairs_dt[get(x_col) == "",
-             group1 := paste0(group1,
-                              ",",
-                              get(names(pairs_dt)[1]),
-                              get(names(pairs_dt)[2]))]
-    pairs_dt[get(x_col) == "",
-             group2 := paste0(group2,
-                              ",",
-                              get(names(pairs_dt)[1]),
-                              get(names(pairs_dt)[2]))]
-  }
-  
-  # create a column of nicely formatted p-values for display.
-  pairs_dt[, p := pvalString(p.value)]
-  pairs_dt[, contrast := factor(contrast, contrast)]
-  return(pairs_dt)
-}
-
-## ----response-plot--------------------------------------------------------------
-response_plot <- function(
-  fit, # model fit from lm, lmer, nlme, glmmTMB
-  fit_emm, # data frame with means, error
-  x_label = "none",
-  y_label = "Response (units)",
-  g_label = NULL,
-  dots = "sina",
-  dodge_width = 0.8,
-  adjust = 0.5,
-  palette = pal_okabe_ito,
-  legend_position = "top",
-  flip_horizontal = FALSE,
-  group_lines = FALSE
-){
-   dt <- model.frame(fit) %>% # correctly subsets
-    data.table()
-  y_col <- insight::find_response(fit)
-  
-  fit_emm_dt <- emm_table(fit_emm)
-  
-  # get number of pre emmean/ratio/rate columns
-  if("emmean" %in% names(fit_emm_dt)){response <- "emmean"}
-  if("rate" %in% names(fit_emm_dt)){response <- "rate"}
-  if("ratio" %in% names(fit_emm_dt)){response <- "ratio"}
-  
-  if(which(names(fit_emm_dt) == response) == 2){
-    x_col <- names(fit_emm_dt)[1]
-    g_col <- NA
-  }else{
-    x_col <- names(fit_emm_dt)[1]
-    g_col <- names(fit_emm_dt)[2]
-  }
-    
-  rand_int <- find_random(fit)
-  
-  if(is.na(g_col) & group_lines==TRUE){
-    group_lines <- FALSE
-  }
-  if(is.factor(dt[, get(x_col)]) == FALSE){
-    dt[, (x_col) := factor(get(x_col))]
-  }
-  if(!is.na(g_col)){
-    if(is.factor(dt[, get(g_col)]) == FALSE){
-      dt[, (g_col) := factor(get(g_col))]
-    }
-  } 
-  
-  if(is.na(g_col)){
-    pd <- position_dodge(width = 0)
-  }else{
-    pd <- position_dodge(width = dodge_width)
-  }
-  
-  if(is.na(g_col)){
-    color_col <- x_col
-  }else{
-    color_col <- g_col
-  }
-  
-  gg <- ggplot(data=dt, aes(x = get(x_col),
-                            y = get(y_col),
-                            color = get(color_col)))
-  # plot points
-  if(dots == "sina"){
-    gg <- gg + geom_sina(alpha = 0.5,
-                         position = pd,
-                         adjust = adjust)
-  }
-  if(dots == "jitter"){
-    gg <- gg + geom_point(alpha = 0.5,
-                          position = position_jitter(seed = 1))
-  }
-  if(dots == "dotplot"){
-    gg <- gg + geom_dotplot(binaxis='y',
-                            stackdir='center',
-                            alpha = 0.5,
-                            position = pd)
-  }
-  
-  # plot means and CI
-  gg <- gg +
-    geom_errorbar(data = fit_emm_dt, aes(y = get(response),
-                                         ymin = lower.CL,
-                                         ymax = upper.CL,
-                                         color = get(color_col)),
-                  width = 0,
-                  position = pd
-    ) +
-    geom_point(data = fit_emm_dt, aes(y = get(response),
-                                      color = get(color_col)),
-               size = 3,
-               position = pd
-    ) +
-    
-    # aesthetics
-    ylab(y_label) +
-    scale_color_manual(values = palette,
-                       name = color_col) +
-    theme_pubr() +
-    theme(legend.position = legend_position) +
-    
-    NULL
-  
-  # if(group_lines == TRUE | group_lines == g_col){
-  #   gg <- gg +
-  #     geom_line(data = fit_emm_dt,
-  #               aes(y = emmean,
-  #                   group = get(g_col)),
-  #               position = pd)
-  # }
-  # if(group_lines == x_col){
-  #   gg <- gg +
-  #     geom_line(data = fit_emm_dt,
-  #               aes(y = emmean,
-  #                   group = get(x_col)))
-  # }
-  
-  if(is.na(g_col)){
-    gg <- gg + theme(legend.position="none")
-  }
-  
-  if(is.null(g_label)){
-    gg <- gg + guides(color = guide_legend(title=g_col))
-  }else{
-    if(g_label == "none"){
-      gg <- gg + guides(color = guide_legend(title=NULL))
-    }else{
-      gg <- gg + guides(color = guide_legend(title=g_label))
-    }
-  }
-  
-  # remove x axis title
-  if(x_label == "none"){
-    gg <- gg + theme(axis.title.x = element_blank())
-  }else{
-    gg <- gg + xlab(x_label)}
-  
-  if(flip_horizontal == TRUE){
-    gg <- gg + coord_flip() +
-      theme(legend.position = legend_position)
-    gg <- gg + theme(axis.title.x = element_text())
-    if(x_label == "none"){
-      gg <- gg + theme(axis.title.y = element_blank())
-    }else{
-      gg <- gg + ylab(x_label)
-    }
-  }
-  
-  # gg
-  
-  return(gg) 
-}
-## ----ggplot_the_response--------------------------------------------------------
-ggplot_the_response <- function(
- fit, # model fit from lm, lmer, nlme, glmmTMB
-  fit_emm,
-  fit_pairs,
-  wrap_col = NULL,
-  x_label = "none",
-  y_label = "Response (units)",
-  g_label = NULL,
-  dots = "sina",
-  dodge_width = 0.8,
-  adjust = 0.5,
-  contrast_rows = "all",
-  y_pos = NULL,
-  palette = pal_okabe_ito,
-  legend_position = "top",
-  flip_horizontal = FALSE,
-  group_lines = FALSE  
-){
-  
-  # base plot
-  gg <- response_plot(
-    fit = fit,
-    fit_emm = fit_emm,
-    x_label = x_label,
-    y_label = y_label,
-    g_label = g_label,
-    dots = dots,
-    dodge_width = dodge_width,
-    adjust = adjust,
-    palette = palette,
-    legend_position = legend_position,
-    flip_horizontal = flip_horizontal,
-    group_lines = group_lines    
-  )
-  
-  # add p-values
-  if(contrast_rows[1] != "none" |
-     contrast_rows[1] == 0 ){
-    gg <- plot_pvalues(
-      gg = gg,
-      fit_emm = fit_emm,
-      fit_pairs = fit_pairs,
-      contrast_rows = contrast_rows,
-      y_pos = y_pos
-    )
-  }
-  
-  gg
-  return(gg)
-}
-```
-From the tutorial https://www.middleprofessor.com/files/applied-biostatistics_bookdown/_book/plotting-models
-
-```{r}
-nbin_emm <- nbin |> 
-  emmeans(~Shelf | Year, type = "response") 
-nbin |> 
-  emmeans(~Shelf | Year, type = "response") |> 
-regrid() |> #back transforms 
-  pairs(reverse = TRUE) 
-
-nbin_simple <- contrast(nbin_emm,
-                        method = "revpairwise") |> 
-  summary(infer = TRUE)
-
-nbin_simple
-  
-ggplot_the_response(
-  fit =nbin,
-  fit_emm = nbin_emm,
-  fit_pairs = nbin_simple
-                    )
 ```
 
 

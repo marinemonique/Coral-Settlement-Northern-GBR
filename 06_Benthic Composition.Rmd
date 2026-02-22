@@ -1,0 +1,381 @@
+---
+title: "06_Benthic Composition"
+author: "Monique White"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(readr)
+library(tidyr)
+library(car)
+library(emmeans)
+library("FactoMineR")
+library("factoextra")
+library(FactoMineR)
+library(factoextra)
+library(vegan) #to do NMDS
+library(PCAmixdata)
+library(ggfortify)
+library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
+library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
+library(ggpubr)
+library(ggeffects) #to be able to do ggpredict
+library(ggh4x) # to specify x and y axis if desired
+library(MuMIn) #model selection function
+library(ggrepel)
+
+# Benthic Data
+
+PIT <- read_csv("PIT_50m.csv") %>%
+  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ))
+
+
+PIT<- PIT |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site))
+```
+
+Models of Benthic Composition
+
+```{r}
+PIT_plot <- PIT |> 
+  select(Shelf, Year, Reef, Site, Acroporidae, Pocilloporidae, Poritidae, Macroalgae,
+         Rubble_and_Sand, `Hard Coral`,
+         #`Brown Macroalgae`, `Red Macroalgae`, `Green Macroalgae`, 
+         Turf, `Soft Coral`)
+
+PIT_long <- PIT_plot |> pivot_longer(cols = 5:12, names_to = "Benthic Cover", values_to = "Cover")
+
+PIT_long <- PIT_long |> 
+  mutate(`Benthic Cover` = factor(`Benthic Cover`, levels = c("Hard Coral", "Acroporidae", "Pocilloporidae","Poritidae", "Rubble_and_Sand", "Macroalgae", "Turf", "Soft Coral")))
+
+PIT_long <- PIT_long|> 
+  mutate(
+    "percent_cover" = Cover/100
+    )
+```
+
+Reorder so that Acroporidae, Pocilloporidae, Poritidae, and then Macroalgae, Turf, and then Soft Coral
+
+```{r}
+ggplot(data = PIT_long)+
+  geom_jitter(aes(x = Year, y = Cover, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
+    size = 0.5,
+    alpha = 0.5,
+    colour = "grey"
+  )+
+   # Mean points
+  stat_summary(aes(x = Year, y = Cover, colour = Shelf),
+    fun = mean,
+    geom = "point",
+    position = position_dodge(width = 0.6),
+    size = 2.25
+  ) +
+  # Error bars (mean ± SE)
+  stat_summary(aes(x = Year, y = Cover, colour = Shelf),
+    fun.data = mean_se,
+    geom = "errorbar",
+    position = position_dodge(width = 0.6),
+    width = 0.45
+  ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  theme_bw()+
+  theme(text =element_text(size =8),
+        title = element_text(size = 8),
+        axis.title.x = element_blank(),
+        panel.grid.major = element_blank(),
+        legend.position = "bottom")+
+  labs(y = "Percent Cover (%)")+
+  facet_wrap(~`Benthic Cover`, scale = "free_y", ncol = 2)
+```
+
+## Macroalgae Model
+
+```{r}
+nbin_macro_i <- glmmTMB(Macroalgae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_macro_i)
+testResiduals(sim1) # fails KS test (deviation significant), and has significant outliers
+
+nbin_macro_f <- glmmTMB(Macroalgae ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_macro_f)
+testResiduals(sim1) # Fits the data well
+
+zbin_macro_i <- glmmTMB(Macroalgae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", ziformula = ~1, data = PIT_plot)
+sim1 <- simulateResiduals(zbin_macro_i) # now passes KS test
+testResiduals(sim1)
+```
+```{r}
+model.sel(nbin_macro_f, zbin_macro_i)
+```
+```{r}
+emm_shelf <- emmeans(zbin_macro_i, ~Shelf | Year, type = "response")
+pairs(emm_shelf)
+```
+
+
+```{r}
+emm_year_response <- emmeans(zbin_macro_i, ~Year|Shelf, type = "response")
+pairs(emm_year_response)
+```
+
+### Figure
+```{r}
+macro_model_emm <- zbin_macro_i|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame()
+```
+
+```{r echo=FALSE}
+  ggplot()+
+  geom_pointrange(data = macro_model_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y = expression("Predicted macroalgae cover ( % / " * 10~m^{2} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size =9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+```
+
+## Rubble and Sand model
+
+```{r}
+nbin_sand_i <- glmmTMB(Rubble_and_Sand ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_sand_i)
+testResiduals(sim1) #passes DHARMA
+
+nbin_sand_f <- glmmTMB(Rubble_and_Sand ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_sand_f)
+testResiduals(sim1) # passes DHARMA
+```
+
+```{r}
+model.sel(nbin_sand_f, nbin_sand_i)
+```
+
+
+## Turf Model
+
+```{r}
+nbin_turf_i <- glmmTMB(Turf ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_turf_i) # passes DHARMA
+testResiduals(sim1)
+
+nbin_turf_f <- glmmTMB(Turf ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_turf_f) #passes DHARMA
+testResiduals(sim1)
+```
+
+```{r}
+model.sel(nbin_turf_f, nbin_turf_i)
+```
+
+## Acroporidae cover
+
+```{r}
+#interaction
+nbin_Acro_i <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_Acro_i) #passes DHARMA
+testResiduals(sim1)
+
+#fixed
+nbin_Acro_f <- glmmTMB(Acroporidae ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_Acro_f) #passes DHARMA
+testResiduals(sim1)
+```
+
+```{r}
+model.sel(nbin_Acro_f, nbin_Acro_i)
+```
+
+### Tukey HSD tests
+
+```{r}
+emm_shelf <- emmeans(nbin_Acro_i, ~Shelf | Year, type = "response")
+pairs(emm_shelf)
+```
+
+### Figure
+```{r}
+Acro_model_emm <- nbin_Acro_i|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame()
+```
+```{r echo=FALSE}
+  ggplot()+
+  geom_pointrange(data = Acro_model_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y = expression("Predicted Acroporidae cover ( % / " * 10~m^{2} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size =9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+```
+
+## Pocilloporidae cover
+
+```{r}
+#Interaction
+nbin_poci_i <- glmmTMB(Pocilloporidae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_poci_i) # passes
+testResiduals(sim1)
+
+#Fixed
+nbin_poci_f <- glmmTMB(Pocilloporidae ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_poci_f) #passes
+testResiduals(sim1)
+
+#Interaction
+pois_poci_i <- glmmTMB(Pocilloporidae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "poisson", data = PIT_plot)
+sim1 <- simulateResiduals(pois_poci_i) # passes
+testResiduals(sim1)
+
+
+#Fixed
+pois_poci_f <- glmmTMB(Pocilloporidae ~ Shelf+Year + (1 | Reef/Site), 
+        family = "poisson", data = PIT_plot)
+sim1 <- simulateResiduals(pois_poci_f) #passes
+testResiduals(sim1)
+```
+
+```{r}
+model.sel(nbin_poci_f, nbin_poci_i, pois_poci_f, pois_poci_i)
+```
+Not sure why the nbin don't have AICc values for Pocilloporidae.
+
+### Tukey HSD
+
+```{r}
+emm_shelf <- emmeans(pois_poci_i, ~Shelf | Year, type = "response")
+pairs(emm_shelf)
+```
+
+### Figure
+
+```{r}
+poci_model_emm <- pois_poci_i|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame()
+```
+
+Note in the poisson output the repsonse is replaced with rate?
+
+```{r echo=FALSE}
+  ggplot()+
+  geom_pointrange(data = poci_model_emm, aes(x=Year,
+             y=rate, 
+             color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y = expression("Predicted Pocilloporidae cover ( % / " * 10~m^{2} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size =9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+```
+
+## Poritidae cover
+
+```{r}
+nbin_pori_i <- glmmTMB(Poritidae ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+
+sim1 <- simulateResiduals(nbin_pori_i)
+testResiduals(sim1)
+
+nbin_pori_f <- glmmTMB(Poritidae ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_pori_f)
+testResiduals(sim1)
+```
+```{r}
+model.sel(nbin_pori_f, nbin_pori_i)
+```
+```{r}
+summary(nbin_pori_f)
+```
+
+
+## Soft Coral
+
+```{r}
+nbin_sc_i <- glmmTMB(`Soft Coral` ~ Shelf*Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+
+sim1 <- simulateResiduals(nbin_sc_i)
+testResiduals(sim1)
+
+nbin_sc_f <- glmmTMB(`Soft Coral` ~ Shelf+Year + (1 | Reef/Site), 
+        family = "nbinom2", data = PIT_plot)
+sim1 <- simulateResiduals(nbin_sc_f)
+testResiduals(sim1)
+```
+
+```{r}
+model.sel(nbin_sc_f, nbin_sc_i)
+```
+
+```{r}
+summary(nbin_sc_f)
+```
+
+

@@ -124,8 +124,18 @@ betadisper(bray, environment_data$Shelf)
 anova(betadisper(bray, environment_data$Shelf))
 ```
 
-```{r eval = FALSE}
+```{r}
 bray <- vegdist(Recruits_sqrt, method = "bray")
+# With respect to Shelf
+betadisper(bray, environment_data$Shelf)
+anova(betadisper(bray, environment_data$Shelf))
+
+# with respect to year
+betadisper(bray, environment_data$Year_Collected)
+anova(betadisper(bray, environment_data$Year_Collected))
+```
+
+```{r}
 
 set.seed(999)     # for reproducibility
 
@@ -157,8 +167,6 @@ The 2D ordination is capturing the major differences in assemblages
 
 Patterns you see between groups (Shelf, Year, Reef) are trustworthy
 *(ChatGPT output - further investigation required)*
-
-
 
 
 ```{r eval = FALSE}
@@ -219,6 +227,15 @@ anova(betadisper(bray_hellinger, environment_data$Shelf))
 betadisper(bray_hellinger, environment_data$Year_Collected)
 anova(betadisper(bray_hellinger, environment_data$Year_Collected))
 ```
+
+```{r}
+nested_perm <- adonis2(recruit_hellinger ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef, by= "term", permutations = 999 ) 
+```
+
+```{r}
+print(nested_perm)
+```
+
 
 ```{r}
 set.seed(999)     # for reproducibility
