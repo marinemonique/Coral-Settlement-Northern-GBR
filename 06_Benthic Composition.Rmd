@@ -107,7 +107,8 @@ ggplot(data = PIT_long)+
         panel.grid.major = element_blank(),
         legend.position = "bottom")+
   labs(y = "Percent Cover (%)")+
-  facet_wrap(~`Benthic Cover`, scale = "free_y", ncol = 2)
+  facet_wrap(~`Benthic Cover`, scale = "free_y", ncol = 2)+
+  scale_y_log10()
 ```
 
 ## Macroalgae Model
@@ -167,7 +168,11 @@ macro_model_emm <- zbin_macro_i|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size =9))+
-  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  scale_y_log10(
+    breaks = scales::breaks_log(n = 4),
+    labels = scales::label_number()
+  )
 ```
 
 ## Rubble and Sand model
@@ -258,7 +263,11 @@ Acro_model_emm <- nbin_Acro_i|>
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size =9))+
-  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  scale_y_log10(
+    breaks = scales::breaks_log(n = 4),
+    labels = scales::label_number()
+  )
 ```
 
 ## Pocilloporidae cover
@@ -330,7 +339,11 @@ Note in the poisson output the repsonse is replaced with rate?
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
         text = element_text(size =9))+
-  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  scale_y_log10(
+    breaks = scales::breaks_log(n = 4),
+    labels = scales::label_number()
+  )
 ```
 
 ## Poritidae cover
@@ -362,12 +375,12 @@ nbin_sc_i <- glmmTMB(`Soft Coral` ~ Shelf*Year + (1 | Reef/Site),
         family = "nbinom2", data = PIT_plot)
 
 sim1 <- simulateResiduals(nbin_sc_i)
-testResiduals(sim1)
+testResiduals(sim1) #passes tests
 
 nbin_sc_f <- glmmTMB(`Soft Coral` ~ Shelf+Year + (1 | Reef/Site), 
         family = "nbinom2", data = PIT_plot)
 sim1 <- simulateResiduals(nbin_sc_f)
-testResiduals(sim1)
+testResiduals(sim1) #passes tests
 ```
 
 ```{r}
@@ -378,4 +391,33 @@ model.sel(nbin_sc_f, nbin_sc_i)
 summary(nbin_sc_f)
 ```
 
-
+Figure
+```{r}
+sc_model_emm <- nbin_sc_f|> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame()
+```
+```{r echo=FALSE}
+  ggplot()+
+  geom_pointrange(data = sc_model_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(y = expression("Predicted soft coral cover ( % / " * 10~m^{2} * ")"))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size =9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  scale_y_log10(
+    breaks = scales::breaks_log(n = 4),
+    labels = scales::label_number()
+  )
+```

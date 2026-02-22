@@ -719,31 +719,6 @@ PIT_metadata_filtered <- metadata_PIT %>%
   column_to_rownames("Site_ID")
 ```
 
-Arcsin transform
-```{r}
-PIT_Asin<- PIT_matrix_filtered |> 
-  mutate(Prop_macroalgae = asin(Prop_macroalgae),prop_acro = asin(prop_acro), prop_poci=asin(prop_poci), prop_soft_coral=asin(prop_soft_coral), prop_turf = asin(prop_turf), prop_sand = asin(prop_sand)
-  )
-```
-
-
-asin sqrt
-```{r}
-PIT_asin_sqrt <- PIT_matrix_filtered |> 
-  mutate(
-    Prop_macroalgae = asin(sqrt(Prop_macroalgae)),
-    prop_acro       = asin(sqrt(prop_acro)),
-    prop_poci       = asin(sqrt(prop_poci)),
-    prop_soft_coral = asin(sqrt(prop_soft_coral)),
-    prop_turf       = asin(sqrt(prop_turf)),
-    prop_sand       = asin(sqrt(prop_sand))
-  )
-```
-
-
-```{r}
-PIT_hellinger <- decostand(PIT_matrix_filtered, method = "hellinger")
-```
 
 
 Check dispersion
@@ -756,6 +731,68 @@ betadisper(PIT_dist, metadata_PIT$Shelf)
 anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # oh no, thats not great. SIgnificance was 4.237e-05 ***
 ```
 
+```{r}
+#Run PERMANOVA
+PIT_adonis_result <- adonis2(
+  PIT_matrix_filtered ~ Shelf * Year, #includes interaction term
+  data = PIT_metadata_filtered,
+  method = "bray",
+  by = "term",
+  permutations = 999
+)
+print(PIT_adonis_result)
+```
+
+```{r}
+# Run NMDS on proportional data
+set.seed(999)  # reproducibility
+
+PIT_nmds <- metaMDS(
+  PIT_matrix_filtered,
+  distance = "bray",
+  k = 2,            # 2D solution
+  trymax = 100,
+  autotransform = FALSE
+)
+```
+
+
+```{r}
+PIT_nmds$stress
+```
+Stress is 0.143
+
+```{r}
+stressplot(PIT_nmds)
+```
+
+Extract Scores
+
+```{r}
+nmds_scores_PIT <- as.data.frame(scores(PIT_nmds, display = "sites"))
+
+nmds_scores_PIT$Site_ID <- rownames(nmds_scores_PIT)
+
+nmds_scores_PIT <- nmds_scores_PIT %>%
+  left_join(
+    PIT_metadata_filtered %>% 
+      rownames_to_column("Site_ID"),
+    by = "Site_ID"
+  )
+nmds_scores_PIT <- nmds_scores_PIT |> 
+mutate(
+    Deployment =
+    case_when(
+      Year == "2024-25" ~ "24/25",
+      Year == "2023-24" ~ "23/24",
+      Year == "2022-23" ~ "22/23",
+      Year == "2021-22" ~ "21/22")
+  )
+```
+
+
+
+## Hellinger Transformation
 Check dispersion
 ```{r}
 # create a distance matrix
