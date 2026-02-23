@@ -531,13 +531,13 @@ model.sel(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fi
 Does Adult brood stock relate to the number of recruits, accounting for shelf position and year collected
 ```{r}
 ## Fixed
-nbin_Poritid_fixed <- glmmTMB(Poritid ~ mean_aco + (1 | Shelf/Site) + (1 | Year_Collected), 
+nbin_Poritid_fixed <- glmmTMB(Poritid ~ mean_por + (1 | Shelf/Site) + (1 | Year_Collected), 
         family = "nbinom2", data = Combined)
 
 nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ mean_poci + (1 | Shelf/Site) + (1 | Year_Collected), 
         family = "nbinom2", data = Combined)
 
-nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ mean_por +(1 | Shelf/Site) + (1 | Year_Collected), 
+nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ mean_aco +(1 | Shelf/Site) + (1 | Year_Collected), 
         family = "nbinom2", data = Combined)
 
 ## Interaction
@@ -553,7 +553,7 @@ nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*mean_aco + (1|Year_C
 
 ```{r}
 # Fixed
-zbin_Poritid_fixed <- glmmTMB(Poritid ~ mean_aco + (1 | Shelf/Site) + (1 | Year_Collected), 
+zbin_Poritid_fixed <- glmmTMB(Poritid ~ mean_por + (1 | Shelf/Site) + (1 | Year_Collected), 
                               ziformula = ~1,
         family = "nbinom2", data = Combined)
 
@@ -561,129 +561,97 @@ zbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ mean_poci + (1 | Shelf/Sit
                                      ziformula = ~1,
         family = "nbinom2", data = Combined)
 
-zbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ mean_por +(1 | Shelf/Site) + (1 | Year_Collected), 
+zbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ mean_aco +(1 | Shelf/Site) + (1 | Year_Collected), 
                                   ziformula = ~1,
         family = "nbinom2", data = Combined)
 
 # Fixed
-pois_Poritid_fixed <- glmmTMB(Poritid ~ mean_aco + (1 | Shelf/Site) + (1 | Year_Collected),
+pois_Poritid_fixed <- glmmTMB(Poritid ~ mean_por + (1 | Shelf/Site) + (1 | Year_Collected),
         family = "poisson", data = Combined)
 
 pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ mean_poci + (1 | Shelf/Site) + (1 | Year_Collected),
         family = "poisson", data = Combined)
 
-pois_Acroporidae_fixed <- glmmTMB(Acroporidae ~ mean_por +(1 | Shelf/Site) + (1 | Year_Collected), 
+pois_Acroporidae_fixed <- glmmTMB(Acroporidae ~ mean_aco +(1 | Shelf/Site) + (1 | Year_Collected), 
         family = "poisson", data = Combined)
 ```
 
 
 ```{r}
-sim10.1 <- simulateResiduals(nbin_Acroporidae_interaction)
-testResiduals(sim10.1)
+# Random Slope models
+nbin_Poritid_rs <- glmmTMB(Poritid ~ mean_por + (mean_por | Shelf/Site) + (mean_por | Year_Collected), 
+        family = "nbinom2", data = Combined)
 
-sim10.2 <- simulateResiduals(nbin_Acroporidae_fixed) # significant deviation so not sure to include
-testResiduals(sim10.2)
+nbin_Pocilloporidae_rs <- glmmTMB(Pocilloporidae ~ mean_poci + (1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "nbinom2", data = Combined)
+
+nbin_Acroporidae_rs <- glmmTMB(Acroporidae ~ mean_aco +(mean_aco | Shelf/Site) + (mean_aco | Year_Collected), 
+        family = "nbinom2", data = Combined)
+```
+
+### Acroporidae
+
+
+```{r}
+sim10.1 <- simulateResiduals(nbin_Acroporidae_interaction)
+testResiduals(sim10.1) # passes
+
+sim10.2 <- simulateResiduals(nbin_Acroporidae_fixed) 
+testResiduals(sim10.2) # deviation significant
 
 sim10.3 <- simulateResiduals(zbin_Acroporidae_fixed)
-testResiduals(sim10.3) #significant deviation
+testResiduals(sim10.3) # deviation significant
 
-sim10.4 <- simulateResiduals(pois_Acroporidae_fixed)
-testResiduals(sim10.4) # significant devaiton
+sim10.4 <- simulateResiduals(pois_Acroporidae_fixed) # deviation significant
+testResiduals(sim10.4)# deviation significant
 
-AIC(nbin_Acroporidae_fixed, nbin_Acroporidae_interaction)
-summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
+sim10.5 <- simulateResiduals(nbin_Acroporidae_rs)
+testResiduals(sim10.5) # deviation significant
 
 model.sel(nbin_Acroporidae_interaction)
 ```
+```{r echo=FALSE}
+Combined |> 
+  ggplot()+
+  geom_point(aes(x=mean_aco, y= Acroporidae))
+```
+
+The only way the Acroporidae model passes DHARMA is when there is Shelf as a interaction term, not as a random effect.
+
+### Pocilloporidae
+
 
 ```{r}
 sim11.1 <- simulateResiduals(nbin_Pocilloporidae_interaction)
-testResiduals(sim11.1)
+testResiduals(sim11.1) #fine
 
 sim11.2 <- simulateResiduals(nbin_Pocilloporidae_fixed)
-testResiduals(sim11.2)
+testResiduals(sim11.2) #fine
 
-summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
+sim11.3 <- simulateResiduals(nbin_Pocilloporidae_rs)
+testResiduals(sim11.3) #passes
 
-model.sel(nbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
+model.sel(nbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction, nbin_Pocilloporidae_rs)
 ```
 
+Interaction model performs best for Pocilloporidae
+
+### Poritidae
 
 ```{r}
 sim12.1 <- simulateResiduals(nbin_Poritid_interaction) #outlier test significant and the test on the bottom of qqplot
 testResiduals(sim12.1)
 
-sim12.2 <- simulateResiduals(nbin_Poritid_fixed) 
+sim12.2 <- simulateResiduals(nbin_Poritid_fixed)  # passes
 testResiduals(sim12.2)
 
-summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
+sim12.3 <- simulateResiduals(nbin_Poritid_rs)
+testResiduals(sim12.3) # passes
 
-model.sel(nbin_Poritid_fixed, nbin_Poritid_interaction)
+model.sel(nbin_Poritid_fixed, nbin_Poritid_rs )
 ```
+Random slope performs better for Poritidae.
 
-
-When year and shelf are included in model.
-```{r}
-## Fixed
-nbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + mean_aco + (1 | Reef/Site) + Year_Collected, 
-        family = "nbinom2", data = Combined)
-
-nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf+mean_poci + (1 | Reef/Site) + Year_Collected, 
-        family = "nbinom2", data = Combined)
-
-nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + mean_por +(1 | Reef/Site) + Year_Collected, 
-        family = "nbinom2", data = Combined)
-
-## Interaction
-nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*mean_por*Year_Collected + (1 | Reef/Site), 
-        family = "nbinom2", data = Combined)
-
-nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf *mean_poci* Year_Collected + (1 | Reef/Site), 
-        family = "nbinom2", data = Combined)
-
-nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*mean_aco*Year_Collected + (1 | Reef/Site), 
-        family = "nbinom2", data = Combined)
-```
-
-```{r}
-sim10.1 <- simulateResiduals(nbin_Acroporidae_interaction)
-testResiduals(sim10.1)
-
-sim10.2 <- simulateResiduals(nbin_Acroporidae_fixed)
-testResiduals(sim10.2)
-
-AIC(nbin_Acroporidae_fixed, nbin_Acroporidae_interaction)
-summary(nbin_Acroporidae_interaction) #suspect that I may need to do a LRT test to determine if the model fit is better with or without the average cover of acro
-
-model.sel(nbin_Acroporidae_fixed, nbin_Acroporidae_interaction)
-```
-
-
-
-```{r}
-sim11.1 <- simulateResiduals(nbin_Pocilloporidae_interaction)
-testResiduals(sim11.1)
-
-sim11.2 <- simulateResiduals(nbin_Pocilloporidae_fixed)
-testResiduals(sim11.2)
-
-summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
-
-model.sel(nbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
-```
-
-
-```{r}
-sim12.1 <- simulateResiduals(nbin_Poritid_interaction)
-testResiduals(sim12.1)
-
-sim12.2 <- simulateResiduals(nbin_Poritid_fixed)
-testResiduals(sim12.2)
-
-summary(nbin_Pocilloporidae_interaction) #Doesn't seem to add to the model much tbh
-
-model.sel(nbin_Poritid_fixed, nbin_Poritid_interaction)
-```
 
 # Recruitment and Juveniles
 These models will need to be lagged. 
