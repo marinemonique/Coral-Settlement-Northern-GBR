@@ -146,6 +146,24 @@ Other <- Coral_settlement_nGBR %>%
          Other, Top_other, 
          Under_oth, Side_other, total)
 
+# Mean or median no. tiles per site / year
+Join_Coral <- Coral_settlement_nGBR |> 
+  group_by(Shelf, Year, Site, Reef) |> 
+  summarise(
+    st_mean_acro = mean(Acroporidae),
+    st_sd_acro = sd(Acroporidae),
+    st_median_acro = median(Acroporidae),
+    st_mean_poci = mean(Pocilloporidae),
+    st_sd_poci = sd(Pocilloporidae),
+    st_median_poci = median(Pocilloporidae),
+    st_mean_por = mean(Poritid),
+    st_sd_por = sd(Poritid),
+    st_median_por = median(Poritid),
+    st_mean_total = mean(total),
+    st_sd_total = sd(total),
+    Tiles = n()
+  )
+
 # Benthic Data
 
 PIT <- read_csv("PIT_50m.csv") %>%
@@ -190,7 +208,7 @@ join <- PIT |>
     PIT = n()
   )
 
-Combined <- left_join(Coral_settlement_nGBR, join)
+Combined <- left_join(Join_Coral, join)
 
 # Juvenile data
 Belt_10m <- read_csv("Belt_10m.csv") |> 
@@ -560,6 +578,19 @@ nbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ mean_poci + (1 | Shelf/Sit
 nbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ mean_aco +(1 | Shelf/Site) + (1 | Year_Collected), 
         family = "nbinom2", data = Combined)
 
+gamma_Acro_fixed <- glmmTMB(Acroporidae ~ mean_aco +(1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "ziGamma", data = Combined)
+gamma_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ mean_poci + (1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "ziGamma", data = Combined)
+gamma_Poritid_fixed <- glmmTMB(Poritid ~ mean_por + (1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "ziGamma", data = Combined)
+
+ln_Acro_fixed <- glmmTMB(Acroporidae ~ mean_aco +(1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "lognormal", data = Combined)
+ln_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ mean_poci + (1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "lognormal", data = Combined)
+ln_Poritid_fixed <- glmmTMB(Poritid ~ mean_por + (1 | Shelf/Site) + (1 | Year_Collected), 
+        family = "lognormal", data = Combined)
 ## Interaction
 nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*mean_por + (1|Year_Collected) + (1 | Reef/Site), 
         family = "nbinom2", data = Combined)
@@ -618,15 +649,19 @@ testResiduals(sim10.1) # passes
 
 sim10.2 <- simulateResiduals(nbin_Acroporidae_fixed) 
 testResiduals(sim10.2) # deviation significant
+testZeroInflation(sim10.2)
 
 sim10.3 <- simulateResiduals(zbin_Acroporidae_fixed)
 testResiduals(sim10.3) # deviation significant
+testZeroInflation(sim10.3)
 
 sim10.4 <- simulateResiduals(pois_Acroporidae_fixed) # deviation significant
 testResiduals(sim10.4)# deviation significant
+testZeroInflation(sim10.4)
 
 sim10.5 <- simulateResiduals(nbin_Acroporidae_rs)
 testResiduals(sim10.5) # deviation significant
+testZeroInflation(sim10.5)
 
 model.sel(nbin_Acroporidae_interaction)
 ```
@@ -746,27 +781,62 @@ cor.test(combined_averages$por_median_st, combined_averages$median_por, method =
 ```
 
 ```{r}
-## Fixed
-nbin_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
-        family = "nbinom2", data = combined_averages)
+Acro <- combined_averages |> 
+  filter(acro_mean_st > 0)
 
-nbin_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Shelf/Site) + (1 | Year), 
-        family = "nbinom2", data = combined_averages)
+gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
+        family = "Gamma", data = Acro)
 
-nbin_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
-        family = "nbinom2", data = combined_averages)
+ln_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
+        family = "lognormal", data = Acro)
 
-poisson_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
-        family = "poisson", data = combined_averages)
+gaus_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
+        family = "gaussian", data = Acro)
 
 ```
 
 ```{r}
-sim13.1 <- simulateResiduals(nbin_avg_Acroporidae_fixed)
-testResiduals(sim13.1) # this passes, but I would say the QQ plot doesn't look great
-sim13.2 <- simulateResiduals(poisson_avg_Acroporidae_fixed)
+sim13.1 <- simulateResiduals(gamma_avg_Acroporidae_fixed) #didn't work
+testResiduals(sim13.1) 
+testZeroInflation(sim13.1)
+sim13.2 <- simulateResiduals(ln_avg_Acroporidae_fixed)
 testResiduals(sim13.2)
+
+sim13.3 <- simulateResiduals(gaus_avg_Acroporidae_fixed)
+testResiduals(sim13.3) # definitelty not this one
 ```
+
+
+```{r}
+## Pocilloporidae
+Poci <- combined_averages |> 
+  filter(poci_mean_st > 0)
+ln_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Shelf/Site) + (1 | Year), 
+        family = "lognormal", data = Poci)
+
+gaus_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Shelf/Site) + (1 | Year), 
+        family = "gaussian", data = Poci)
+gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Shelf/Site) + (1 | Year), 
+        family = "Gamma", data = Poci)
+```
+
+```{r}
+sim14.1 <- simulateResiduals(gamma_avg_poci_fixed) #didn't work
+testResiduals(sim14.1) 
+testZeroInflation(sim14.1)
+sim14.2 <- simulateResiduals(ln_avg_poci_fixed) # very good
+testResiduals(sim14.2)
+
+sim14.3 <- simulateResiduals(gaus_avg_poci_fixed)
+testResiduals(sim14.3) # definitelty not this one
+```
+```{r}
+## Poritidae
+gamma_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
+        family = "Gamma", data = combined_averages)
+
+```
+
 
 Maybe instead of doing mean, I should do median? I mean there is a lot of variability within a site for how many recruits settled on tiles
 
@@ -779,8 +849,10 @@ poisson_med_Acroporidae_fixed <- glmmTMB(acro_median_st ~ mean_aco +(1 | Shelf/S
 
 sim13.3 <- simulateResiduals(nbin_med_Acroporidae_fixed)
 testResiduals(sim13.3) # this passes, but I would say the QQ plot doesn't look great
+testZeroInflation(sim13.3)
 sim13.4 <- simulateResiduals(poisson_med_Acroporidae_fixed)
 testResiduals(sim13.4)
+testZeroInflation(sim13.4)
 ```
 
 # Juvenile Analysis
