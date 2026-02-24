@@ -189,6 +189,24 @@ join <- PIT |>
 
 Combined <- left_join(Coral_settlement_nGBR, join)
 
+# Juvenile data
+Belt_10m <- read_csv("Belt_10m.csv") |> 
+  mutate(across(8:28, ~replace_na(.x, 0)))
+
+Belt_10m <- Belt_10m |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ))
+
+Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
+
 ## Total recuits
 total_recruits <- Coral_settlement_nGBR %>%
   select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
@@ -244,10 +262,10 @@ Coral_settlement_nGBR |> group_by(Shelf,Reef,Site, Year) |>
 
 *inset belt data here*
 ```{r}
-#belt data |>  group_by(Shelf,Reef,Site, Year) |> 
-  #summarise(
-   # n = n()
- # )
+Belt_10m |>  group_by(Shelf,Reef,Site, Year) |> 
+  summarise(
+   n = n()
+  )
 ```
 
 
@@ -262,7 +280,7 @@ nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site),
 
 Shelf
 ```{r}
-emm_shelf <- emmeans(nbin_total_yr2, ~Shelf | Year)
+emm_shelf <- emmeans(nbin_total_yr2, ~Shelf | Year, type = "response")
 emm_shelf
 
 pairs(emm_shelf)
@@ -283,7 +301,7 @@ nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Sit
 ```
 
 ```{r}
-emm_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf | Year)
+emm_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf | Year, type = "response")
 
 pairs(emm_shelf)
 ```
@@ -304,7 +322,7 @@ nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | 
 ```
 
 ```{r}
-emm_shelf <- emmeans(nbin_Pocilloporidae_interaction, ~Shelf | Year)
+emm_shelf <- emmeans(nbin_Pocilloporidae_interaction, ~Shelf | Year, type = "response")
 
 pairs(emm_shelf)
 ```
@@ -325,7 +343,7 @@ nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site),
 ```
 
 ```{r}
-emm_shelf <- emmeans(nbin_Poritid_interaction, ~Shelf | Year)
+emm_shelf <- emmeans(nbin_Poritid_interaction, ~Shelf | Year, type = "response")
 
 pairs(emm_shelf)
 ```
@@ -339,3 +357,87 @@ pairs(emm_year_response)
 
 
 # PERMANOVA Tables
+
+
+# Juvenile analysis
+
+Total juveniles
+
+```{r}
+nbin_total_juv <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Belt_10m)
+```
+
+```{r}
+emm_shelf <- emmeans(nbin_total_juv, ~Shelf | Year, type = "response")
+
+pairs(emm_shelf)
+```
+
+```{r}
+emm_year_response <- emmeans(nbin_total_juv, ~Year|Shelf, type = "response")
+pairs(emm_year_response)
+```
+
+## Acroporidae
+
+```{r}
+Acro <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Acroporidae)
+
+
+nbin_acro_juv <- glmmTMB(Acroporidae ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Acro)
+```
+
+```{r}
+emm_shelf <- emmeans(nbin_acro_juv, ~Shelf | Year, type = "response")
+
+pairs(emm_shelf)
+```
+
+```{r}
+emm_year_response <- emmeans(nbin_acro_juv, ~Year|Shelf, type = "response")
+pairs(emm_year_response)
+```
+
+## Pocilloporidae
+
+```{r}
+Poc <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Pocilloporidae)
+
+nbin_poci_juv <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Poc)
+```
+
+```{r}
+emm_shelf <- emmeans(nbin_poci_juv, ~Shelf | Year, type = "response")
+
+pairs(emm_shelf)
+```
+
+```{r}
+emm_year_response <- emmeans(nbin_poci_juv, ~Year|Shelf, type = "response")
+pairs(emm_year_response)
+```
+
+## Poritidae
+```{r}
+Por <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Poritidae)
+
+nbin_por_juv <- glmmTMB(Poritidae ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Por)
+```
+
+```{r}
+emm_shelf <- emmeans(nbin_por_juv, ~Shelf | Year, type = "response")
+
+pairs(emm_shelf)
+```
+
+```{r}
+emm_year_response <- emmeans(nbin_por_juv, ~Year|Shelf, type = "response")
+pairs(emm_year_response)
+```
