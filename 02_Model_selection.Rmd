@@ -178,10 +178,13 @@ join <- PIT |>
   summarise(
     mean_aco = mean(prop_acro),
     sd_aco = sd(prop_acro),
+    median_aco = median(prop_acro),
     mean_poci = mean(prop_poci),
     sd_poci = sd(prop_poci),
+    median_poci = median(prop_poci),
     mean_por = mean(prop_pori),
     sd_por = sd(prop_pori),
+    median_por = median(prop_pori),
     mean_macroalgae = mean(Prop_macroalgae),
     sd_macroalgae = sd(Prop_macroalgae),
     PIT = n()
@@ -189,6 +192,23 @@ join <- PIT |>
 
 Combined <- left_join(Coral_settlement_nGBR, join)
 
+# Juvenile data
+Belt_10m <- read_csv("Belt_10m.csv") |> 
+  mutate(across(8:28, ~replace_na(.x, 0)))
+
+Belt_10m <- Belt_10m |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ))
+
+Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
 
 ## Total recuits
 total_recruits <- Coral_settlement_nGBR %>%
@@ -676,6 +696,56 @@ combined_averages <- left_join(join, st_join)
 Now these are both averages, it can't follow an intergar and would need to follow a different family of error distribution.
 
 ```{r}
+# Test for normality
+shapiro.test(combined_averages$acro_median_st)
+hist(combined_averages$acro_median_st)
+shapiro.test(combined_averages$median_aco)
+```
+The p-value of the Shapiro-Wilk test is less than 0.05, so we reject the null hypothesis and conclude that Height is not normally distributed. Therefore we should use Spearman’s test for this analysis.
+```{r}
+cor.test(combined_averages$acro_median_st, combined_averages$median_aco, method = "spearman")
+```
+
+```{r}
+ggplot()+
+  geom_point(data = combined_averages, aes(x=median_aco, y=acro_median_st, colour = Shelf))
+```
+
+
+```{r}
+# Test for normality
+shapiro.test(combined_averages$poci_median_st)
+hist(combined_averages$poci_median_st)
+
+shapiro.test(combined_averages$median_poci)
+hist(combined_averages$median_poci)
+hist(combined_averages$mean_poci)
+```
+The p-value of the Shapiro-Wilk test is less than 0.05, so we reject the null hypothesis and conclude that Height is not normally distributed. Therefore we should use Spearman’s test for this analysis.
+
+```{r}
+cor.test(combined_averages$poci_median_st, combined_averages$median_poci, method = "spearman")
+```
+
+```{r}
+ggplot()+
+  geom_point(data = combined_averages, aes(x=median_poci, y=poci_median_st, colour = Shelf))+
+  facet_wrap(~Year)
+```
+
+```{r}
+# Test for normality
+shapiro.test(combined_averages$por_median_st)
+shapiro.test(combined_averages$median_por)
+```
+The p-value of the Shapiro-Wilk test is less than 0.05, so we reject the null hypothesis and conclude that Height is not normally distributed. Therefore we should use Spearman’s test for this analysis.
+
+
+```{r}
+cor.test(combined_averages$por_median_st, combined_averages$median_por, method = "spearman")
+```
+
+```{r}
 ## Fixed
 nbin_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
         family = "nbinom2", data = combined_averages)
@@ -713,8 +783,104 @@ sim13.4 <- simulateResiduals(poisson_med_Acroporidae_fixed)
 testResiduals(sim13.4)
 ```
 
+# Juvenile Analysis
+
+## Total Juveniles
+```{r}
+pois <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Belt_10m)
+
+nbin <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Belt_10m)
+
 ```
 
+```{r}
+sim14.1 <- simulateResiduals(pois)
+testResiduals(sim14.1) # significant deviations KS
+
+sim14.2 <- simulateResiduals(nbin)
+testResiduals(sim14.2) #not the best looking model ever but not significant deviation
+```
+
+```{r}
+summary(nbin)
+```
+
+
+## Acroporidae Juveniles
+
+```{r}
+Acro <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Acroporidae)
+
+pois <- glmmTMB(Acroporidae ~ Year*Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Acro)
+
+nbin <- glmmTMB(Acroporidae ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Acro)
+```
+
+```{r}
+sim15.1 <- simulateResiduals(pois)
+testResiduals(sim15.1) # passes tests
+
+sim15.2 <- simulateResiduals(nbin)
+testResiduals(sim15.2) #passes
+```
+Both meet assumptions
+```{r}
+model.sel(pois, nbin) #nbin behaves better
+```
+
+## Pocilloporidae Juveniles
+```{r}
+Poc <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Pocilloporidae)
+
+pois <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Poc)
+
+nbin <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Poc)
+```
+
+```{r}
+sim16.1 <- simulateResiduals(pois)
+testResiduals(sim16.1)
+
+sim16.2 <- simulateResiduals(nbin)
+testResiduals(sim16.2)
+```
+```{r}
+model.sel(pois, nbin) #nbin behaves better
+```
+
+
+## Poritidae Juveniles
+```{r}
+Por <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Poritidae)
+
+pois <- glmmTMB(Poritidae ~ Year*Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Por)
+
+nbin <- glmmTMB(Poritidae ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Por)
+```
+
+```{r}
+sim17.1 <- simulateResiduals(pois)
+testResiduals(sim17.1) # passes but the dispersion test doesn't look ideal
+
+sim17.2 <- simulateResiduals(nbin)
+testResiduals(sim17.2) #passes
+```
+
+Both models have outliers as significant.
+```{r}
+model.sel(pois, nbin) #nbin behaves better
+```
 
 # Recruitment and Juveniles
 These models will need to be lagged. 
