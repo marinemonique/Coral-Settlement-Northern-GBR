@@ -832,28 +832,40 @@ testResiduals(sim14.3) # definitelty not this one
 ```
 ```{r}
 ## Poritidae
+Por <- combined_averages |> 
+  filter(por_mean_st > 0)
 gamma_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
-        family = "Gamma", data = combined_averages)
+        family = "Gamma", data = Por)
+ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
+        family = "lognormal", data = Por)
+gaus_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
+        family = "gaussian", data = Por)
 
 ```
-
-
-Maybe instead of doing mean, I should do median? I mean there is a lot of variability within a site for how many recruits settled on tiles
 
 ```{r}
-nbin_med_Acroporidae_fixed <- glmmTMB(acro_median_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
-        family = "nbinom2", data = combined_averages)
+sim15.1 <- simulateResiduals(gamma_avg_Poritid_fixed) #didn't work
+testResiduals(sim15.1) 
+testZeroInflation(sim15.1)
+sim15.2 <- simulateResiduals(ln_avg_Poritid_fixed) # very good
+testResiduals(sim15.2)
 
-poisson_med_Acroporidae_fixed <- glmmTMB(acro_median_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
-        family = "poisson", data = combined_averages)
-
-sim13.3 <- simulateResiduals(nbin_med_Acroporidae_fixed)
-testResiduals(sim13.3) # this passes, but I would say the QQ plot doesn't look great
-testZeroInflation(sim13.3)
-sim13.4 <- simulateResiduals(poisson_med_Acroporidae_fixed)
-testResiduals(sim13.4)
-testZeroInflation(sim13.4)
+sim15.3 <- simulateResiduals(gaus_avg_Poritid_fixed)
+testResiduals(sim15.3) # definitely not this one
 ```
+
+Log normal models worked best for all of these
+```{r}
+summary(ln_avg_Acroporidae_fixed)
+```
+```{r}
+summary(ln_avg_poci_fixed)
+```
+```{r}
+summary(ln_avg_Poritid_fixed)
+```
+
+All of the models had significant intercepts, but the estimate for mean_por was not significant in any of the models.
 
 # Juvenile Analysis
 
