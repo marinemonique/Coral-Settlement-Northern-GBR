@@ -202,7 +202,7 @@ PIT_hellinger <- decostand(PIT_matrix_filtered, method = "hellinger")
 Check dispersion
 ```{r}
 # create a distance matrix
-PIT_dist <- vegdist(PIT_hellinger, method = "bray")
+PIT_dist <- vegdist(PIT_hellinger, method = "euclidean")
 
 # With respect to Shelf
 betadisper(PIT_dist, PIT_metadata_filtered$Shelf)
