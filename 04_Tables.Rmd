@@ -176,14 +176,18 @@ PIT<- PIT |>
 join <- PIT |> 
   group_by(Year, Shelf, Reef, Site) |> 
   summarise(
-    mean_aco = mean(prop_acro),
-    sd_aco = sd(prop_acro),
-    mean_poci = mean(prop_poci),
-    sd_poci = sd(prop_poci),
-    mean_por = mean(prop_pori),
-    sd_por = sd(prop_pori),
-    mean_macroalgae = mean(Prop_macroalgae),
-    sd_macroalgae = sd(Prop_macroalgae),
+    mean_aco = mean(Acroporidae),
+    sd_aco = sd(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    mean_macroalgae = mean(Macroalgae),
+    sd_macroalgae = sd(Macroalgae),
+    mean_sand =mean(Rubble_and_Sand),
+    sd_sand = sd(Rubble_and_Sand),
+    mean_turf = mean(Turf),
+    sd_turf = sd(Turf),
     PIT = n()
   )
 
@@ -245,13 +249,18 @@ family_total_recruits <- Coral_settlement_nGBR %>%
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 ```
 
-# Table 1. sample sizes
+# 1. Methods
+## 1.1. Table 1, sample sizes
+### 1.1.1 PIT
+
 ```{r}
 PIT |> group_by(Shelf,Reef,Site, Year) |> 
   summarise(
     n = n()
   )
 ```
+
+### 1.1.2. Settlement Tiles
 
 ```{r}
 Coral_settlement_nGBR |> group_by(Shelf,Reef,Site, Year) |> 
@@ -260,7 +269,8 @@ Coral_settlement_nGBR |> group_by(Shelf,Reef,Site, Year) |>
   )
 ```
 
-*inset belt data here*
+### 1.1.3. Juveniles
+
 ```{r}
 Belt_10m |>  group_by(Shelf,Reef,Site, Year) |> 
   summarise(
@@ -268,10 +278,11 @@ Belt_10m |>  group_by(Shelf,Reef,Site, Year) |>
   )
 ```
 
+# 2. Recruitment
 
-# Tukey HSD contrasts
+## 2.1. Spatio-temporal Recruitment
+### 2.1.1 Total Recruits Tukey HSD contrasts
 
-## Total recruits
 
 ```{r}
 nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site), 
@@ -293,7 +304,7 @@ emm_year_response <- emmeans(nbin_total_yr2, ~Year|Shelf, type = "response")
 pairs(emm_year_response)
 ```
 
-## Acroporidae 
+### 2.1.2. Acroporidae Recruits Tukey HSD
 
 ```{r}
 nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
@@ -314,7 +325,7 @@ pairs(emm_year_response)
 ```
 
 
-## Pocilloporidae
+### 2.1.3. Pocilloporidae Recruits Tukey HSD
 
 ```{r}
 nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
@@ -335,7 +346,7 @@ pairs(emm_year_response)
 ```
 
 
-## Poritidae
+### 2.1.4. Poritidae Recruits Tukey HSD
 
 ```{r}
 nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site), 
@@ -356,12 +367,14 @@ pairs(emm_year_response)
 ```
 
 
-# PERMANOVA Tables
+## 2.2. Composition (PERMANOVA Table)
 
 
-# Juvenile analysis
+# 3. Juveniles
 
-Total juveniles
+## 3.1. Spatio-temporal patterns
+
+### 3.1.1. Total juveniles
 
 ```{r}
 nbin_total_juv <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
@@ -379,7 +392,7 @@ emm_year_response <- emmeans(nbin_total_juv, ~Year|Shelf, type = "response")
 pairs(emm_year_response)
 ```
 
-## Acroporidae
+### 3.1.2. Acroporidae
 
 ```{r}
 Acro <- Belt_10m |> 
@@ -401,7 +414,7 @@ emm_year_response <- emmeans(nbin_acro_juv, ~Year|Shelf, type = "response")
 pairs(emm_year_response)
 ```
 
-## Pocilloporidae
+### 3.1.3. Pocilloporidae
 
 ```{r}
 Poc <- Belt_10m |> 
@@ -422,7 +435,7 @@ emm_year_response <- emmeans(nbin_poci_juv, ~Year|Shelf, type = "response")
 pairs(emm_year_response)
 ```
 
-## Poritidae
+### 3.1.4. Poritidae
 ```{r}
 Por <- Belt_10m |> 
   select(Year, Shelf, Reef, Site, Poritidae)
@@ -441,3 +454,35 @@ pairs(emm_shelf)
 emm_year_response <- emmeans(nbin_por_juv, ~Year|Shelf, type = "response")
 pairs(emm_year_response)
 ```
+
+## 3.2. Composition
+
+# 4. Brood stock and larval supply
+## 4.1. Acroporidae
+Model selection Table
+
+## 4.2. Pocilloporidae
+Model selection Table
+
+## 4.3. Poritidae
+Model selection Table
+
+# 5. Larval Supply and Juveniles
+
+## 5.1. Spatial patterns
+
+### 5.1.1 Acroporidae
+Model selection
+
+Tukey HSD among Shelf
+
+### 5.1.2. Pocilloporidae
+
+Model selection
+
+Tukey HSD among Shelf
+
+### 5.1.3. Poritidae
+Model selection
+
+Tukey HSD among Shelf
