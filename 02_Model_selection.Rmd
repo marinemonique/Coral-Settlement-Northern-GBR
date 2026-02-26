@@ -968,5 +968,5 @@ model.sel(pois, nbin) #nbin behaves better
 
 # Recruitment and Juveniles
 These models will need to be lagged. 
-One question I should potentially ask Andy and Victor, and then if not sure on answer ask Murray is whether I should 
+One question I should potentially ask Andy and Victor, and then if not sure on answer ask Murray 
 

@@ -126,8 +126,8 @@ join_belt <- Belt_10m |>
     sd_poci = sd(Pocilloporidae),
     mean_por = mean(Poritidae),
     sd_por = sd(Poritidae),
-    mean_total = mean(total_juveniles),
-    sd_total = sd(total_juveniles),
+    mean_total = mean(Total_juveniles),
+    sd_total = sd(Total_juveniles),
     Belt = n()
   )
 
@@ -230,10 +230,10 @@ Is it driven by larval supply?
 
 
 ```{r}
-pois <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
+pois <- glmmTMB(Total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
       family = "poisson", data = Belt_10m)
 
-nbin <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
+nbin <- glmmTMB(Total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Belt_10m)
 
 ```
@@ -686,7 +686,8 @@ gropd_df2 <- combine_belt_st %>%
   arrange(Reef, Site, Year_start) %>%   # make sure data are ordered
   group_by(Reef, Site) %>%              # or group_by(Reef) if Site not needed
   mutate(
-    st_median_acro_lag1 = lag(st_median_acro, 1)
+    st_median_acro_lag1 = lag(st_median_acro, 1),
+    st_mean_acro_lag1 = lag(st_mean_acro, 1),
   ) %>%
   ungroup()
 ```
@@ -699,17 +700,40 @@ model_df <- gropd_df2 %>%
 
 Fit model. check if mean_acro is approximately normal
 ```{r}
-m1 <- lmer(mean_acro ~ st_median_acro_lag1 + (1|Reef/Site),
+m1 <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Reef/Site),
+              family = "nbinom2",
            data = model_df)
 
-m1
-summary(m1)
+sim <- simulateResiduals(m1)
+testResiduals(sim)
+testZeroInflation(sim)
+
+m2 <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Reef/Site),
+              family = "poisson",
+           data = model_df)
+
+sim <- simulateResiduals(m2)
+testResiduals(sim)
+testZeroInflation(sim)
+
+m3 <- glmmTMB(mean_acro ~ st_mean_acro_lag1*Shelf + (1|Reef/Site),
+              family = "nbinom2",
+           data = model_df)
+
+sim <- simulateResiduals(m3)
+testResiduals(sim)
+testZeroInflation(sim)
+model.sel(m1, m2, m3)
 ```
 ```{r}
 ggplot()+
   geom_point(data = gropd_df2, aes(x=st_median_acro_lag1, y = mean_acro, colour = Shelf))
 ```
 
+```{r}
+summary(m2)
+```
+GLMM, Poisson distributed, there was no significant relationship between the number of Acroporidae recruits on a tile to the number of juveniles, when the variability between sites and reefs was accounted for.
 
 # Total recruits related to total juveniles
 

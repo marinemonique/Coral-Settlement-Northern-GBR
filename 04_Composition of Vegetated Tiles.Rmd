@@ -122,6 +122,38 @@ Combined <- left_join(Coral_settlement_nGBR, join)
 
 ```{r}
 Recruits <- Coral_settlement_nGBR %>%
+  filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
+  group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
+  summarise(across(Acroporidae:Other, mean), .groups = "drop")
+
+recruit_hellinger <- decostand(Recruits %>% select(Acroporidae, Pocilloporidae, Poritid, Other),
+                                                         method = "hellinger")
+
+# reef year?
+reef_year <- Recruits |> 
+  select(Reef, Year_Collected, Shelf)
+
+permanova_result <- adonis2(recruit_hellinger ~ Year_Collected * Shelf,
+  data = reef_year,
+  method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
+  by = "margin",
+  permutations = 999)
+
+print(permanova_result)
+
+
+euc_hellinger <- vegdist(recruit_hellinger, method = "euclidean")
+# With respect to Shelf
+betadisper(euc_hellinger, reef_year$Shelf)
+anova(betadisper(euc_hellinger, reef_year$Shelf))
+```
+
+Using this method, we can see that the model explains only 37.58 percent of the data, and there is a large amount of residual...
+ANd there is no significant effect of year and shelf
+
+
+```{r}
+Recruits <- Coral_settlement_nGBR %>%
   filter(total >0) |>  #ensure only vegetated tiles included
   select(Acroporidae, Pocilloporidae, Poritid, Other)
 
@@ -287,6 +319,8 @@ scores <- scores |>
       Year_Collected == "2022" ~ "21/22")
   )
 ```
+
+
 
 ```{r}
 # Decide limits of x and y axis, so that both plots will be the same
