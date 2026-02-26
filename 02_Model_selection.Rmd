@@ -278,35 +278,25 @@ zbin_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site),
 ```
 
 ```{r eval=FALSE}
+sim1.1 <- simulateResiduals(pois_total_yr)
 testResiduals(sim1.1) #not good fit
-plot(sim1.1)
-plotResiduals(sim1.1, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+testZeroInflation(sim1.1)
 
+sim1.2 <- simulateResiduals(pois_total_yr2)
 testResiduals(sim1.2) #not good fit
-plot(sim1.2)
-plotResiduals(sim1.2, quantreg = FALSE, plot = FALSE) # Returns ggplot object
-
-testResiduals(sim1.5) #good
-plot(sim1.5)
-plotResiduals(sim1.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
-
-testResiduals(sim1.6) #good
-plot(sim1.6)
- plotResiduals(sim1.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+testZeroInflation(sim1.2)
 ```
 
 ```{r}
 sim1.3 <- simulateResiduals(nbin_total_yr)
 testResiduals(sim1.3) #good
+testZeroInflation(sim1.3)
 plot(sim1.3)
-sim1.3_plot <- plotResiduals(sim1.3, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim1.4 <- simulateResiduals(nbin_total_yr2)
 testResiduals(sim1.4) #good
+testZeroInflation(sim1.4)
 plot(sim1.4)
-plotResiduals(sim1.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
-
-
 ```
 
 model.sel(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2)
@@ -408,32 +398,27 @@ Simulate residuals for models
 sim2.1 <- simulateResiduals(nbin_Acroporidae_fixed) 
 testResiduals(sim2.1) #fine
 plot(sim2.1) #bad
-sim2.1_plot <- plotResiduals(sim2.1, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim2.2 <- simulateResiduals(nbin_Acroporidae_interaction)
 testResiduals(sim2.2) #fine
 plot(sim2.2) #fine
-sim2.2_plot <- plotResiduals(sim2.2, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim2.3 <- simulateResiduals(zbin_Acroporidae_fixed)
 testResiduals(sim2.3) #fine
 plot(sim2.3) #bad
-sim2.3_plot <- plotResiduals(sim2.3, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+
 
 sim2.4 <- simulateResiduals(zbin_Acroporidae_interaction)
 testResiduals(sim2.4) #fine
 plot(sim2.4) #fine
-sim2.4_plot <- plotResiduals(sim2.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim2.5 <- simulateResiduals(pois_Acroporidae_fixed) #not a good fit
 testResiduals(sim2.5) #bad
 plot(sim2.5) #bad
-sim2.5_plot <- plotResiduals(sim2.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 
 sim2.6 <- simulateResiduals(pois_Acroporidae_interaction) #not a good fit
 testResiduals(sim2.6) #bad
 plot(sim2.6) #bad
-sim2.6_plot <- plotResiduals(sim2.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 ```
 
 Compare AIC of those models
@@ -472,8 +457,6 @@ sim3.6_plot <- plotResiduals(sim3.6, quantreg = FALSE, plot = FALSE) # Returns g
 ```
 
 ```{r}
-AIC(pois_Pocilloporidae_fixed, nbin_Pocilloporidae_fixed, zbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
-
 model.sel(pois_Pocilloporidae_fixed, nbin_Pocilloporidae_fixed, zbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
 ```
 
@@ -497,7 +480,6 @@ testResiduals(sim4.5)
 sim4.6 <- simulateResiduals(zbin_Poritid_interaction)
 testResiduals(sim4.6)
 ```
-
 
 Both nbin_interaction, and zbin_interaction for Portidae have significant dispersion.
 Don't see much of a difference in Poritid across shelf position. Although slightly less in mid shore reefs (p<0.1)
@@ -579,7 +561,6 @@ pois <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site),
 
 nbin <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Belt_10m)
-
 ```
 
 ```{r}
@@ -877,19 +858,16 @@ gropd_df2 <- combine_belt_st %>%
   ungroup()
 ```
 
-Remove first year rows
+
+
+## 5.1. Acroporidae
+
+Remove first year row
 ```{r}
 model_df_acro <- gropd_df2 %>%
   filter(!is.na(mean_acro))
-
-model_df_poci <- gropd_df2 %>%
-  filter(!is.na(mean_poci))
-
-model_df_por <- gropd_df2 %>%
-  filter(!is.na(mean_por))
 ```
 
-## 5.1. Acroporidae
 
 Fit model. check if mean_acro is approximately normal
 ```{r}
@@ -957,6 +935,13 @@ Acro_juv_st_df <- model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_
 
 ## 5.2. Pocilloporidae
 
+Remove first years rows
+```{r}
+model_df_poci <- gropd_df2 %>%
+  filter(!is.na(mean_poci))
+```
+
+
 ```{r}
 ln_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + Shelf + Year + (1|Reef/Site),
               family = "lognormal",
@@ -1019,6 +1004,12 @@ Poci_juv_st_df <- model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, ln_poci_
 Fixed model is best for Pocilloporidae
 
 ## 5.3. Poritidae
+
+Remove first year rows
+```{r}
+model_df_por <- gropd_df2 %>%
+  filter(!is.na(mean_por))
+```
 
 ```{r}
 model_df_por <- model_df_por |> 
