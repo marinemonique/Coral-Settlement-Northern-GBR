@@ -423,26 +423,50 @@ sc_model_emm <- nbin_sc_f|>
 ```
 
 ## NMDS and PERMANOVA
+
 ```{r}
-# Step 1: Create Matrix
+# Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
   select(
-    Year, Reef, Shelf, Site, Transect, 107:118
+    Year, Reef, Shelf, Site, Transect, 95:108
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
 site_by_PIT <- site_by_PIT |>                                                         # ensure only vegetated tiles included 
   group_by(Reef, Year, Shelf) %>%               # this was missing in your code
-  summarise(across(`Hard Coral`:Rubble_and_Sand, mean), .groups = "drop")
+  summarise(across(`Soft Coral`:CCA...108, mean), .groups = "drop")
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_PIT <- site_by_PIT %>%
   select(Shelf, Year, Reef)
 
-#create species matrix
-PIT_matrix_filtered <- site_by_PIT |> 
-  select(4:15)
+# Step 3: Species matrix
+PIT_matrix_filtered <- site_by_PIT %>%
+  select(
+    4:17
+  )
+```
 
+```{r}
+# # Step 1: Create Matrix
+# site_by_PIT <- PIT %>%
+#   select(
+#     Year, Reef, Shelf, Site, Transect, 107:118
+#   ) %>%
+#   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
+# 
+# site_by_PIT <- site_by_PIT |>                                                         # ensure only vegetated tiles included 
+#   group_by(Reef, Year, Shelf) %>%               # this was missing in your code
+#   summarise(across(`Hard Coral`:Rubble_and_Sand, mean), .groups = "drop")
+# 
+# # Step 2: Metadata (KEEP Site_ID)
+# metadata_PIT <- site_by_PIT %>%
+#   select(Shelf, Year, Reef)
+# 
+# #create species matrix
+# PIT_matrix_filtered <- site_by_PIT |> 
+#   select(4:15)
+# 
 ```
 
 
@@ -454,7 +478,7 @@ PIT_dist <- vegdist(PIT_matrix_filtered, method = "bray")
 
 # With respect to Shelf
 betadisper(PIT_dist, metadata_PIT$Shelf)
-anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 1.561e-05 ***
+anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01143 * ***
 ```
 
 ```{r}
@@ -527,11 +551,27 @@ Benthic_envfit <- envfit(
   permutations = 999
 ) 
 
-#Saving the vectors as a data frame
-Benthic_envfit <- as.data.frame(scores(Benthic_envfit, display = "vectors"))
+# Extract p-values
+pvals <- Benthic_envfit$vectors$pvals
 
-Benthic_envfit <- Benthic_envfit |> 
+# Extract r-squared values
+r2 <- Benthic_envfit$vectors$r
+# Arrow coordinates
+vec_scores <- as.data.frame(scores(Benthic_envfit, display = "vectors"))
+
+# Add r2 and p-values
+vec_scores$r2 <- Benthic_envfit$vectors$r
+vec_scores$pval <- Benthic_envfit$vectors$pvals
+
+vec_scores
+#Saving the vectors as a data frame
+
+
+
+Benthic_envfit <- vec_scores |> 
   rownames_to_column(var = "label_category")
+
+#Other, Zoantharian, Poritidae...
 ```
 
 ```{r}
@@ -571,3 +611,5 @@ permanova_result <- adonis2(PIT_matrix_filtered ~ Shelf,
 
 print(permanova_result)
 ```
+
+shelf position explaining 67.7 % of the variation in benthic cover (PERMANOVA, df2, p<0.001, psuedo f?.

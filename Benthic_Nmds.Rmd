@@ -152,7 +152,7 @@ family_total_recruits <- Coral_settlement_nGBR %>%
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
   select(
-    Year, Reef, Shelf, Site, Transect, 107:118
+    Year, Reef, Shelf, Site, Transect, 95:108
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
@@ -164,13 +164,13 @@ metadata_PIT <- site_by_PIT %>%
 PIT_matrix <- site_by_PIT %>%
   select(
     Site_ID,
-    6:17
+    6:19
   )
 ```
 
 ```{r}
-PIT_matrix <- PIT_matrix |> 
-  select(Site_ID, Acroporidae, Pocilloporidae, Poritidae, `Brown Macroalgae`, `Red Macroalgae`, `Green Macroalgae`, Turf, `Soft Coral`, Rubble_and_Sand)
+# PIT_matrix <- PIT_matrix |> 
+  # select(Site_ID, Acroporidae, Pocilloporidae, Poritidae, `Brown Macroalgae`, `Red Macroalgae`, `Green Macroalgae`, Turf, `Soft Coral`, Rubble_and_Sand)
 
 # Step 4: Remove all-zero rows BEFORE rownames
 PIT_matrix_filtered <- PIT_matrix %>%
@@ -190,7 +190,7 @@ PIT_dist <- vegdist(PIT_matrix_filtered, method = "bray")
 
 # With respect to Shelf
 betadisper(PIT_dist, PIT_metadata_filtered$Shelf)
-anova(betadisper(PIT_dist, PIT_metadata_filtered$Shelf)) # Significant was 1.561e-05 ***
+anova(betadisper(PIT_dist, PIT_metadata_filtered$Shelf)) # Significant was 1.067e-08 
 ```
 
 
@@ -206,7 +206,7 @@ PIT_dist <- vegdist(PIT_hellinger, method = "euclidean")
 
 # With respect to Shelf
 betadisper(PIT_dist, PIT_metadata_filtered$Shelf)
-anova(betadisper(PIT_dist, PIT_metadata_filtered$Shelf)) # oh no, thats not great. Significance was 1.08e-07 ***
+anova(betadisper(PIT_dist, PIT_metadata_filtered$Shelf)) # oh no, thats not great. Significance was 3.096e-10 ******
 ```
 
 ```{r}
