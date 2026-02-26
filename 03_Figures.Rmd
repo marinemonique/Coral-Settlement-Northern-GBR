@@ -146,6 +146,24 @@ Other <- Coral_settlement_nGBR %>%
          Other, Top_other, 
          Under_oth, Side_other, total)
 
+# Mean or mean no. tiles per site / year
+Join_Coral <- Coral_settlement_nGBR |> 
+  group_by(Shelf, Year, Site, Reef) |> 
+  summarise(
+    st_mean_acro = mean(Acroporidae),
+    st_sd_acro = sd(Acroporidae),
+    st_median_acro = median(Acroporidae),
+    st_mean_poci = mean(Pocilloporidae),
+    st_sd_poci = sd(Pocilloporidae),
+    st_median_poci = median(Pocilloporidae),
+    st_mean_por = mean(Poritid),
+    st_sd_por = sd(Poritid),
+    st_median_por = median(Poritid),
+    st_mean_total = mean(total),
+    st_sd_total = sd(total),
+    Tiles = n()
+  )
+
 # Benthic Data
 
 PIT <- read_csv("PIT_50m.csv") %>%
@@ -1068,4 +1086,99 @@ ggsave(
 ```
 
 ## 3.2. Brood Stock and Recruits
+
+# 4. Larval supply and Juveniles
+
+# 4.1. Spatial Patterns
+
+Load data for these models
+```{r}
+combine_belt_st <- left_join(join_belt, Join_Coral)
+```
+
+```{r}
+combine_belt_st <- combine_belt_st |> 
+  mutate(Year_start = as.numeric(substr(Year, 1, 4)))
+```
+
+```{r}
+gropd_df2 <- combine_belt_st %>%
+  arrange(Reef, Site, Year_start) %>%   # make sure data are ordered
+  group_by(Reef, Site) %>%              # or group_by(Reef) if Site not needed
+  mutate(
+    st_mean_acro_lag1 = lag(st_mean_acro, 1),
+    st_mean_poci_lag1 = lag(st_mean_poci, 1),
+    st_mean_por_lag1 = lag(st_mean_por, 1),
+  ) %>%
+  ungroup()
+```
+
+
+### 4.1.1. Acroporidae
+
+```{r}
+#model
+model_df_acro <- gropd_df2 %>%
+  filter(!is.na(mean_acro))
+
+ln_acro_juv_st_int_wo_yr <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+summary(model_df_acro$st_mean_acro_lag1)
+```
+
+```{r}
+library(ggeffects)
+library(ggplot2)
+model_df_acro$st_mean_acro_lag1_z <-
+  scale(model_df_acro$st_mean_acro_lag1)
+
+ln_acro_juv_st_int_wo_yr <- glmmTMB(
+  mean_acro ~ st_mean_acro_lag1_z * Shelf + (1|Reef/Site),
+  family = "lognormal",
+  data = model_df_acro
+)
+
+
+pred <- ggpredict(
+  ln_acro_juv_st_int_wo_yr,
+  terms = c("st_mean_acro_lag1_z [all]", "Shelf")
+)
+
+ggplot(pred, aes(x = x, y = predicted, colour = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, colour = NA) +
+  labs(x = "Lagged Acroporidae Larval Supply (avg recruits/tile for site x year)",
+       y = "Predicted Acropora juveniles",
+       colour = "Shelf",
+       fill = "Shelf") +
+  facet_wrap(~group, scale = "free_y")+
+  theme_classic()
+```
+
+# 4.1.2.
+```{r}
+model_df_poci <- gropd_df2 %>%
+  filter(!is.na(mean_poci))
+ln_poci_juv_st_int_wo_yr <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_poci)
+
+pred <- ggpredict(
+  ln_poci_juv_st_int_wo_yr,
+  terms = c("st_mean_poci_lag1 [all]", "Shelf")
+)
+
+ggplot(pred, aes(x = x, y = predicted, colour = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, colour = NA) +
+  labs(x = "Lagged Pocilloporidae Larval Supply (avg recruits/tile for site x year)",
+       y = "Predicted Pocilloporidae juveniles",
+       colour = "Shelf",
+       fill = "Shelf") +
+  #facet_wrap(~group, scale = "free_y")+
+  theme_classic()
+```
 

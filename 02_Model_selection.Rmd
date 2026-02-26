@@ -859,7 +859,6 @@ gropd_df2 <- combine_belt_st %>%
 ```
 
 
-
 ## 5.1. Acroporidae
 
 Remove first year row
