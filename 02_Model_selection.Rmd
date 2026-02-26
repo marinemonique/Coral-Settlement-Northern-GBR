@@ -146,7 +146,7 @@ Other <- Coral_settlement_nGBR %>%
          Other, Top_other, 
          Under_oth, Side_other, total)
 
-# Mean or median no. tiles per site / year
+# Mean or mean no. tiles per site / year
 Join_Coral <- Coral_settlement_nGBR |> 
   group_by(Shelf, Year, Site, Reef) |> 
   summarise(
@@ -194,17 +194,18 @@ PIT<- PIT |>
 join <- PIT |> 
   group_by(Year, Shelf, Reef, Site) |> 
   summarise(
-    mean_aco = mean(prop_acro),
-    sd_aco = sd(prop_acro),
-    median_aco = median(prop_acro),
-    mean_poci = mean(prop_poci),
-    sd_poci = sd(prop_poci),
-    median_poci = median(prop_poci),
-    mean_por = mean(prop_pori),
-    sd_por = sd(prop_pori),
-    median_por = median(prop_pori),
-    mean_macroalgae = mean(Prop_macroalgae),
-    sd_macroalgae = sd(Prop_macroalgae),
+    mean_aco = mean(Acroporidae),
+    sd_aco = sd(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    mean_macroalgae = mean(Macroalgae),
+    sd_macroalgae = sd(Macroalgae),
+    mean_sand =mean(Rubble_and_Sand),
+    sd_sand = sd(Rubble_and_Sand),
+    mean_turf = mean(Turf),
+    sd_turf = sd(Turf),
     PIT = n()
   )
 
@@ -707,6 +708,8 @@ model.sel(nbin_Poritid_fixed, nbin_Poritid_rs )
 ```
 Random slope performs better for Poritidae.
 
+# Relationship between Brood stock and larval supply (averages)
+
 ## Averaging both tiles and mean cover
 ```{r}
 st_join <- Coral_settlement_nGBR |> 
@@ -732,60 +735,60 @@ Now these are both averages, it can't follow an intergar and would need to follo
 
 ```{r}
 # Test for normality
-shapiro.test(combined_averages$acro_median_st)
-hist(combined_averages$acro_median_st)
-shapiro.test(combined_averages$median_aco)
+shapiro.test(combined_averages$acro_mean_st)
+hist(combined_averages$acro_mean_st)
+shapiro.test(combined_averages$mean_aco)
 ```
 The p-value of the Shapiro-Wilk test is less than 0.05, so we reject the null hypothesis and conclude that Height is not normally distributed. Therefore we should use Spearman’s test for this analysis.
 ```{r}
-cor.test(combined_averages$acro_median_st, combined_averages$median_aco, method = "spearman")
+cor.test(combined_averages$acro_mean_st, combined_averages$mean_aco, method = "spearman")
 ```
 
 ```{r}
 ggplot()+
-  geom_point(data = combined_averages, aes(x=median_aco, y=acro_median_st, colour = Shelf))
+  geom_point(data = combined_averages, aes(x=mean_aco, y=acro_mean_st, colour = Shelf))
 ```
 
 
 ```{r}
 # Test for normality
-shapiro.test(combined_averages$poci_median_st)
-hist(combined_averages$poci_median_st)
+shapiro.test(combined_averages$poci_mean_st)
+hist(combined_averages$poci_mean_st)
 
-shapiro.test(combined_averages$median_poci)
-hist(combined_averages$median_poci)
+shapiro.test(combined_averages$mean_poci)
+hist(combined_averages$mean_poci)
 hist(combined_averages$mean_poci)
 ```
 The p-value of the Shapiro-Wilk test is less than 0.05, so we reject the null hypothesis and conclude that Height is not normally distributed. Therefore we should use Spearman’s test for this analysis.
 
 ```{r}
-cor.test(combined_averages$poci_median_st, combined_averages$median_poci, method = "spearman")
+cor.test(combined_averages$poci_mean_st, combined_averages$mean_poci, method = "spearman")
 ```
 
 ```{r}
 ggplot()+
-  geom_point(data = combined_averages, aes(x=median_poci, y=poci_median_st, colour = Shelf))+
+  geom_point(data = combined_averages, aes(x=mean_poci, y=poci_mean_st, colour = Shelf))+
   facet_wrap(~Year)
 ```
 
 ```{r}
 # Test for normality
-shapiro.test(combined_averages$por_median_st)
-shapiro.test(combined_averages$median_por)
+shapiro.test(combined_averages$por_mean_st)
+shapiro.test(combined_averages$mean_por)
 ```
 The p-value of the Shapiro-Wilk test is less than 0.05, so we reject the null hypothesis and conclude that Height is not normally distributed. Therefore we should use Spearman’s test for this analysis.
 
 
 ```{r}
-cor.test(combined_averages$por_median_st, combined_averages$median_por, method = "spearman")
+cor.test(combined_averages$por_mean_st, combined_averages$mean_por, method = "spearman")
 ```
 
 ```{r}
 Acro <- combined_averages |> 
   filter(acro_mean_st > 0)
 
-gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
-        family = "Gamma", data = Acro)
+# gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
+#         family = "Gamma", data = Acro)
 
 ln_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
         family = "lognormal", data = Acro)
@@ -796,9 +799,9 @@ gaus_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) 
 ```
 
 ```{r}
-sim13.1 <- simulateResiduals(gamma_avg_Acroporidae_fixed) #didn't work
-testResiduals(sim13.1) 
-testZeroInflation(sim13.1)
+# sim13.1 <- simulateResiduals(gamma_avg_Acroporidae_fixed) #didn't work
+# testResiduals(sim13.1) 
+# testZeroInflation(sim13.1)
 sim13.2 <- simulateResiduals(ln_avg_Acroporidae_fixed)
 testResiduals(sim13.2)
 
@@ -816,26 +819,28 @@ ln_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Shelf/Site) + (1 | Y
 
 gaus_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Shelf/Site) + (1 | Year), 
         family = "gaussian", data = Poci)
-gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Shelf/Site) + (1 | Year), 
-        family = "Gamma", data = Poci)
+# gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Shelf/Site) + (1 | Year), 
+#         family = "Gamma", data = Poci)
 ```
 
 ```{r}
-sim14.1 <- simulateResiduals(gamma_avg_poci_fixed) #didn't work
-testResiduals(sim14.1) 
+# sim14.1 <- simulateResiduals(gamma_avg_poci_fixed) #didn't work
+# testResiduals(sim14.1) 
 testZeroInflation(sim14.1)
 sim14.2 <- simulateResiduals(ln_avg_poci_fixed) # very good
 testResiduals(sim14.2)
+testZeroInflation(sim14.2)
 
 sim14.3 <- simulateResiduals(gaus_avg_poci_fixed)
 testResiduals(sim14.3) # definitelty not this one
+testZeroInflation(sim14.3)
 ```
 ```{r}
 ## Poritidae
 Por <- combined_averages |> 
   filter(por_mean_st > 0)
-gamma_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
-        family = "Gamma", data = Por)
+# gamma_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
+#         family = "Gamma", data = Por)
 ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
         family = "lognormal", data = Por)
 gaus_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
@@ -844,14 +849,16 @@ gaus_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1
 ```
 
 ```{r}
-sim15.1 <- simulateResiduals(gamma_avg_Poritid_fixed) #didn't work
-testResiduals(sim15.1) 
-testZeroInflation(sim15.1)
+# sim15.1 <- simulateResiduals(gamma_avg_Poritid_fixed) #didn't work
+# testResiduals(sim15.1) 
+# testZeroInflation(sim15.1)
 sim15.2 <- simulateResiduals(ln_avg_Poritid_fixed) # very good
 testResiduals(sim15.2)
+testZeroInflation(sim15.2)
 
 sim15.3 <- simulateResiduals(gaus_avg_Poritid_fixed)
 testResiduals(sim15.3) # definitely not this one
+testZeroInflation(sim15.3)
 ```
 
 Log normal models worked best for all of these
@@ -968,5 +975,240 @@ model.sel(pois, nbin) #nbin behaves better
 
 # Recruitment and Juveniles
 These models will need to be lagged. 
-One question I should potentially ask Andy and Victor, and then if not sure on answer ask Murray 
+
+```{r}
+combine_belt_st <- left_join(join_belt, Join_Coral)
+```
+
+```{r}
+combine_belt_st <- combine_belt_st |> 
+  mutate(Year_start = as.numeric(substr(Year, 1, 4)))
+```
+
+```{r}
+gropd_df2 <- combine_belt_st %>%
+  arrange(Reef, Site, Year_start) %>%   # make sure data are ordered
+  group_by(Reef, Site) %>%              # or group_by(Reef) if Site not needed
+  mutate(
+    st_mean_acro_lag1 = lag(st_mean_acro, 1),
+    st_mean_poci_lag1 = lag(st_mean_poci, 1),
+    st_mean_por_lag1 = lag(st_mean_por, 1),
+  ) %>%
+  ungroup()
+```
+
+Remove first year rows
+```{r}
+model_df_acro <- gropd_df2 %>%
+  filter(!is.na(mean_acro))
+
+model_df_poci <- gropd_df2 %>%
+  filter(!is.na(mean_poci))
+
+model_df_por <- gropd_df2 %>%
+  filter(!is.na(mean_por))
+```
+
+Fit model. check if mean_acro is approximately normal
+```{r}
+ggplot()+
+  geom_point(data=gropd_df2,
+             aes(x=st_mean_acro_lag1, y=mean_acro, colour = Year))+
+  facet_wrap(~Shelf, scale = "free_x")
+
+ln_acro_juv_st_fixed <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + Shelf + Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+
+sim <- simulateResiduals(ln_acro_juv_st_fixed)
+testResiduals(sim) #passes
+testZeroInflation(sim)
+
+gau_acro_juv_st_fixed <- glmmTMB(mean_acro ~ st_mean_acro_lag1 +Shelf + Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_acro)
+
+sim <- simulateResiduals(gau_acro_juv_st_fixed)
+testResiduals(sim) #passes
+testZeroInflation(sim)
+
+#without year
+ln_acro_juv_st_int_wo_yr <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+sim <- simulateResiduals(ln_acro_juv_st_int_wo_yr)
+testResiduals(sim) # passed
+testZeroInflation(sim)
+
+gau_acro_juv_st_int_wo_yr<- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_acro)
+
+sim <- simulateResiduals(gau_acro_juv_st_int_wo_yr)
+testResiduals(sim) # passed but doesn't look great
+testZeroInflation(sim)
+
+ln_acro_juv_st_int <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+
+sim <- simulateResiduals(ln_acro_juv_st_int)
+testResiduals(sim) #outlier test significant
+testZeroInflation(sim)
+
+gau_acro_juv_st_int <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_acro)
+
+sim <- simulateResiduals(gau_acro_juv_st_int)
+testResiduals(sim) #passes
+testZeroInflation(sim)
+
+```
+
+```{r}
+model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_juv_st_fixed, gau_acro_juv_st_int_wo_yr, ln_acro_juv_st_int_wo_yr)
+
+Acro_juv_st_df <- model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_juv_st_fixed, gau_acro_juv_st_int_wo_yr, ln_acro_juv_st_int_wo_yr) |> as.data.frame()
+
+```
+
+###Pocilloporidae
+
+```{r}
+ln_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + Shelf + Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_poci)
+
+sim <- simulateResiduals(ln_poci_juv_st_fixed)
+testResiduals(sim) #passes
+testZeroInflation(sim)
+
+
+gau_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1+Shelf + Year+ (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_poci)
+
+sim <- simulateResiduals(gau_poci_juv_st_fixed)
+testResiduals(sim) #passes but doesn't look great
+testZeroInflation(sim)
+
+#without year
+ln_poci_juv_st_int_wo_yr <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_poci)
+sim <- simulateResiduals(ln_poci_juv_st_int_wo_yr)
+testResiduals(sim) # passed
+testZeroInflation(sim)
+
+gau_poci_juv_st_int_wo_yr<- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_poci)
+
+sim <- simulateResiduals(gau_por_juv_st_int_wo_yr)
+testResiduals(sim) # passed but doesn't look great
+testZeroInflation(sim)
+
+
+ln_poci_juv_st_int <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_poci)
+
+sim <- simulateResiduals(ln_poci_juv_st_int)
+testResiduals(sim) # passes
+testZeroInflation(sim)
+
+gau_poci_juv_st_int <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_poci)
+
+sim <- simulateResiduals(gau_poci_juv_st_int)
+testResiduals(sim) #passes
+testZeroInflation(sim)
+```
+
+
+```{r}
+model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, ln_poci_juv_st_fixed, ln_poci_juv_st_int, gau_poci_juv_st_int_wo_yr, ln_poci_juv_st_int_wo_yr)
+
+Poci_juv_st_df <- model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, ln_poci_juv_st_fixed, ln_poci_juv_st_int, gau_poci_juv_st_int_wo_yr, ln_poci_juv_st_int_wo_yr) |> as.data.frame()
+```
+
+Fixed model is best for Pocilloporidae
+
+```{r}
+model_df_por <- model_df_por |> 
+  filter(mean_por > 0)
+
+ln_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_por)
+
+sim <- simulateResiduals(ln_por_juv_st_fixed)
+testResiduals(sim) # passsed
+testZeroInflation(sim)
+
+gau_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_por)
+
+sim <- simulateResiduals(gau_por_juv_st_fixed)
+testResiduals(sim) # passed but not great
+testZeroInflation(sim)
+
+#without year
+ln_por_juv_st_int_wo_yr <- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_por)
+sim <- simulateResiduals(ln_por_juv_st_int_wo_yr)
+testResiduals(sim) # passed
+testZeroInflation(sim)
+
+gau_por_juv_st_int_wo_yr<- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_por)
+
+sim <- simulateResiduals(gau_por_juv_st_int_wo_yr)
+testResiduals(sim) # passed but doesn't look great
+testZeroInflation(sim)
+
+ln_por_juv_st_int <- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_por)
+sim <- simulateResiduals(ln_por_juv_st_int)
+testResiduals(sim) # passed
+testZeroInflation(sim)
+
+gau_por_juv_st_int<- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_por)
+
+sim <- simulateResiduals(gau_por_juv_st_int)
+testResiduals(sim) # passed but doesn't look great
+testZeroInflation(sim)
+
+```
+
+```{r}
+model.sel(gau_por_juv_st_fixed, gau_por_juv_st_int, ln_por_juv_st_int_wo_yr, gau_por_juv_st_int_wo_yr,ln_por_juv_st_int, ln_por_juv_st_fixed)
+
+Poritidae_juv_st_df <- model.sel(gau_por_juv_st_fixed, gau_por_juv_st_int, ln_por_juv_st_int_wo_yr, gau_por_juv_st_int_wo_yr,ln_por_juv_st_int, ln_por_juv_st_fixed) |> as.data.frame() 
+```
+
+```{r}
+ln_por_juv_st_fixed  
+
+summary(ln_por_juv_st_fixed)
+```
+
+```{r eval=FALSE, echo=FALSE}
+write.csv(Poci_juv_st_df, 
+          file = "Poci_juv_st_model_sel.csv")
+
+write.csv(Acro_juv_st_df, 
+          file = "Acro_juv_st_model_sel.csv")
+
+write.csv(Poritidae_juv_st_df, 
+          file = "Por_juv_st_model_sel.csv")
+```
 

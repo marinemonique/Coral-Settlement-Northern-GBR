@@ -176,15 +176,12 @@ PIT<- PIT |>
 join <- PIT |> 
   group_by(Year, Shelf, Reef, Site) |> 
   summarise(
-    mean_aco = mean(prop_acro),
-    sd_aco = sd(prop_acro),
-    mean_poci = mean(prop_poci),
-    sd_poci = sd(prop_poci),
-    mean_por = mean(prop_pori),
-    sd_por = sd(prop_pori),
-    mean_macroalgae = mean(Prop_macroalgae),
-    sd_macroalgae = sd(Prop_macroalgae),
-    PIT = n()
+    mean_aco = mean(Acroporidae),
+    sd_aco = sd(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae)
   )
 
 Combined <- left_join(Coral_settlement_nGBR, join)
@@ -227,6 +224,9 @@ family_total_recruits <- Coral_settlement_nGBR %>%
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 ```
 
+# Recruitment
+
+## Spatio-temporal
 Figure 1
 
 ```{r}
@@ -276,7 +276,7 @@ A <- ggplot()+
 A
 ```
 
-# Acroporidae
+### Acroporidae
 
 Create data
 ```{r}
@@ -329,7 +329,7 @@ B <- ggplot()+
 B
 ```
 
-# Pocilloporidae
+### Pocilloporidae
 
 Model
 ```{r}
@@ -387,7 +387,7 @@ C <- ggplot()+
 C
 ```
 
-# Poritidae
+### Poritidae
 Model
 ```{r}
 nbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site), 
@@ -443,7 +443,7 @@ D <- ggplot()+
 D
 ```
 
-# Other 
+### Other 
 Model
 ```{r}
 nbin_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
@@ -497,7 +497,7 @@ E <- ggplot()+
 E
 ```
 
-# Combined figure
+Combined figure
 
 ```{r}
 bottom <- ggarrange(B, C, D, E, ncol =2, nrow = 2, labels = c("B", "C", "D", "E"), common.legend = TRUE, legend = "none")
@@ -510,62 +510,227 @@ ggarrange(A, bottom, ncol = 1, labels = c("A", ""), heights = c(1, 1.5)) |>
         )
 ```
 
+## Composition of Vegetated tiles
+
+# Juveniles
+
+## Spatio-temporal
+
+### Total
+
+```{r}
+nbin <- glmmTMB(Total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Belt_10m)
+
+total_juv_site <- Belt_10m |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Total_juveniles),
+    se_site = sd(Total_juveniles)/(n()^0.5))
+  
+total_juv_emm <-  nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame()
+
+
+juv_total_plot <-  ggplot()+
+   geom_point(data =total_juv_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8")+
+ # geom_point(data = total_juv_emm, aes(x=Year,
+ #             y=response, 
+ #             color=Shelf))+
+  geom_pointrange(data = total_juv_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(
+    y = expression("Predicted juvenile abundance (" * belt~transect^{-1} * ")"),,
+    colour = "Shelf"
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2025-26" = "25/26")
+    )+
+  #facet_wrap(~Family, ncol = 1, scales = "free_y")+
+  theme(legend.position = "bottom",
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+juv_total_plot
+```
+
+### Acroporidae
+
+```{r}
+Acro <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Acroporidae)
+
+nbin <- glmmTMB(Acroporidae ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Acro)
+
+acro_juv_site <- Belt_10m |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Acroporidae),
+    se_site = sd(Acroporidae)/(n()^0.5))
+  
+acro_juv_emm <-  nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame()
+
+
+juv_acro_plot <-  ggplot()+
+   geom_point(data =acro_juv_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8")+
+ # geom_point(data = total_juv_emm, aes(x=Year,
+ #             y=response, 
+ #             color=Shelf))+
+  geom_pointrange(data = acro_juv_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(
+    y = expression("Predicted juvenile abundance (" * belt~transect^{-1} * ")"),,
+    colour = "Shelf"
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2025-26" = "25/26")
+    )+
+  #facet_wrap(~Family, ncol = 1, scales = "free_y")+
+  theme(legend.position = "bottom",
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+juv_acro_plot
+```
+
+### Pocilloporidae
+
+```{r}
+Poc <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Pocilloporidae)
+
+nbin <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Poc)
+
+poci_juv_site <- Belt_10m |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Pocilloporidae),
+    se_site = sd(Pocilloporidae)/(n()^0.5))
+  
+poci_juv_emm <-  nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame()
+
+
+juv_poci_plot <-  ggplot()+
+   geom_point(data =poci_juv_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8")+
+ # geom_point(data = total_juv_emm, aes(x=Year,
+ #             y=response, 
+ #             color=Shelf))+
+  geom_pointrange(data = poci_juv_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(
+    y = expression("Predicted juvenile abundance (" * belt~transect^{-1} * ")"),,
+    colour = "Shelf"
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2025-26" = "25/26")
+    )+
+  #facet_wrap(~Family, ncol = 1, scales = "free_y")+
+  theme(legend.position = "bottom",
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+juv_poci_plot
+```
+
+
+### Poritidae
+
+```{r}
+Por <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Poritidae)
+
+nbin <- glmmTMB(Poritidae ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Por)
+
+por_juv_site <- Belt_10m |> 
+  group_by(Shelf, Site, Year, Reef) |> 
+  summarise(
+    mean_site = mean(Poritidae),
+    se_site = sd(Poritidae)/(n()^0.5))
+  
+por_juv_emm <-  nbin |> 
+  emmeans(~Shelf | Year, type = "response") |> 
+  as.data.frame()
+
+
+juv_por_plot <-  ggplot()+
+   geom_point(data =por_juv_site, aes(x=Year, y=mean_site, group = Shelf),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8")+
+ # geom_point(data = total_juv_emm, aes(x=Year,
+ #             y=response, 
+ #             color=Shelf))+
+  geom_pointrange(data = por_juv_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.8))+
+  theme_classic()+
+  labs(
+    y = expression("Predicted Poritidae juvenile abundance (" * 10~m^{-2} * ")"),,
+    colour = "Shelf"
+  ) +
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2025-26" = "25/26")
+    )+
+  #facet_wrap(~Family, ncol = 1, scales = "free_y")+
+  theme(legend.position = "bottom",
+        text = element_text(size = 9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+juv_por_plot
+```
+
+
+### Other Hard Corals
+ combined figure
+ 
 
 # Benthic Cover
-```{r}
-PIT_plot <- PIT |> 
-  select(Shelf, Year, Reef, Site, Acroporidae, Pocilloporidae, Poritidae, Macroalgae,
-         Rubble_and_Sand, `Hard Coral`,
-         #`Brown Macroalgae`, `Red Macroalgae`, `Green Macroalgae`, 
-         Turf, `Soft Coral`)
-
-PIT_long <- PIT_plot |> pivot_longer(cols = 5:12, names_to = "Benthic Cover", values_to = "Cover")
-
-PIT_long <- PIT_long |> 
-  mutate(`Benthic Cover` = factor(`Benthic Cover`, levels = c("Hard Coral", "Acroporidae", "Pocilloporidae","Poritidae", "Rubble_and_Sand", "Macroalgae", "Turf", "Soft Coral")))
-
-PIT_long <- PIT_long|> 
-  mutate(
-    "percent_cover" = Cover/100
-    )
-```
-
-Reorder so that Acroporidae, Pocilloporidae, Poritidae, and then Macroalgae, Turf, and then Soft Coral
-Model for this
-
-
-```{r}
-ggplot(data = PIT_long)+
-  geom_jitter(aes(x = Year, y = Cover, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.6),
-    size = 0.5,
-    alpha = 0.5,
-    colour = "grey"
-  )+
-   # Mean points
-  stat_summary(aes(x = Year, y = Cover, colour = Shelf),
-    fun = mean,
-    geom = "point",
-    position = position_dodge(width = 0.6),
-    size = 2.25
-  ) +
-  # Error bars (mean ± SE)
-  stat_summary(aes(x = Year, y = Cover, colour = Shelf),
-    fun.data = mean_se,
-    geom = "errorbar",
-    position = position_dodge(width = 0.6),
-    width = 0.45
-  ) +
-  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
-  theme_bw()+
-  theme(text =element_text(size =8),
-        title = element_text(size = 8),
-        axis.title.x = element_blank(),
-        panel.grid.major = element_blank(),
-        legend.position = "bottom")+
-  labs(y = "Percent Cover (%)")+
-  facet_wrap(~`Benthic Cover`, scale = "free_y", ncol = 2)
-```
-
 
 
