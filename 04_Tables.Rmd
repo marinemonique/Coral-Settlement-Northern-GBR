@@ -146,6 +146,24 @@ Other <- Coral_settlement_nGBR %>%
          Other, Top_other, 
          Under_oth, Side_other, total)
 
+# Mean or mean no. tiles per site / year
+Join_Coral <- Coral_settlement_nGBR |> 
+  group_by(Shelf, Year, Site, Reef) |> 
+  summarise(
+    st_mean_acro = mean(Acroporidae),
+    st_sd_acro = sd(Acroporidae),
+    st_median_acro = median(Acroporidae),
+    st_mean_poci = mean(Pocilloporidae),
+    st_sd_poci = sd(Pocilloporidae),
+    st_median_poci = median(Pocilloporidae),
+    st_mean_por = mean(Poritid),
+    st_sd_por = sd(Poritid),
+    st_median_por = median(Poritid),
+    st_mean_total = mean(total),
+    st_sd_total = sd(total),
+    Tiles = n()
+  )
+
 # Benthic Data
 
 PIT <- read_csv("PIT_50m.csv") %>%
@@ -204,6 +222,19 @@ Belt_10m <- Belt_10m |>
     ))
 
 Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
+join_belt <- Belt_10m |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_acro = mean(Acroporidae),
+    sd_acro = sd(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    mean_total = mean(Total_juveniles),
+    sd_total = sd(Total_juveniles),
+    Belt = n()
+  )
 
 ## Total recuits
 total_recruits <- Coral_settlement_nGBR %>%
@@ -371,7 +402,7 @@ pairs(emm_year_response)
 ### 3.1.1. Total juveniles
 
 ```{r}
-nbin_total_juv <- glmmTMB(total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
+nbin_total_juv <- glmmTMB(Total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Belt_10m)
 ```
 
@@ -548,7 +579,7 @@ Acro_juv_st_df <- model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_
 
 Tukey HSD among Shelf
 ```{r}
-emm_shelf <- emmeans(ln_acro_juv_st_int_wo_yr, ~Shelf | Year, type = "response")
+emm_shelf <- emmeans(ln_acro_juv_st_int_wo_yr, ~Shelf, type = "response")
 
 pairs(emm_shelf)
 ```
@@ -596,12 +627,51 @@ Poci_juv_st_df <- model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, ln_poci_
 
 Tukey HSD among Shelf
 ```{r}
-emm_shelf <- emmeans(ln_poci_juv_st_int_wo_yr, ~Shelf | Year, type = "response")
+emm_shelf <- emmeans(ln_poci_juv_st_int_wo_yr, ~Shelf, type = "response")
 
 pairs(emm_shelf)
 ```
 
 ### 5.1.3. Poritidae
 Model selection
+```{r}
+model_df_por <- gropd_df2 %>%
+  filter(!is.na(mean_por))
+
+model_df_por <- model_df_por |> 
+  filter(mean_por > 0)
+
+```
+
+```{r}
+ln_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_por)
+
+gau_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_por)
+#without year
+ln_por_juv_st_int_wo_yr <- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_por)
+gau_por_juv_st_int_wo_yr<- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_por)
+
+ln_por_juv_st_int <- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_por)
+
+gau_por_juv_st_int<- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_por)
+```
+
 
 Tukey HSD among Shelf
+```{r}
+emm_shelf <- emmeans(ln_por_juv_st_int_wo_yr, ~Shelf, type = "response")
+
+pairs(emm_shelf)
+```

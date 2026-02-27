@@ -1155,7 +1155,7 @@ ggsave(
 
 # 4. Larval supply and Juveniles
 
-# 4.1. Spatial Patterns
+## 4.1. Spatial Patterns
 
 Load data for these models
 ```{r}
@@ -1223,7 +1223,8 @@ ggplot(pred, aes(x = x, y = predicted, colour = group)) +
   theme_classic()
 ```
 
-# 4.1.2.
+### 4.1.2. Pocilloporidae
+
 ```{r}
 model_df_poci <- gropd_df2 %>%
   filter(!is.na(mean_poci))
@@ -1242,6 +1243,36 @@ ggplot(pred, aes(x = x, y = predicted, colour = group)) +
               alpha = 0.2, colour = NA) +
   labs(x = "Lagged Pocilloporidae Larval Supply (avg recruits/tile for site x year)",
        y = "Predicted Pocilloporidae juveniles",
+       colour = "Shelf",
+       fill = "Shelf") +
+  #facet_wrap(~group, scale = "free_y")+
+  theme_classic()
+```
+
+### 4.1.3. Poritidae
+
+```{r}
+model_df_por <- gropd_df2 %>%
+  filter(!is.na(mean_por))
+
+model_df_por <- model_df_por |> 
+  filter(mean_por > 0)
+
+ln_por_juv_st_int_wo_yr <- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_por)
+
+pred <- ggpredict(
+  ln_por_juv_st_int_wo_yr,
+  terms = c("st_mean_por_lag1 [all]", "Shelf")
+)
+
+ggplot(pred, aes(x = x, y = predicted, colour = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, colour = NA) +
+  labs(x = "Lagged Poritidae Larval Supply (avg recruits/tile for site x year)",
+       y = "Predicted Poritidae juveniles",
        colour = "Shelf",
        fill = "Shelf") +
   #facet_wrap(~group, scale = "free_y")+

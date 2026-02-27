@@ -223,6 +223,20 @@ Belt_10m <- Belt_10m |>
 
 Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
 
+join_belt <- Belt_10m |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_acro = mean(Acroporidae),
+    sd_acro = sd(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    mean_total = mean(Total_juveniles),
+    sd_total = sd(Total_juveniles),
+    Belt = n()
+  )
+
 ## Total recuits
 total_recruits <- Coral_settlement_nGBR %>%
   select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
@@ -1184,6 +1198,7 @@ sim <- simulateResiduals(gau_por_juv_st_fixed)
 testResiduals(sim) # passed but not great
 testZeroInflation(sim)
 
+
 #without year
 ln_por_juv_st_int_wo_yr <- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef/Site),
               family = "lognormal",
@@ -1199,6 +1214,13 @@ gau_por_juv_st_int_wo_yr<- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef
 sim <- simulateResiduals(gau_por_juv_st_int_wo_yr)
 testResiduals(sim) # passed but doesn't look great
 testZeroInflation(sim)
+
+# gamma_por_juv_st_int_wo_yr <- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef/Site),
+#               family = "Gamma",
+#            data = model_df_por)
+# sim <- simulateResiduals(gamma_por_juv_st_int_wo_yr)
+# testResiduals(sim) # passed
+# testZeroInflation(sim)
 
 ln_por_juv_st_int <- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf * Year + (1|Reef/Site),
               family = "lognormal",
@@ -1224,9 +1246,9 @@ Poritidae_juv_st_df <- model.sel(gau_por_juv_st_fixed, gau_por_juv_st_int, ln_po
 ```
 
 ```{r}
-ln_por_juv_st_fixed  
+ln_por_juv_st_int_wo_yr
 
-summary(ln_por_juv_st_fixed)
+summary(ln_por_juv_st_int_wo_yr)
 ```
 
 ```{r eval=FALSE, echo=FALSE}
