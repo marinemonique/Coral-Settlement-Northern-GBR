@@ -200,12 +200,6 @@ join_pit <- PIT |>
     sd_poci = sd(Pocilloporidae),
     mean_por = mean(Poritidae),
     sd_por = sd(Poritidae),
-    mean_macroalgae = mean(Macroalgae),
-    sd_macroalgae = sd(Macroalgae),
-    mean_sand =mean(Rubble_and_Sand),
-    sd_sand = sd(Rubble_and_Sand),
-    mean_turf = mean(Turf),
-    sd_turf = sd(Turf),
     PIT = n()
   )
 
@@ -550,6 +544,54 @@ AIC(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fixed, z
 model.sel(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fixed, zi_total_family_interaction)
 ```
 
+##1.2. Composition
+
+```{r}
+Recruits <- Coral_settlement_nGBR %>%
+  filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
+  group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
+  summarise(across(Acroporidae:Other, mean), .groups = "drop")
+
+recruit_hellinger <- decostand(Recruits %>% select(Acroporidae, Pocilloporidae, Poritid, Other),
+                                                         method = "hellinger")
+
+# reef year?
+reef_year <- Recruits |> 
+  select(Reef, Year_Collected, Shelf)
+
+permanova_result <- adonis2(recruit_hellinger ~ Shelf,
+  data = Recruits,
+  method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
+  by = "margin",
+  permutations = 999)
+
+print(permanova_result)
+
+```
+
+```{r}
+Recruits <- Coral_settlement_nGBR %>%
+  filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
+  group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
+  summarise(across(Acroporidae:Other, mean), .groups = "drop")
+
+recruit_hellinger <- decostand(Recruits %>% select(Acroporidae, Pocilloporidae, Poritid, Other),
+                                                         method = "hellinger")
+
+# reef year?
+reef_year <- Recruits |> 
+  select(Reef, Year_Collected, Shelf)
+
+permanova_result <- adonis2(recruit_hellinger ~ Year_Collected * Shelf,
+  data = Recruits,
+  method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
+  by = "margin",
+  permutations = 999)
+
+print(permanova_result)
+```
+
+
 # 2. Juveniles
 ## 2.1. Spatio-temporal variation
 
@@ -653,10 +695,122 @@ model.sel(pois, nbin) #nbin behaves better
 
 ### 2.1.5. Other
 
+```{r}
+Other_juv <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Other_HC)
+
+pois <- glmmTMB(Other_HC ~ Year*Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Other_juv)
+z_pois <- glmmTMB(Other_HC ~ Year*Shelf+(1 | Reef/Site),ziformula = ~1,
+      family = "poisson", data = Other_juv)
+
+nbin <- glmmTMB(Other_HC ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Other_juv)
+```
+
+```{r}
+sim <- simulateResiduals(pois)
+testResiduals(sim) # KS deviation significant
+testZeroInflation(sim)
+
+sim <- simulateResiduals(z_pois)
+testResiduals(sim) # passes
+
+sim <- simulateResiduals(nbin)
+testResiduals(sim) #passes
+testZeroInflation(sim)
+```
+
+```{r}
+model.sel(z_pois, nbin)
+```
+
+
+
 ## 2.2. Composition
 
 # 3. Benthic Cover
 
+## 3.1. Composition
+
+### 3.1.1. PERMANOVA
+```{r}
+# Step 1: Create site-by-species matrix with Site_ID
+site_by_PIT <- PIT %>%
+  select(
+    Year, Reef, Shelf, Site, Transect, 95:108
+  ) %>%
+  mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
+
+site_by_PIT <- site_by_PIT |>                                                         # ensure only vegetated tiles included 
+  group_by(Reef, Year, Shelf) %>%               # this was missing in your code
+  summarise(across(`Soft Coral`:CCA, mean), .groups = "drop")
+
+# Step 2: Metadata (KEEP Site_ID)
+metadata_PIT <- site_by_PIT %>%
+  select(Shelf, Year, Reef)
+
+# Step 3: Species matrix
+PIT_matrix_filtered <- site_by_PIT %>%
+  select(
+    4:17
+  )
+```
+
+```{r}
+# create a distance matrix
+PIT_dist <- vegdist(PIT_matrix_filtered, method = "bray")
+
+# With respect to Shelf
+betadisper(PIT_dist, metadata_PIT$Shelf)
+anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01143 * ***
+```
+
+```{r}
+permanova_result <- adonis2(PIT_matrix_filtered ~ Shelf,
+  data = site_by_PIT,
+  method = "bray",
+  by = "margin",
+  permutations = 999)
+
+print(permanova_result)
+```
+
+### 3.1.2. NMDS
+
+```{r}
+nmds <- metaMDS(PIT_matrix_filtered, distance = "bray", k = 2, trymax = 100)
+
+#Check the Stress Value
+nmds$stress
+```
+
+```{r}
+# Creating Vectors for driving the patterns
+Benthic_envfit <- envfit(
+  nmds,
+  PIT_matrix_filtered,
+  permutations = 999
+) 
+
+# Extract p-values
+pvals <- Benthic_envfit$vectors$pvals
+
+# Extract r-squared values
+r2 <- Benthic_envfit$vectors$r
+# Arrow coordinates
+vec_scores <- as.data.frame(scores(Benthic_envfit, display = "vectors"))
+
+# Add r2 and p-values
+vec_scores$r2 <- Benthic_envfit$vectors$r
+vec_scores$pval <- Benthic_envfit$vectors$pvals
+
+vec_scores
+#Saving the vectors as a data frame
+
+Benthic_envfit <- vec_scores |> 
+  rownames_to_column(var = "label_category")
+```
 
 
 # 4. Brood stock (PIT) and Recruitment (Tiles)
@@ -675,28 +829,29 @@ st_join <- Coral_settlement_nGBR |>
     poci_median_st = median(Pocilloporidae),
     por_median_st = median(Poritid),
   )
-```
 
-```{r}
 combined_averages <- left_join(join_pit, st_join)
 ```
 
-Now these are both averages, it can't follow an intergar and would need to follow a different family of error distribution.
+Now these are both averages, it can't follow an integar and would need to follow a different family of error distribution.
 
 ## 4.1. Acroporidae
 
+Despite not being insteresting in across the shelf differences, as shelf has only three levels there are two few levels for a stable randm effect
 ```{r}
 Acro <- combined_averages |> 
   filter(acro_mean_st > 0)
 
-# gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
+# gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
 #         family = "Gamma", data = Acro)
 
-ln_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
+ln_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
         family = "lognormal", data = Acro)
 
-gaus_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) + (1 | Year), 
+gaus_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
         family = "gaussian", data = Acro)
+
+# is the model better if t
 
 ```
 
@@ -706,9 +861,13 @@ gaus_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Site) 
 # testZeroInflation(sim13.1)
 sim13.2 <- simulateResiduals(ln_avg_Acroporidae_fixed)
 testResiduals(sim13.2)
+testZeroInflation(sim13.2)
 
 sim13.3 <- simulateResiduals(gaus_avg_Acroporidae_fixed)
 testResiduals(sim13.3) # definitelty not this one
+testZeroInflation(sim13.3)
+
+
 ```
 
 Log normal models worked best for all of these
@@ -722,19 +881,19 @@ summary(ln_avg_Acroporidae_fixed)
 ## Pocilloporidae
 Poci <- combined_averages |> 
   filter(poci_mean_st > 0)
-ln_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Shelf/Site) + (1 | Year), 
+ln_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site) + (1 | Year), 
         family = "lognormal", data = Poci)
 
-gaus_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Shelf/Site) + (1 | Year), 
+gaus_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site) + (1 | Year), 
         family = "gaussian", data = Poci)
-# gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Shelf/Site) + (1 | Year), 
+# gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site) + (1 | Year), 
 #         family = "Gamma", data = Poci)
 ```
 
 ```{r}
 # sim14.1 <- simulateResiduals(gamma_avg_poci_fixed) #didn't work
 # testResiduals(sim14.1) 
-testZeroInflation(sim14.1)
+#testZeroInflation(sim14.1)
 sim14.2 <- simulateResiduals(ln_avg_poci_fixed) # very good
 testResiduals(sim14.2)
 testZeroInflation(sim14.2)
@@ -754,11 +913,11 @@ summary(ln_avg_poci_fixed)
 ## Poritidae
 Por <- combined_averages |> 
   filter(por_mean_st > 0)
-# gamma_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
+# gamma_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site) + (1 | Year), 
 #         family = "Gamma", data = Por)
-ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
+ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site) + (1 | Year), 
         family = "lognormal", data = Por)
-gaus_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Shelf/Site) + (1 | Year), 
+gaus_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site) + (1 | Year), 
         family = "gaussian", data = Por)
 
 ```
@@ -839,14 +998,11 @@ These models will need to be lagged.
 
 ```{r}
 combine_belt_st <- left_join(join_belt, Join_Coral)
-```
 
-```{r}
+# Only including years in which both data is included (once lagging has happened)
 combine_belt_st <- combine_belt_st |> 
   mutate(Year_start = as.numeric(substr(Year, 1, 4)))
-```
 
-```{r}
 gropd_df2 <- combine_belt_st %>%
   arrange(Reef, Site, Year_start) %>%   # make sure data are ordered
   group_by(Reef, Site) %>%              # or group_by(Reef) if Site not needed
@@ -922,14 +1078,12 @@ gau_acro_juv_st_int <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf * Year + (1
 sim <- simulateResiduals(gau_acro_juv_st_int)
 testResiduals(sim) #passes
 testZeroInflation(sim)
-
 ```
 
 ```{r}
 model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_juv_st_fixed, gau_acro_juv_st_int_wo_yr, ln_acro_juv_st_int_wo_yr)
 
 Acro_juv_st_df <- model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_juv_st_fixed, gau_acro_juv_st_int_wo_yr, ln_acro_juv_st_int_wo_yr) |> as.data.frame()
-
 ```
 
 ## 5.2. Pocilloporidae
