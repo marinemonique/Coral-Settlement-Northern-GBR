@@ -182,12 +182,6 @@ join <- PIT |>
     sd_poci = sd(Pocilloporidae),
     mean_por = mean(Poritidae),
     sd_por = sd(Poritidae),
-    mean_macroalgae = mean(Macroalgae),
-    sd_macroalgae = sd(Macroalgae),
-    mean_sand =mean(Rubble_and_Sand),
-    sd_sand = sd(Rubble_and_Sand),
-    mean_turf = mean(Turf),
-    sd_turf = sd(Turf),
     PIT = n()
   )
 
@@ -455,6 +449,26 @@ emm_year_response <- emmeans(nbin_por_juv, ~Year|Shelf, type = "response")
 pairs(emm_year_response)
 ```
 
+### 3.1.5. Other Hard  corals
+```{r}
+Other_juv <- Belt_10m |> 
+  select(Year, Shelf, Reef, Site, Other_HC)
+
+nbin_oth_juv <- glmmTMB(Other_HC ~ Year*Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Other_juv)
+```
+
+```{r}
+emm_shelf <- emmeans(nbin_oth_juv, ~Shelf | Year, type = "response")
+
+pairs(emm_shelf)
+```
+
+```{r}
+emm_year_response <- emmeans(nbin_oth_juv, ~Year|Shelf, type = "response")
+pairs(emm_year_response)
+```
+
 ## 3.2. Composition
 
 # 4. Brood stock and larval supply
@@ -469,18 +483,123 @@ Model selection Table
 
 # 5. Larval Supply and Juveniles
 
+```{r}
+combine_belt_st <- left_join(join_belt, Join_Coral)
+
+# Only including years in which both data is included (once lagging has happened)
+combine_belt_st <- combine_belt_st |> 
+  mutate(Year_start = as.numeric(substr(Year, 1, 4)))
+
+gropd_df2 <- combine_belt_st %>%
+  arrange(Reef, Site, Year_start) %>%   # make sure data are ordered
+  group_by(Reef, Site) %>%              # or group_by(Reef) if Site not needed
+  mutate(
+    st_mean_acro_lag1 = lag(st_mean_acro, 1),
+    st_mean_poci_lag1 = lag(st_mean_poci, 1),
+    st_mean_por_lag1 = lag(st_mean_por, 1),
+  ) %>%
+  ungroup()
+```
+
 ## 5.1. Spatial patterns
 
 ### 5.1.1 Acroporidae
 Model selection
+Remove first year row
+```{r}
+model_df_acro <- gropd_df2 %>%
+  filter(!is.na(mean_acro))
+
+ln_acro_juv_st_fixed <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + Shelf + Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+
+
+gau_acro_juv_st_fixed <- glmmTMB(mean_acro ~ st_mean_acro_lag1 +Shelf + Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_acro)
+
+
+#without year
+ln_acro_juv_st_int_wo_yr <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+
+
+gau_acro_juv_st_int_wo_yr<- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_acro)
+
+
+ln_acro_juv_st_int <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+
+gau_acro_juv_st_int <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_acro)
+```
+
+```{r}
+model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_juv_st_fixed, gau_acro_juv_st_int_wo_yr, ln_acro_juv_st_int_wo_yr)
+
+Acro_juv_st_df <- model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_juv_st_fixed, gau_acro_juv_st_int_wo_yr, ln_acro_juv_st_int_wo_yr) |> as.data.frame()
+```
 
 Tukey HSD among Shelf
+```{r}
+emm_shelf <- emmeans(ln_acro_juv_st_int_wo_yr, ~Shelf | Year, type = "response")
+
+pairs(emm_shelf)
+```
+
 
 ### 5.1.2. Pocilloporidae
 
 Model selection
+```{r}
+model_df_poci <- gropd_df2 %>%
+  filter(!is.na(mean_poci))
+
+ln_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + Shelf + Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_poci)
+
+gau_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1+Shelf + Year+ (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_poci)
+
+#without year
+ln_poci_juv_st_int_wo_yr <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_poci)
+
+gau_poci_juv_st_int_wo_yr<- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_poci)
+
+ln_poci_juv_st_int <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_poci)
+
+gau_poci_juv_st_int <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_poci)
+```
+
+
+```{r}
+model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, ln_poci_juv_st_fixed, ln_poci_juv_st_int, gau_poci_juv_st_int_wo_yr, ln_poci_juv_st_int_wo_yr)
+
+Poci_juv_st_df <- model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, ln_poci_juv_st_fixed, ln_poci_juv_st_int, gau_poci_juv_st_int_wo_yr, ln_poci_juv_st_int_wo_yr) |> as.data.frame()
+```
 
 Tukey HSD among Shelf
+```{r}
+emm_shelf <- emmeans(ln_poci_juv_st_int_wo_yr, ~Shelf | Year, type = "response")
+
+pairs(emm_shelf)
+```
 
 ### 5.1.3. Poritidae
 Model selection
