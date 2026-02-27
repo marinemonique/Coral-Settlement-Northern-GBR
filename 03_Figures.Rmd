@@ -726,7 +726,8 @@ juv_total_plot <-  ggplot()+
                   position = position_dodge(width = 0.8))+
   theme_classic()+
   labs(
-    y = expression("Predicted Scleractinian juveniles (" * 10~m^{-2} * ")"),,
+   y = expression(atop("Predicted Scleractinian juveniles",
+                    "(per 10"~m^{2}*")")),
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -738,7 +739,7 @@ juv_total_plot <-  ggplot()+
                "2025-26" = "25/26")
     )+
   #facet_wrap(~Family, ncol = 1, scales = "free_y")+
-  theme(legend.position = "bottom",
+  theme(legend.position = "none",
         text = element_text(size = 9))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 juv_total_plot
@@ -779,7 +780,8 @@ juv_acro_plot <-  ggplot()+
                   position = position_dodge(width = 0.8))+
   theme_classic()+
   labs(
-    y = expression("Predicted Acroporidae juveniles (" * 10~m^{-2} * ")"),,
+    y = expression(atop("Predicted Acroporidae juveniles",
+                    "(per 10"~m^{2}*")")),
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -832,7 +834,8 @@ juv_poci_plot <-  ggplot()+
                   position = position_dodge(width = 0.8))+
   theme_classic()+
   labs(
-    y = expression("Predicted Pocilloporidae juveniles (" * 10~m^{-2} * ")"),,
+    y = expression(atop("Predicted Pocilloporidae juveniles",
+                    "(per 10"~m^{2}*")")),
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -886,7 +889,8 @@ juv_por_plot <-  ggplot()+
                   position = position_dodge(width = 0.8))+
   theme_classic()+
   labs(
-    y = expression("Predicted Poritidae juveniles (" * 10~m^{-2} * ")"),,
+    y = expression(atop("Predicted Poritidae juveniles",
+                    "(per 10"~m^{2}*")")),
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -941,7 +945,8 @@ juv_oth_plot <-  ggplot()+
                   position = position_dodge(width = 0.8))+
   theme_classic()+
   labs(
-    y = expression("Predicted other hard coral juveniles (" * 10~m^{-2} * ")"),,
+    y = expression(atop("Predicted other hard coral juveniles",
+                    "(per 10"~m^{2}*")")),
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -963,16 +968,22 @@ juv_oth_plot
 
 ```{r}
 juv_bottom <- ggarrange( juv_acro_plot, juv_poci_plot, juv_por_plot, juv_oth_plot,
+                         labels = c("B", "C", "D", "E"),
           ncol = 2, 
-          nrow = 2,common.legend = TRUE)
+          nrow = 2,common.legend = TRUE,
+          legend = "bottom")
 
-juv_complete <- ggarrange(juv_total_plot, juv_bottom, ncol = 1)
+juv_complete <- ggarrange(juv_total_plot, juv_bottom, 
+                          labels = c("A", ""),
+                          ncol = 1,
+          heights = c(0.9, 1.5))
 ```
 
 ```{r}
 ggsave(juv_complete,
        file = "Juvenile_emm.PNG",
-       height = 240, 
+       height = 250,
+       width = 189,
   units = "mm"
        )
 ```
