@@ -161,21 +161,8 @@ PIT<- PIT |>
     Reef = factor(Reef),
     Site = factor(Site))
 
-join <- PIT |> 
-  group_by(Year, Shelf, Reef, Site) |> 
-  summarise(
-    mean_aco = mean(prop_acro),
-    sd_aco = sd(prop_acro),
-    mean_poci = mean(prop_poci),
-    sd_poci = sd(prop_poci),
-    mean_por = mean(prop_pori),
-    sd_por = sd(prop_pori),
-    mean_macroalgae = mean(Prop_macroalgae),
-    sd_macroalgae = sd(Prop_macroalgae),
-    PIT = n()
-  )
 
-Combined <- left_join(Coral_settlement_nGBR, join)
+# Combined <- left_join(Coral_settlement_nGBR, join)
 
 ## Total recuits
 total_recruits <- Coral_settlement_nGBR %>%
@@ -865,36 +852,121 @@ Belt_10m |>
 ```
 
 # 3. Benthic Cover
+```{r}
+PIT_long <- PIT |> 
+  pivot_longer(cols = 95:108, names_to = "Benthos", values_to = "Points")
+```
 
 ## 3.1. Families
 
-## 3.2.Spatiotemporal
-
 ```{r}
-PIT |> 
-  group_by(Year, Shelf, Reef) |> 
+Summary_table_PIT <- PIT_long |> 
+  group_by(Benthos,Year, Shelf, Reef, Site) |> 
   summarise(
-    mean_aco = mean(Acroporidae),
-    sd_aco = sd(Acroporidae),
-    min_acro = min(Acroporidae),
-    max_acro = max(Acroporidae),
-    mean_poci = mean(Pocilloporidae),
-    sd_poci = sd(Pocilloporidae),
-    min_poci = min(Pocilloporidae),
-    max_pocif = max(Pocilloporidae),
-    mean_por = mean(Poritidae),
-    sd_por = sd(Poritidae),
-    min_por = min(Poritidae),
-    max_por = max(Poritidae),
-    mean_macroalgae = mean(Macroalgae),
-    sd_macroalgae = sd(Macroalgae),
-    min_macroalgae = min(Macroalgae),
-    max_macroalgae = max(Macroalgae),
-    mean_turf = mean(Turf),
-    sd_turf = sd(Turf),
-    min_turf = min(Turf),
-    max_turf = max(Turf),
-    PIT = n()
+    mean = mean(Points),
+    sd = sd(Points),
+    min = min(Points),
+    max = max(Points)
   )
 ```
+
+```{r}
+Summary_table_PIT |> 
+  group_by(Benthos) |> 
+  summarise(
+    min_mean = min(mean),
+    max_mean = max(mean)
+  )
+```
+
+
+###3.1.1 Acroporidae
+
+```{r}
+PIT_long |> 
+  group_by(Benthos,Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean = mean(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points)
+  ) |> 
+  filter(Benthos == "Acroporidae") |> 
+  arrange(desc(mean))
+```
+
+```{r}
+PIT_long |> 
+  group_by(Benthos,Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean = mean(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points)
+  ) |> 
+  filter(Benthos == "Acroporidae") |> 
+  arrange(-desc(mean))
+```
+
+
+
+### 3.1.2. Pocilloporidae
+```{r}
+PIT_long |> 
+  group_by(Benthos,Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean = mean(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points)
+  ) |> 
+  filter(Benthos == "Pocilloporidae") |> 
+  arrange(desc(mean))
+```
+
+```{r}
+PIT_long |> 
+  group_by(Benthos,Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean = mean(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points)
+  ) |> 
+  filter(Benthos == "Pocilloporidae") |> 
+  arrange(-desc(mean))
+```
+
+###3.1.3. Poritidae
+
+```{r}
+PIT_long |> 
+  group_by(Benthos,Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean = mean(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points)
+  ) |> 
+  filter(Benthos == "Poritidae") |> 
+  arrange(desc(mean))
+```
+
+```{r}
+PIT_long |> 
+  group_by(Benthos,Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean = mean(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points)
+  ) |> 
+  filter(Benthos == "Poritidae") |> 
+  arrange(-desc(mean))
+```
+
+
+## 3.2.Spatiotemporal
+
+
 

@@ -31,7 +31,6 @@ library(ggh4x) # to specify x and y axis if desired
 library(MuMIn) #model selection function
 library(ggrepel)
 
-
 # Import and clean data
 ## Recruitment data
 Coral_settlement_nGBR_CS <- read.csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
@@ -632,22 +631,23 @@ p1 <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour =
     stat_ellipse(aes(group = Shelf, colour = Shelf),
                  level = 0.75, linewidth = 1) +
      theme_bw(base_size = 14) +
-     theme(legend.position = c(1,1), legend.justification = c(1,1),
-        panel.grid = element_blank(),
-         #legend.position = "top",
-         text = element_text(size = 9),
-        title = element_text(size = 9)) +
-     labs(
-         x = "NMDS1",
-        y = "NMDS2",
-         colour = "Shelf"
-    ) +
+     theme(
+  panel.grid = element_blank(),
+  legend.position = c(0.5, 0.05),   # x = centre, y = near bottom
+  legend.justification = c(0.5, 0), # anchor legend by bottom-centre
+  legend.background = element_rect(fill = "white", colour = NA),
+  legend.direction = "horizontal",
+  text = element_text(size = 9),
+  title = element_text(size = 9)
+)  +
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
     annotate("text",
-             x = min(scores$NMDS1),
-             y = min(scores$NMDS2),              
-             label = paste0("Stress = ", round(nmds$stress, 3)),
-              hjust = -2, vjust = 0.5, size = 3)+
+         x = 1.05,     # right limit
+         y = -1,       # bottom limit
+         label = paste0("Stress = ", round(nmds$stress, 3)),
+         hjust = 1.05, # push slightly inward
+         vjust = -0.5, # lift slightly above bottom
+         size = 3)+
   scale_x_continuous(limits = c(-1, 1))+
   scale_y_continuous(limits = c(-1, 1))
 
@@ -988,6 +988,155 @@ ggsave(juv_complete,
        )
 ```
 
+## 2.2. Composition
+```{r}
+# Step 1: Create site-by-species matrix with Site_ID
+site_by_belt <- Belt_10m %>%
+  select(
+    Year, Reef, Shelf, Site, Transect, 26:29
+  ) %>%
+  mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
+
+site_by_belt <- site_by_belt |>                                                         # ensure only vegetated tiles included 
+  group_by(Reef, Year, Shelf) %>%               # this was missing in your code
+  summarise(across(Acroporidae:Other_HC, mean), .groups = "drop")
+
+# Step 2: Metadata (KEEP Site_ID)
+metadata_belt <- site_by_belt %>%
+  select(Shelf, Year, Reef)
+
+# Step 3: Species matrix
+belt_matrix_filtered <- site_by_belt %>%
+  select(
+    4:7
+  )
+```
+
+```{r}
+nmds <- metaMDS(belt_matrix_filtered, distance = "bray", k = 2, trymax = 100)
+
+#Check the Stress Value
+nmds$stress
+
+# Extract NMDS for plot
+site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
+scores <- cbind(site_scores, metadata_belt[, c("Year", "Shelf", "Reef")])
+
+scores <- scores |> 
+  mutate(
+    Deployment =
+    case_when(
+      Year == "2024-25" ~ "24/25",
+      Year == "2023-24" ~ "23/24",
+      Year == "2022-23" ~ "22/23",
+      Year == "2021-22" ~ "21/22")
+  )
+
+belt_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
+     geom_point(size = 1.5, alpha = 0.8) +
+    stat_ellipse(aes(group = Shelf, colour = Shelf),
+                 level = 0.75, linewidth = 1) +
+     theme_bw(base_size = 14) +
+     theme(
+  panel.grid = element_blank(),
+  legend.position = c(0.5, 0.05),   # x = centre, y = near bottom
+  legend.justification = c(0.5, 0), # anchor legend by bottom-centre
+  legend.background = element_rect(fill = "white", colour = NA),
+  legend.direction = "horizontal",
+  text = element_text(size = 9),
+  title = element_text(size = 9)
+) +
+     labs(
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf"
+    ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+    annotate("text",
+         x = 1.05,     # right limit
+         y = -1,       # bottom limit
+         label = paste0("Stress = ", round(nmds$stress, 3)),
+         hjust = 1.05, # push slightly inward
+         vjust = -0.5, # lift slightly above bottom
+         size = 3)+
+  scale_x_continuous(limits = c(-0.9, 1.))+
+  scale_y_continuous(limits = c(-0.8, 0.5))
+
+belt_A
+```
+
+```{r}
+# Creating Vectors for driving the patterns
+belt_envfit <- envfit(
+  nmds,
+  belt_matrix_filtered,
+  permutations = 999
+) 
+
+# Extract p-values
+pvals <- belt_envfit$vectors$pvals
+
+# Extract r-squared values
+r2 <- belt_envfit$vectors$r
+# Arrow coordinates
+vec_scores <- as.data.frame(scores(belt_envfit, display = "vectors"))
+
+# Add r2 and p-values
+vec_scores$r2 <- belt_envfit$vectors$r
+vec_scores$pval <- belt_envfit$vectors$pvals
+
+vec_scores
+#Saving the vectors as a data frame
+
+belt_envfit <- vec_scores |> 
+  rownames_to_column(var = "label_category")
+```
+
+```{r}
+belt_B <- ggplot()+
+  geom_segment(data = belt_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = belt_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_category),
+                  inherit.aes = FALSE,
+                  size = 3,
+                  box.padding = 0.1, 
+                  min.segment.length = Inf,
+                  nudge_x = -0.05,
+                  nudge_y = -0.1)+
+  theme_bw() +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         text = element_text(size = 9)
+     ) +
+     labs(
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf",
+        shape = "Year"
+    )+
+  scale_x_continuous(limits = c(-0.9, 1))+
+  scale_y_continuous(limits = c(-0.8, 0.5))
+belt_B
+```
+```{r}
+belt_Figure <- ggarrange(
+  belt_A, belt_B, labels = c("A", "B"), heights = c(1.5, 1), ncol = 1
+)
+
+belt_Figure
+```
+
+```{r}
+ggsave(belt_Figure,
+  filename = "belt_NMDS.png",
+  height = 240, 
+  units = "mm"
+)
+```
 
 # 3. Benthic Cover
 
@@ -1046,15 +1195,19 @@ scores <- scores |>
   )
 
 Benthic_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
-     geom_point(size = 4, alpha = 0.8) +
+     geom_point(size = 1.5, alpha = 0.8) +
     stat_ellipse(aes(group = Shelf, colour = Shelf),
                  level = 0.75, linewidth = 1) +
      theme_bw(base_size = 14) +
      theme(
-        panel.grid = element_blank(),
-         legend.position = "top",
-         text = element_text(size = 8),
-        title = element_text(size = 8)) +
+  panel.grid = element_blank(),
+  legend.position = c(0.5, 0.05),   # x = centre, y = near bottom
+  legend.justification = c(0.5, 0), # anchor legend by bottom-centre
+  legend.background = element_rect(fill = "white", colour = NA),
+  legend.direction = "horizontal",
+  text = element_text(size = 8),
+  title = element_text(size = 8)
+)+
      labs(
          x = "NMDS1",
         y = "NMDS2",
@@ -1062,10 +1215,12 @@ Benthic_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          c
     ) +
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
     annotate("text",
-             x = min(scores$NMDS1),
-             y = min(scores$NMDS2),              
-             label = paste0("Stress = ", round(nmds$stress, 3)),
-              hjust = 0.05, vjust = -0.5, size = 3)+
+         x = 1.05,     # right limit
+         y = -1,       # bottom limit
+         label = paste0("Stress = ", round(nmds$stress, 3)),
+         hjust = 1.05, # push slightly inward
+         vjust = -0.5, # lift slightly above bottom
+         size = 3)+
   scale_x_continuous(limits = c(-0.9, 1.05))+
   scale_y_continuous(limits = c(-1, 1))
 ```
@@ -1115,7 +1270,7 @@ Benthic_B <- ggplot()+
                   box.padding = 0.1, 
                   min.segment.length = Inf,
                   nudge_x = -0.05,
-                  nudge_y = 0.05)+
+                  nudge_y = -0.1)+
   theme_bw() +
      theme(
         panel.grid = element_blank(),
@@ -1194,7 +1349,7 @@ summary(model_df_acro$st_mean_acro_lag1)
 ```
 
 ```{r}
-library(ggeffects)
+
 library(ggplot2)
 model_df_acro$st_mean_acro_lag1_z <-
   scale(model_df_acro$st_mean_acro_lag1)
@@ -1205,22 +1360,24 @@ ln_acro_juv_st_int_wo_yr <- glmmTMB(
   data = model_df_acro
 )
 
-
 pred <- ggpredict(
   ln_acro_juv_st_int_wo_yr,
   terms = c("st_mean_acro_lag1_z [all]", "Shelf")
 )
 
-ggplot(pred, aes(x = x, y = predicted, colour = group)) +
+acro_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
               alpha = 0.2, colour = NA) +
-  labs(x = "Lagged Acroporidae Larval Supply (avg recruits/tile for site x year)",
-       y = "Predicted Acropora juveniles",
+  labs(x= expression(atop("Lagged Acroporidae larval supply",
+                    "(t)")),
+       y = expression(atop("Predicted Acroporidae", "juveniles (t + 1)")),
        colour = "Shelf",
        fill = "Shelf") +
   facet_wrap(~group, scale = "free_y")+
   theme_classic()
+
+acro_juv_st
 ```
 
 ### 4.1.2. Pocilloporidae
@@ -1237,16 +1394,19 @@ pred <- ggpredict(
   terms = c("st_mean_poci_lag1 [all]", "Shelf")
 )
 
-ggplot(pred, aes(x = x, y = predicted, colour = group)) +
+poci_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
               alpha = 0.2, colour = NA) +
-  labs(x = "Lagged Pocilloporidae Larval Supply (avg recruits/tile for site x year)",
-       y = "Predicted Pocilloporidae juveniles",
+  labs(x= expression(atop("Lagged Pocilloporidae larval supply",
+                    "(t)")),
+       y = expression(atop("Predicted Pocilloporidae", "juveniles (t + 1)")),
        colour = "Shelf",
        fill = "Shelf") +
-  #facet_wrap(~group, scale = "free_y")+
+  facet_wrap(~group, scale = "free_y")+
   theme_classic()
+
+poci_juv_st
 ```
 
 ### 4.1.3. Poritidae
@@ -1267,15 +1427,29 @@ pred <- ggpredict(
   terms = c("st_mean_por_lag1 [all]", "Shelf")
 )
 
-ggplot(pred, aes(x = x, y = predicted, colour = group)) +
+por_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
               alpha = 0.2, colour = NA) +
-  labs(x = "Lagged Poritidae Larval Supply (avg recruits/tile for site x year)",
-       y = "Predicted Poritidae juveniles",
+  labs(x= expression(atop("Lagged Poritidae larval supply",
+                    "(t)")),
+       y = expression(atop("Predicted Poritidae", "juveniles (t + 1)")),
        colour = "Shelf",
        fill = "Shelf") +
-  #facet_wrap(~group, scale = "free_y")+
+  facet_wrap(~group, scale = "free_y")+
   theme_classic()
+
+por_juv_st
+```
+
+```{r}
+Juv_st_relationship <- ggarrange(acro_juv_st, poci_juv_st, por_juv_st, ncol =1, nrow =3, common.legend = TRUE,
+          labels = c("A", "B", "C"))
+
+ggsave(Juv_st_relationship,
+       file = "juv_st_relationship_fig.PNG",
+       height = 220,
+       width = 189,
+       unit = "mm")
 ```
 

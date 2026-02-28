@@ -349,6 +349,11 @@ emm_year_response <- emmeans(nbin_Acroporidae_interaction, ~Year|Shelf, type = "
 pairs(emm_year_response)
 ```
 
+```{r}
+emm_year_response <- emmeans(nbin_Acroporidae_interaction, ~Year|Shelf, type = "response")
+pairs(emm_year_response, reverse = TRUE)
+```
+
 
 ### 2.1.3. Pocilloporidae Recruits Tukey HSD
 
@@ -370,6 +375,10 @@ emm_year_response <- emmeans(nbin_Pocilloporidae_interaction, ~Year|Shelf, type 
 pairs(emm_year_response)
 ```
 
+```{r}
+pairs(emm_year_response, reverse = TRUE)
+```
+
 
 ### 2.1.4. Poritidae Recruits Tukey HSD
 
@@ -389,6 +398,10 @@ Year
 ```{r}
 emm_year_response <- emmeans(nbin_Poritid_interaction, ~Year|Shelf, type = "response")
 pairs(emm_year_response)
+```
+
+```{r}
+pairs(emm_year_response, reverse = TRUE)
 ```
 
 
@@ -413,6 +426,11 @@ pairs(emm_shelf)
 ```
 
 ```{r}
+pairs(emm_shelf, reverse = TRUE)
+```
+
+
+```{r}
 emm_year_response <- emmeans(nbin_total_juv, ~Year|Shelf, type = "response")
 pairs(emm_year_response)
 ```
@@ -435,9 +453,18 @@ pairs(emm_shelf)
 ```
 
 ```{r}
+pairs(emm_shelf, reverse = TRUE)
+```
+
+```{r}
 emm_year_response <- emmeans(nbin_acro_juv, ~Year|Shelf, type = "response")
 pairs(emm_year_response)
 ```
+
+```{r}
+pairs(emm_year_response, reverse = TRUE)
+```
+
 
 ### 3.1.3. Pocilloporidae
 
@@ -501,18 +528,129 @@ pairs(emm_year_response)
 ```
 
 ## 3.2. Composition
+```{r}
+# Step 1: Create site-by-species matrix with Site_ID
+site_by_belt <- Belt_10m %>%
+  select(
+    Year, Reef, Shelf, Site, Transect, 26:29
+  ) %>%
+  mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
-# 4. Brood stock and larval supply
-## 4.1. Acroporidae
+site_by_belt <- site_by_belt |>                                                         # ensure only vegetated tiles included 
+  group_by(Reef, Year, Shelf) %>%               # this was missing in your code
+  summarise(across(Acroporidae:Other_HC, mean), .groups = "drop")
+
+# Step 2: Metadata (KEEP Site_ID)
+metadata_belt <- site_by_belt %>%
+  select(Shelf, Year, Reef)
+
+# Step 3: Species matrix
+belt_matrix_filtered <- site_by_belt %>%
+  select(
+    4:7
+  )
+```
+
+```{r}
+# create a distance matrix
+belt_dist <- vegdist(belt_matrix_filtered, method = "bray")
+
+# With respect to Shelf
+betadisper(belt_dist, metadata_belt$Shelf)
+anova(betadisper(belt_dist, metadata_belt$Shelf)) # Significant was 0.03139 *
+```
+
+Test whether hellinger transformation has less dispersion
+```{r}
+# create a distance matrix
+belt_dist <- vegdist(belt_matrix_filtered, method = "hellinger")
+
+# With respect to Shelf
+betadisper(belt_dist, metadata_belt$Shelf)
+anova(betadisper(belt_dist, metadata_belt$Shelf)) # Significant was 0.1688 *
+```
+
+Because the hellinger transformed meets assumptions for dispersion not significantly different, I think maybe I should use that..
+
+
+```{r}
+belt_dist <- vegdist(belt_matrix_filtered, method = "hellinger")
+permanova_result <- adonis2(belt_dist ~ Shelf,
+  data = site_by_belt,
+  method = "euclidean",
+  by = "margin",
+  permutations = 999)
+
+print(permanova_result)
+```
+### 3.2.2 Hellinger
+```{r}
+
+permanova_result <- adonis2(belt_matrix_filtered ~ Shelf,
+  data = site_by_belt,
+  method = "bray",
+  by = "margin",
+  permutations = 999)
+
+print(permanova_result)
+```
+
+
+# 4. Benthic Cover
+
+```{r}
+# Step 1: Create site-by-species matrix with Site_ID
+site_by_PIT <- PIT %>%
+  select(
+    Year, Reef, Shelf, Site, Transect, 95:108
+  ) %>%
+  mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
+
+site_by_PIT <- site_by_PIT |>                                                         # ensure only vegetated tiles included 
+  group_by(Reef, Year, Shelf) %>%               # this was missing in your code
+  summarise(across(`Soft Coral`:CCA, mean), .groups = "drop")
+
+# Step 2: Metadata (KEEP Site_ID)
+metadata_PIT <- site_by_PIT %>%
+  select(Shelf, Year, Reef)
+
+# Step 3: Species matrix
+PIT_matrix_filtered <- site_by_PIT %>%
+  select(
+    4:17
+  )
+```
+
+```{r}
+# create a distance matrix
+PIT_dist <- vegdist(PIT_matrix_filtered, method = "bray")
+
+# With respect to Shelf
+betadisper(PIT_dist, metadata_PIT$Shelf)
+anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01143 * ***
+```
+
+##4.1.2. Hellinger
+```{r}
+# create a distance matrix
+PIT_dist <- vegdist(PIT_matrix_filtered, method = "hellinger")
+
+# With respect to Shelf
+betadisper(PIT_dist, metadata_PIT$Shelf)
+anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.006932 * ***
+```
+
+# 5. Brood stock and larval supply
+## 5.1. Acroporidae
 Model selection Table
 
-## 4.2. Pocilloporidae
+## 5.2. Pocilloporidae
 Model selection Table
 
-## 4.3. Poritidae
+## 5.3. Poritidae
 Model selection Table
 
-# 5. Larval Supply and Juveniles
+# 6. Larval Supply and Juveniles
 
 ```{r}
 combine_belt_st <- left_join(join_belt, Join_Coral)
@@ -532,9 +670,9 @@ gropd_df2 <- combine_belt_st %>%
   ungroup()
 ```
 
-## 5.1. Spatial patterns
+## 6.1. Spatial patterns
 
-### 5.1.1 Acroporidae
+### 6.1.1 Acroporidae
 Model selection
 Remove first year row
 ```{r}
@@ -584,8 +722,7 @@ emm_shelf <- emmeans(ln_acro_juv_st_int_wo_yr, ~Shelf, type = "response")
 pairs(emm_shelf)
 ```
 
-
-### 5.1.2. Pocilloporidae
+### 6.1.2. Pocilloporidae
 
 Model selection
 ```{r}
@@ -632,7 +769,7 @@ emm_shelf <- emmeans(ln_poci_juv_st_int_wo_yr, ~Shelf, type = "response")
 pairs(emm_shelf)
 ```
 
-### 5.1.3. Poritidae
+### 6.1.3. Poritidae
 Model selection
 ```{r}
 model_df_por <- gropd_df2 %>%
