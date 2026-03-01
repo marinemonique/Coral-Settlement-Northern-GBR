@@ -89,34 +89,20 @@ mutate(
 Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
   filter(notes != "Dislodged")
 
+
 Pocilloporidae <- Coral_settlement_nGBR %>% 
   select(Year, Shelf, 
          Reef, Site, Tile, 
          Pocilloporidae, Top_Pocil, 
          Under_Pocil, Side_Pocil, total)
 
-Pocilloporidae_orientation <- Pocilloporidae %>% 
-  rename(Top = Top_Pocil,
-                   Bottom = Under_Pocil,
-                   Side = Side_Pocil,
-         Recruits_per_tile = total)
 
-Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
 
 Acroporidae <- Coral_settlement_nGBR %>% 
   select(Year, Shelf, 
          Reef, Site, Tile, 
          Acroporidae, Top_Acr, 
          Under_Acr, Side_Acr, total)
-
-Acroporidae_orientation <- Acroporidae %>% 
-  rename(Top = Top_Acr,
-                   Bottom = Under_Acr,
-                   Side = Side_Acr,
-         Recruits_per_tile = total)
 
 Acroporidae_orientation <- Acroporidae_orientation %>% 
   pivot_longer(cols = 7:9,
@@ -129,16 +115,6 @@ Poritid <- Coral_settlement_nGBR %>%
          Poritid, Top_Por, Under_Por, 
          Side_Por, total)
 
-Poritidae_orientation <- Poritid %>% 
-  rename(Top = Top_Por,
-                   Bottom = Under_Por,
-                   Side = Side_Por,
-         Recruits_per_tile = total) 
-
-Poritidae_orientation <- Poritidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
 
 Other <- Coral_settlement_nGBR %>% 
   select(Year, Shelf, 
@@ -163,6 +139,8 @@ Join_Coral <- Coral_settlement_nGBR |>
     st_sd_total = sd(total),
     Tiles = n()
   )
+
+
 
 # Benthic Data
 

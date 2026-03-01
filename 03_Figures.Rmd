@@ -561,14 +561,21 @@ ggarrange(A, bottom, ncol = 1, labels = c("A", ""), heights = c(1, 1.5)) |>
 ```
 
 ## 1.2. Composition of Vegetated tiles
+```{r}
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  rename("Other Hard\nCorals" = Other)
+```
+
 
 ```{r}
 Recruits <- Coral_settlement_nGBR %>%
   filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
   group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
-  summarise(across(Acroporidae:Other, mean), .groups = "drop")
+  summarise(across(Acroporidae:`Other Hard
+Corals`, mean), .groups = "drop")
 
-recruit_hellinger <- decostand(Recruits %>% select(Acroporidae, Pocilloporidae, Poritid, Other),
+recruit_hellinger <- decostand(Recruits %>% select(Acroporidae, Pocilloporidae, Poritid, `Other Hard
+Corals`),
                                                          method = "hellinger")
 
 # reef year?
@@ -659,7 +666,7 @@ p2 <- ggplot()+
   geom_text_repel(data = Recruits_envfit,
                   aes(x = NMDS1, y= NMDS2, label = label_family),
                   inherit.aes = FALSE,
-                  size = 3,
+                  size = 2.5,
                   box.padding = 0.5, 
                   min.segment.length = Inf,
                   nudge_x = -0.1,
@@ -990,6 +997,9 @@ ggsave(juv_complete,
 
 ## 2.2. Composition
 ```{r}
+Belt_10m <- Belt_10m |> 
+  rename("Other Hard\nCoral" =Other_HC
+  )
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_belt <- Belt_10m %>%
   select(
@@ -999,7 +1009,8 @@ site_by_belt <- Belt_10m %>%
 
 site_by_belt <- site_by_belt |>                                                         # ensure only vegetated tiles included 
   group_by(Reef, Year, Shelf) %>%               # this was missing in your code
-  summarise(across(Acroporidae:Other_HC, mean), .groups = "drop")
+  summarise(across(Acroporidae:`Other Hard
+Coral`, mean), .groups = "drop")
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_belt <- site_by_belt %>%
@@ -1101,7 +1112,7 @@ belt_B <- ggplot()+
   geom_text_repel(data = belt_envfit,
                   aes(x = NMDS1, y= NMDS2, label = label_category),
                   inherit.aes = FALSE,
-                  size = 3,
+                  size = 2.5,
                   box.padding = 0.1, 
                   min.segment.length = Inf,
                   nudge_x = -0.05,
@@ -1143,6 +1154,10 @@ ggsave(belt_Figure,
 ## 3.1. Composition across the shelf
 
 ```{r}
+PIT <- PIT |> 
+  rename("Other Hard\nCoral" =`Other Hard Coral`,
+         "Red\nMacroalgae" = `Red Macroalgae`,
+         "Sand and\nRubble" = `Sand and Rubble`)
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
   select(
@@ -1249,7 +1264,8 @@ vec_scores$pval <- Benthic_envfit$vectors$pvals
 vec_scores
 #Saving the vectors as a data frame
 
-
+vec_scores <- vec_scores |> 
+  filter(pval < 0.05) # filter to only show vectors that are significant drivers.
 
 Benthic_envfit <- vec_scores |> 
   rownames_to_column(var = "label_category")
@@ -1259,8 +1275,9 @@ Benthic_envfit <- vec_scores |>
 
 
 ```{r}
-Benthic_envfit$NMDS1_lab <- Benthic_envfit$NMDS1 * 1.15
-Benthic_envfit$NMDS2_lab <- Benthic_envfit$NMDS2 * 1.25
+Benthic_envfit$NMDS1_lab <- Benthic_envfit$NMDS1 * 1.1
+
+Benthic_envfit$NMDS2_lab <- Benthic_envfit$NMDS2 * 1.1
 
 Benthic_B <- ggplot()+
   geom_segment(data = Benthic_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
@@ -1268,9 +1285,9 @@ Benthic_B <- ggplot()+
              linetype = "solid",
              linewidth = 0.5)+
   geom_text_repel(data = Benthic_envfit,
-                  aes(x = NMDS1, y= NMDS2, label = label_category),
+                  aes(x = NMDS1_lab, y= NMDS2_lab, label = label_category),
                   inherit.aes = FALSE,
-                   size = 3,
+                   size = 2.5,
     max.overlaps = Inf,
     force = 2,
     max.iter = 20000,
@@ -1329,7 +1346,7 @@ combine_belt_st <- combine_belt_st |>
 
 ```{r}
 gropd_df2 <- combine_belt_st %>%
-  arrange(Reef, Site, Year_start) %>%   # make sure data are ordered
+  arrange(Shelf, Reef, Site, Year_start) %>%   # make sure data are ordered
   group_by(Reef, Site) %>%              # or group_by(Reef) if Site not needed
   mutate(
     st_mean_acro_lag1 = lag(st_mean_acro, 1),
@@ -1337,6 +1354,8 @@ gropd_df2 <- combine_belt_st %>%
     st_mean_por_lag1 = lag(st_mean_por, 1),
   ) %>%
   ungroup()
+gropd_df2 <- gropd_df2 |> 
+  mutate(Shelf, factor(Shelf, levels = c("Inner", "Mid", "Outer"), ordered = TRUE))
 ```
 
 
@@ -1380,7 +1399,7 @@ acro_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
        colour = "Shelf",
        fill = "Shelf") +
   facet_wrap(~group, scale = "free_y")+
-  theme_classic()
+  theme_classic()+scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 
 acro_juv_st
 ```
@@ -1409,7 +1428,9 @@ poci_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
        colour = "Shelf",
        fill = "Shelf") +
   facet_wrap(~group, scale = "free_y")+
-  theme_classic()
+  theme_classic()+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 
 poci_juv_st
 ```
@@ -1442,7 +1463,9 @@ por_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
        colour = "Shelf",
        fill = "Shelf") +
   facet_wrap(~group, scale = "free_y")+
-  theme_classic()
+  theme_classic()+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 
 por_juv_st
 ```
@@ -1456,5 +1479,43 @@ ggsave(Juv_st_relationship,
        height = 220,
        width = 189,
        unit = "mm")
+```
+
+
+
+# 5. Composition Plot Combined
+
+```{r}
+# Make all nmds one column
+
+NMDS_combined <- ggarrange(p1, belt_A, Benthic_A, ncol =3, labels = c("A", "C", "E"), common.legend = TRUE, legend = "bottom", widths = c(0.8, 0.8, 1))
+NMDS_combined
+
+Envfit_combined <- ggarrange(p2, belt_B, Benthic_B, ncol =3, labels = c("B", "D", "F"), widths = c(0.8, 0.8, 1))
+Envfit_combined
+
+Complete_Composition <- ggarrange(NMDS_combined, Envfit_combined, ncol = 1, heights = c(1.1,0.9))
+Complete_Composition
+```
+
+
+```{r}
+ST_NMDS <- ggarrange(p1, p2, ncol = 1, labels = c("A", "B"))
+
+belt_Figure <- ggarrange(belt_A, belt_B, labels = c("C", "D"), ncol = 1)
+
+Benthic_Figure <- ggarrange(
+  Benthic_A, Benthic_B, labels = c("E", "F"), ncol = 1
+)
+
+complete_composition <- ggarrange(ST_NMDS, belt_Figure, Benthic_Figure, widths = c(0.8, 0.8, 1), ncol = 3)
+complete_composition
+
+ggsave(filename = "Complete_composition.PDF",
+       plot = complete_composition,
+       width = 250,
+       height = 200,
+       units = "mm")
+
 ```
 

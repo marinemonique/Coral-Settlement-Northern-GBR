@@ -797,10 +797,11 @@ Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "202
 ```{r}
 Belt_10m |> 
   summarise(
-    sum = sum(total_juveniles),
+    sum = sum(Total_juveniles),
     sum_acro = sum(Acroporidae),
     sum_poci = sum(Pocilloporidae),
     sum_pori = sum(Poritidae),
+    sum_oth = sum(Other_HC),
     n = n()
   )
 ```
@@ -808,8 +809,8 @@ Belt_10m |>
 ```{r}
 Belt_10m |> 
   summarise(
-    min_total = min(total_juveniles),
-    max_total = max(total_juveniles),
+    min_total = min(Total_juveniles),
+    max_total = max(Total_juveniles),
     min_acro = min(Acroporidae),
     max_acro = max(Acroporidae),
     min_poci = min(Pocilloporidae),
@@ -825,8 +826,8 @@ Belt_10m |>
 Belt_10m |> 
   group_by(Year) |> 
   summarise(
-    min_total = min(total_juveniles),
-    max_total = max(total_juveniles),
+    min_total = min(Total_juveniles),
+    max_total = max(Total_juveniles),
     min_acro = min(Acroporidae),
     max_acro = max(Acroporidae),
     min_poci = min(Pocilloporidae),
@@ -840,8 +841,8 @@ Belt_10m |>
 Belt_10m |> 
   group_by(Shelf) |> 
   summarise(
-    min_total = min(total_juveniles),
-    max_total = max(total_juveniles),
+    min_total = min(Total_juveniles),
+    max_total = max(Total_juveniles),
     min_acro = min(Acroporidae),
     max_acro = max(Acroporidae),
     min_poci = min(Pocilloporidae),
