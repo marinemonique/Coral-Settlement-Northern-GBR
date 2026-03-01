@@ -642,11 +642,11 @@ p1 <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour =
 )  +
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
     annotate("text",
-         x = 1.05,     # right limit
-         y = -1,       # bottom limit
+         x = 0.95,
+         y = -0.95,
          label = paste0("Stress = ", round(nmds$stress, 3)),
-         hjust = 1.05, # push slightly inward
-         vjust = -0.5, # lift slightly above bottom
+         hjust = 1,
+         vjust = 0,
          size = 3)+
   scale_x_continuous(limits = c(-1, 1))+
   scale_y_continuous(limits = c(-1, 1))
@@ -1053,8 +1053,8 @@ belt_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colo
     ) +
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
     annotate("text",
-         x = 1.05,     # right limit
-         y = -1,       # bottom limit
+         x = 0.95,     # right limit
+         y = -0.75,       # bottom limit
          label = paste0("Stress = ", round(nmds$stress, 3)),
          hjust = 1.05, # push slightly inward
          vjust = -0.5, # lift slightly above bottom
@@ -1124,7 +1124,7 @@ belt_B
 ```
 ```{r}
 belt_Figure <- ggarrange(
-  belt_A, belt_B, labels = c("A", "B"), heights = c(1.5, 1), ncol = 1
+  belt_A, belt_B, labels = c("A", "B"), heights = c(1, 1), ncol = 1
 )
 
 belt_Figure
@@ -1133,7 +1133,7 @@ belt_Figure
 ```{r}
 ggsave(belt_Figure,
   filename = "belt_NMDS.png",
-  height = 240, 
+  height = 200, 
   units = "mm"
 )
 ```
@@ -1257,7 +1257,11 @@ Benthic_envfit <- vec_scores |>
 #Other, Zoantharian, Poritidae...
 ```
 
+
 ```{r}
+Benthic_envfit$NMDS1_lab <- Benthic_envfit$NMDS1 * 1.15
+Benthic_envfit$NMDS2_lab <- Benthic_envfit$NMDS2 * 1.25
+
 Benthic_B <- ggplot()+
   geom_segment(data = Benthic_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
              arrow = arrow(length = unit(1/3, "picas")),
@@ -1266,11 +1270,12 @@ Benthic_B <- ggplot()+
   geom_text_repel(data = Benthic_envfit,
                   aes(x = NMDS1, y= NMDS2, label = label_category),
                   inherit.aes = FALSE,
-                  size = 3,
-                  box.padding = 0.1, 
-                  min.segment.length = Inf,
-                  nudge_x = -0.05,
-                  nudge_y = -0.1)+
+                   size = 3,
+    max.overlaps = Inf,
+    force = 2,
+    max.iter = 20000,
+    box.padding = 0.3,
+    point.padding = 0.2)+
   theme_bw() +
      theme(
         panel.grid = element_blank(),
@@ -1289,7 +1294,7 @@ Benthic_B <- ggplot()+
 
 ```{r}
 Benthic_Figure <- ggarrange(
-  Benthic_A, Benthic_B, labels = c("A", "B"), heights = c(1.5, 1), ncol = 1
+  Benthic_A, Benthic_B, labels = c("A", "B"), heights = c(0.9, 1), ncol = 1
   
 )
 
