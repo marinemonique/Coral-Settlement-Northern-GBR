@@ -104,10 +104,10 @@ Acroporidae <- Coral_settlement_nGBR %>%
          Acroporidae, Top_Acr, 
          Under_Acr, Side_Acr, total)
 
-Acroporidae_orientation <- Acroporidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
+# Acroporidae_orientation <- Acroporidae_orientation %>% 
+#   pivot_longer(cols = 7:9,
+#                names_to = "Tile_Surface",
+#                values_to = "Recruits")
 
 Poritid <- Coral_settlement_nGBR %>% 
   select(Year, Shelf, 
@@ -145,7 +145,7 @@ Join_Coral <- Coral_settlement_nGBR |>
 # Benthic Data
 
 PIT <- read_csv("PIT_50m.csv") %>%
-  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
+  mutate(across(8:93, ~replace_na(.x, 0)))# Read in data
 
 PIT <- PIT %>% 
   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
@@ -200,6 +200,13 @@ Belt_10m <- Belt_10m |>
     ))
 
 Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
+Belt_10m <- Belt_10m |>
+  mutate(
+    Other_HC = Favia + Favites + Goniastrea + Astrea +
+                 Echinopora + Galaxea + Turbinaria +
+                 Psammacora + Pavona
+  )
+
 join_belt <- Belt_10m |> 
   group_by(Year, Shelf, Reef, Site) |> 
   summarise(
@@ -292,20 +299,61 @@ nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site),
         family = "nbinom2", data = Coral_settlement_nGBR)
 ```
 
-Shelf
+After discussion with Murray Logan, I think this is the correct way to go. Using Holm adjustment as I can't use Tukey.
+Example with shelf year
 ```{r}
-emm_shelf <- emmeans(nbin_total_yr2, ~Shelf | Year, type = "response")
-emm_shelf
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  mutate(
+    shelfyear = paste(Shelf, Year)
+  )
+unique(Coral_settlement_nGBR$shelfyear)
+nbin_total_yr2 <- glmmTMB(total ~ shelfyear +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
 
-pairs(emm_shelf)
+summary(nbin_total_yr2)
+
+cmat <- cbind(
+  "Inner v Mid 21/22" = c(1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Inner v Out 21/22" = c(1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Mid v Out 21/22" = c(0, 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Inner v Mid 22/23" = c(0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0, 0),
+  "Inner v Out 22/23" = c(0, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0),
+  "Mid v Out 22/23" = c(0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0),
+  "Inner v Mid 23/24" = c(0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0),
+  "Inner v Out 23/24" = c(0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0),
+  "Mid v Out 23/24" = c(0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0),
+  "Inner v Mid 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0),
+  "Inner v Out 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1),
+  "Mid v Out 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1),
+  "Inner 21/22 v 22/23" = c(1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Inner 21/22 v 23/24" = c(1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0),
+  "Inner 21/22 v 24/25" = c(1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0),
+  "Inner 22/23 v 23/24" = c(0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0),
+  "Inner 22/23 v 24/25" = c(0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0),
+  "Inner 23/24 v 24/25" = c(0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0),
+  "Mid 21/22 v 22/23" = c(0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0),
+  "Mid 21/22 v 23/24" = c(0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0),
+  "Mid 21/22 v 24/25" = c(0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0),
+  "Mid 22/23 v 23/24" = c(0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0),
+  "Mid 22/23 v 24/25" = c(0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0),
+  "Mid 23/24 v 24/25" = c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0),
+  "Outer 21/22 v 22/23" = c(0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0),
+  "Outer 21/22 v 23/24" = c(0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0),
+  "Outer 21/22 v 24/25" = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1),
+  "Outer 22/23 v 23/24" = c(0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0),
+  "Outer 22/23 v 24/25" = c(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1),
+  "Outer 23/24 v 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1)
+)
+nbin_total_yr2 |> emmeans(~shelfyear, type="response") |> 
+  contrast(method=list(shelfyear=cmat), adjust= "holm")
 ```
 
-Year
-
 ```{r}
-emm_year_response <- emmeans(nbin_total_yr2, ~Year|Shelf, type = "response")
-pairs(emm_year_response)
+emm <- emmeans(nbin_total_yr2, ~ shelfyear, type = "response")
+
+levels(emm)
 ```
+
 
 ### 2.1.2. Acroporidae Recruits Tukey HSD
 
@@ -314,23 +362,9 @@ nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Sit
         family = "nbinom2", data = Acroporidae)
 ```
 
-```{r}
-emm_shelf <- emmeans(nbin_Acroporidae_interaction, ~Shelf | Year, type = "response")
 
-pairs(emm_shelf)
-```
 
-Year
 
-```{r}
-emm_year_response <- emmeans(nbin_Acroporidae_interaction, ~Year|Shelf, type = "response")
-pairs(emm_year_response)
-```
-
-```{r}
-emm_year_response <- emmeans(nbin_Acroporidae_interaction, ~Year|Shelf, type = "response")
-pairs(emm_year_response, reverse = TRUE)
-```
 
 
 ### 2.1.3. Pocilloporidae Recruits Tukey HSD

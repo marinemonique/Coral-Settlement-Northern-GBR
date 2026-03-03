@@ -88,16 +88,16 @@ Pocilloporidae <- Coral_settlement_nGBR %>%
          Pocilloporidae, Top_Pocil, 
          Under_Pocil, Side_Pocil, total)
 
-Pocilloporidae_orientation <- Pocilloporidae %>% 
-  rename(Top = Top_Pocil,
-                   Bottom = Under_Pocil,
-                   Side = Side_Pocil,
-         Recruits_per_tile = total)
-
-Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
+# Pocilloporidae_orientation <- Pocilloporidae %>% 
+#   rename(Top = Top_Pocil,
+#                    Bottom = Under_Pocil,
+#                    Side = Side_Pocil,
+#          Recruits_per_tile = total)
+# 
+# Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
+#   pivot_longer(cols = 7:9,
+#                names_to = "Tile_Surface",
+#                values_to = "Recruits")
 
 Acroporidae <- Coral_settlement_nGBR %>% 
   select(Year_Collected, Shelf, 
@@ -105,16 +105,16 @@ Acroporidae <- Coral_settlement_nGBR %>%
          Acroporidae, Top_Acr, 
          Under_Acr, Side_Acr, total)
 
-Acroporidae_orientation <- Acroporidae %>% 
-  rename(Top = Top_Acr,
-                   Bottom = Under_Acr,
-                   Side = Side_Acr,
-         Recruits_per_tile = total)
-
-Acroporidae_orientation <- Acroporidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
+# Acroporidae_orientation <- Acroporidae %>% 
+#   rename(Top = Top_Acr,
+#                    Bottom = Under_Acr,
+#                    Side = Side_Acr,
+#          Recruits_per_tile = total)
+# 
+# Acroporidae_orientation <- Acroporidae_orientation %>% 
+#   pivot_longer(cols = 7:9,
+#                names_to = "Tile_Surface",
+#                values_to = "Recruits")
 
 Poritid <- Coral_settlement_nGBR %>% 
   select(Year_Collected, Shelf, 
@@ -122,22 +122,22 @@ Poritid <- Coral_settlement_nGBR %>%
          Poritid, Top_Por, Under_Por, 
          Side_Por, total)
 
-Poritidae_orientation <- Poritid %>% 
-  rename(Top = Top_Por,
-                   Bottom = Under_Por,
-                   Side = Side_Por,
-         Recruits_per_tile = total) 
-
-Poritidae_orientation <- Poritidae_orientation %>% 
-  pivot_longer(cols = 7:9,
-               names_to = "Tile_Surface",
-               values_to = "Recruits")
+# Poritidae_orientation <- Poritid %>% 
+#   rename(Top = Top_Por,
+#                    Bottom = Under_Por,
+#                    Side = Side_Por,
+#          Recruits_per_tile = total) 
+# 
+# Poritidae_orientation <- Poritidae_orientation %>% 
+#   pivot_longer(cols = 7:9,
+#                names_to = "Tile_Surface",
+#                values_to = "Recruits")
 
 
 # Benthic Data
 
 PIT <- read_csv("PIT_50m.csv") %>%
-  mutate(across(8:91, ~replace_na(.x, 0)))# Read in data
+  mutate(across(8:93, ~replace_na(.x, 0)))# Read in data
 
 PIT <- PIT %>% 
   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
@@ -154,13 +154,11 @@ PIT <- PIT |>
       TRUE ~ Site
     ))
 
-
 PIT<- PIT |> 
   mutate(
     Shelf = factor(Shelf),
     Reef = factor(Reef),
     Site = factor(Site))
-
 
 # Combined <- left_join(Coral_settlement_nGBR, join)
 
@@ -193,7 +191,30 @@ position_total_recruits <- position_total_recruits |>
 position_total_recruits <- position_total_recruits |>                           
 mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")))
 
-position_total_recruits <- left_join(position_total_recruits, join)
+# Juvenile data
+Belt_10m <- read_csv("Belt_10m.csv") |> 
+  mutate(across(8:28, ~replace_na(.x, 0)))
+
+Belt_10m <- Belt_10m |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ))
+
+Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
+
+Belt_10m <- Belt_10m |>
+  mutate(
+    Other_HC = Favia + Favites + Goniastrea + Astrea +
+                 Echinopora + Galaxea + Turbinaria +
+                 Psammacora + Pavona
+  )
 
 ## Family recruitment data
 family_total_recruits <- Coral_settlement_nGBR %>%
@@ -788,6 +809,18 @@ Belt_10m <- Belt_10m |>
     ))
 
 Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
+
+Belt_10m <- Belt_10m |>
+  mutate(
+    Other_HC_R = Favia + Favites + Goniastrea + Astrea +
+                 Echinopora + Galaxea + Turbinaria +
+                 Psammacora + Pavona
+  )
+
+Belt_10m |> 
+  summarise(
+    juveniles = sum(Total_juveniles)
+  )
 ```
 
 
@@ -804,6 +837,22 @@ Belt_10m |>
     sum_oth = sum(Other_HC),
     n = n()
   )
+
+Belt_10m |> 
+  group_by(Shelf) |> 
+  summarise(
+    sum = sum(Total_juveniles),
+    sum_acro = sum(Acroporidae),
+    sum_poci = sum(Pocilloporidae),
+    sum_pori = sum(Poritidae),
+    sum_oth = sum(Other_HC),
+    sum_Favites = sum(Favites),
+    sum_favia = sum(Favia),
+    sum_goniastrea = sum(Goniastrea),
+    sum_tub = sum(Turbinaria),
+    sum_Galaxea = sum(Galaxea),
+    n = n()
+  )
 ```
 
 ```{r}
@@ -817,6 +866,48 @@ Belt_10m |>
     max_poci = max(Pocilloporidae),
     min_por = min(Poritidae),
     max_por = max(Poritidae)
+  )
+```
+
+###2.1.2. Other Hard corals
+
+```{r}
+Other_HC_juv <- Belt_10m |> select(2:7, 15:23)
+
+Other_HC_juv_long <- Other_HC_juv |> 
+ pivot_longer(cols = 7:15, names_to = "Benthos", values_to = "Points")
+
+juv_oth_summary <- Other_HC_juv_long |> 
+  group_by(Benthos,Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean = mean(Points),
+    sd = sd(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points),
+    belts = n()
+  )
+juv_oth_summary <- juv_oth_summary |> filter(max > 0)
+
+juv_oth_summary |> 
+  group_by(Benthos) |> 
+  summarise(
+    sites_where_juveniles_family_present_at_least_once = n()
+  )
+```
+
+Need to explore this and how the other families observed differ across the shelf
+```{r}
+Belt_10m |> 
+  group_by(Shelf, Reef, Year) |> 
+  summarise(
+    sum_oth_HC = sum(Other_HC),
+    sum_Favites = sum(Favites),
+    sum_favia = sum(Favia),
+    sum_goniastrea = sum(Goniastrea),
+    sum_tub = sum(Turbinaria),
+    sum_Galaxea = sum(Galaxea),
+    belt_transect = n()
   )
 ```
 
@@ -856,6 +947,7 @@ Belt_10m |>
 ```{r}
 PIT_long <- PIT |> 
   pivot_longer(cols = 95:108, names_to = "Benthos", values_to = "Points")
+
 ```
 
 ## 3.1. Families
@@ -866,9 +958,12 @@ Summary_table_PIT <- PIT_long |>
   summarise(
     mean = mean(Points),
     sd = sd(Points),
+    se = sd(Points)/(n()^0.5),
     min = min(Points),
-    max = max(Points)
+    max = max(Points),
+    PITs = n()
   )
+
 ```
 
 ```{r}
@@ -964,6 +1059,49 @@ PIT_long |>
   ) |> 
   filter(Benthos == "Poritidae") |> 
   arrange(-desc(mean))
+```
+
+
+##3.2. Other Benthic Groupds
+Macroalgae brown
+
+```{r}
+PIT_brown_macro_long <- PIT |> 
+  pivot_longer(cols = 42:56, names_to = "Benthos", values_to = "Points") |> 
+  select(1:7, Benthos, Points)
+```
+
+```{r}
+Summary_table_brown_macroalgae <- PIT_brown_macro_long |> 
+  group_by(Benthos,Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean = mean(Points),
+    sd = sd(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points),
+    PITs = n()
+  )
+```
+
+```{r}
+PIT_Coral_Genera <- PIT |> 
+  pivot_longer(cols = 8:37, names_to = "Benthos", values_to = "Points") |> 
+  select(1:7, Benthos, Points)
+```
+
+```{r}
+Summary_table_coral <- PIT_Coral_Genera |> 
+  group_by(Benthos,Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean = mean(Points),
+    sd = sd(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points),
+    PITs = n()
+  )
+Summary_table_coral
 ```
 
 
