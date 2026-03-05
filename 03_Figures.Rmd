@@ -563,6 +563,12 @@ recruits_wo_other <- ggarrange(A, recruits_wo_other, ncol =1, labels = c("A", ""
 recruits_wo_other
 
 recruits_wo_other <- ggarrange(A, B, C, D, ncol =2, nrow = 2, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
+recruits_wo_other <- ggarrange(A, B, C, D, ncol =1, nrow = 4, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
+
+  ggsave(recruits_wo_other, filename = "Figure2.PDF", 
+         #width = 189,
+         height = 225, units = "mm"
+        )
 ```
 
 ```{r}
@@ -1034,6 +1040,7 @@ site_by_belt <- site_by_belt |>                                                 
   group_by(Reef, Year, Shelf) %>%               # this was missing in your code
   summarise(across(Acroporidae:`Other Hard Coral`, mean), .groups = "drop")
 
+
 # Step 2: Metadata (KEEP Site_ID)
 metadata_belt <- site_by_belt %>%
   select(Shelf, Year, Reef)
@@ -1043,10 +1050,14 @@ belt_matrix_filtered <- site_by_belt %>%
   select(
     4:7
   )
+
+belt_hellinger <- decostand(belt_matrix_filtered,                                                         method = "hellinger")
 ```
 
 ```{r}
-nmds <- metaMDS(belt_matrix_filtered, distance = "bray", k = 2, trymax = 100)
+# nmds <- metaMDS(belt_matrix_filtered, distance = "bray", k = 2, trymax = 100)
+
+nmds <- metaMDS(belt_hellinger, distance = "euclidean", k = 2, trymax = 100)
 
 #Check the Stress Value
 nmds$stress
@@ -1092,8 +1103,8 @@ belt_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colo
          hjust = 1.05, # push slightly inward
          vjust = -0.5, # lift slightly above bottom
          size = 3)+
-  scale_x_continuous(limits = c(-0.9, 1.))+
-  scale_y_continuous(limits = c(-0.8, 0.5))
+  scale_x_continuous(limits = c(-0.85, 1))+
+  scale_y_continuous(limits = c(-1.05, 1))
 
 belt_A
 ```
@@ -1102,7 +1113,7 @@ belt_A
 # Creating Vectors for driving the patterns
 belt_envfit <- envfit(
   nmds,
-  belt_matrix_filtered,
+  belt_hellinger,
   permutations = 999
 ) 
 
@@ -1151,8 +1162,8 @@ belt_B <- ggplot()+
          colour = "Shelf",
         shape = "Year"
     )+
-  scale_x_continuous(limits = c(-0.9, 1))+
-  scale_y_continuous(limits = c(-0.8, 0.5))
+  scale_x_continuous(limits = c(-0.85, 0.95))+
+  scale_y_continuous(limits = c(-1.05, 1))
 belt_B
 ```
 ```{r}

@@ -564,12 +564,12 @@ belt_matrix_filtered <- site_by_belt %>%
 ```
 
 ```{r}
-# create a distance matrix
-belt_dist <- vegdist(belt_matrix_filtered, method = "bray")
-
-# With respect to Shelf
-betadisper(belt_dist, metadata_belt$Shelf)
-anova(betadisper(belt_dist, metadata_belt$Shelf)) # Significant was 0.03139 *
+# # create a distance matrix
+# belt_dist <- vegdist(belt_matrix_filtered, method = "bray")
+# 
+# # With respect to Shelf
+# betadisper(belt_dist, metadata_belt$Shelf)
+# anova(betadisper(belt_dist, metadata_belt$Shelf)) # Significant was 0.03139 *
 ```
 
 Test whether hellinger transformation has less dispersion
@@ -584,6 +584,7 @@ anova(betadisper(belt_dist, metadata_belt$Shelf)) # Significant was 0.1688 *
 
 Because the hellinger transformed meets assumptions for dispersion not significantly different, I think maybe I should use that..
 
+### 3.2.2 Hellinger
 
 ```{r}
 belt_dist <- vegdist(belt_matrix_filtered, method = "hellinger")
@@ -595,16 +596,20 @@ permanova_result <- adonis2(belt_dist ~ Shelf,
 
 print(permanova_result)
 ```
-### 3.2.2 Hellinger
+
+45.9 percent of the variation in hellinger transformed averages was driven by shelf position.
+F = 8.06
+
+Indicates strong separation among Shelf groups relative to within-group variation.
+
 ```{r}
-
-permanova_result <- adonis2(belt_matrix_filtered ~ Shelf,
-  data = site_by_belt,
-  method = "bray",
-  by = "margin",
-  permutations = 999)
-
-print(permanova_result)
+# permanova_result <- adonis2(belt_matrix_filtered ~ Shelf,
+#   data = site_by_belt,
+#   method = "bray",
+#   by = "margin",
+#   permutations = 999)
+# 
+# print(permanova_result)
 ```
 
 
@@ -643,13 +648,14 @@ anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01143 * ***
 ```
 
 ##4.1.2. Hellinger
+Not appropriate for composition analysis.
 ```{r}
-# create a distance matrix
-PIT_dist <- vegdist(PIT_matrix_filtered, method = "hellinger")
-
-# With respect to Shelf
-betadisper(PIT_dist, metadata_PIT$Shelf)
-anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.006932 * ***
+# # create a distance matrix
+# PIT_dist <- vegdist(PIT_matrix_filtered, method = "hellinger")
+# 
+# # With respect to Shelf
+# betadisper(PIT_dist, metadata_PIT$Shelf)
+# anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.006932 * ***
 ```
 
 # 5. Brood stock and larval supply
