@@ -507,22 +507,45 @@ model.sel(nbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
 ```{r}
 sim4.1 <- simulateResiduals(pois_Poritid_fixed)
 testResiduals(sim4.1) # bad fit
+testZeroInflation(sim4.1) # P<0.05, therefore need to run zi
 
 sim4.2 <- simulateResiduals(pois_Poritid_interaction)
 testResiduals(sim4.2) # bad fit
+testZeroInflation(sim4.2) # p<0.05
 
 sim4.3 <- simulateResiduals(nbin_Poritid_interaction)
-testResiduals(sim4.3)
+testResiduals(sim4.3) #passed
+testZeroInflation(sim4.3) # p = 0.848
 
 sim4.4 <- simulateResiduals(nbin_Poritid_fixed)
-testResiduals(sim4.4)
+testResiduals(sim4.4) #passed
+testZeroInflation(sim4.4) #p=0.88
 
-sim4.5 <- simulateResiduals(zbin_Poritid_fixed)
-testResiduals(sim4.5)
-
-sim4.6 <- simulateResiduals(zbin_Poritid_interaction)
-testResiduals(sim4.6)
+# sim4.5 <- simulateResiduals(zbin_Poritid_fixed)
+# testResiduals(sim4.5)
+# 
+# sim4.6 <- simulateResiduals(zbin_Poritid_interaction)
+# testResiduals(sim4.6)
 ```
+
+Zero inflated models where required
+```{r}
+zi_pois_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + Year+(1 | Reef/Site) ,
+                                 ziformula = ~1,
+      family = "poisson", data = Poritid) 
+
+zi_pois_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site), 
+                                       ziformula = ~1,
+      family = "poisson", data = Poritid)
+
+sim4.7 <- simulateResiduals(zi_pois_Poritid_fixed)
+testResiduals(sim4.7) #outliers detected
+
+sim4.8 <- simulateResiduals(zi_pois_Poritid_interaction)
+testResiduals(sim4.8) #outlier significant
+
+```
+
 
 Both nbin_interaction, and zbin_interaction for Portidae have significant dispersion.
 Don't see much of a difference in Poritid across shelf position. Although slightly less in mid shore reefs (p<0.1)
@@ -530,7 +553,7 @@ Don't see much of a difference in Poritid across shelf position. Although slight
 ```{r echo=FALSE}
 AIC(nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Poritid_interaction)
 
-model.sel(nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Poritid_interaction)
+model.sel(nbin_Poritid_fixed, nbin_Poritid_interaction)
 ```
 
 
@@ -685,9 +708,11 @@ nbin <- glmmTMB(Acroporidae ~ Year*Shelf+(1 | Reef/Site),
 ```{r}
 sim15.1 <- simulateResiduals(pois)
 testResiduals(sim15.1) # passes tests
+testZeroInflation(sim15.1) # p= 0.12
 
 sim15.2 <- simulateResiduals(nbin)
 testResiduals(sim15.2) #passes
+testZeroInflation(sim15.2) #p=0.416
 ```
 
 Both meet assumptions
@@ -710,10 +735,12 @@ nbin <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site),
 
 ```{r}
 sim16.1 <- simulateResiduals(pois)
-testResiduals(sim16.1)
+testResiduals(sim16.1) #passed
+testZeroInflation(sim16.1) #p=0.968
 
 sim16.2 <- simulateResiduals(nbin)
-testResiduals(sim16.2)
+testResiduals(sim16.2) #passed
+testZeroInflation(sim16.2) #p =1
 ```
 ```{r}
 model.sel(pois, nbin) #nbin behaves better
@@ -734,10 +761,12 @@ nbin <- glmmTMB(Poritidae ~ Year*Shelf+(1 | Reef/Site),
 
 ```{r}
 sim17.1 <- simulateResiduals(pois)
-testResiduals(sim17.1) # passes but the dispersion test doesn't look ideal
+testResiduals(sim17.1) # passes
+testZeroInflation(sim17.1) #p=0.248
 
 sim17.2 <- simulateResiduals(nbin)
 testResiduals(sim17.2) #passes
+testZeroInflation(sim17.2) # p=0.784
 ```
 
 Both models have outliers as significant.
