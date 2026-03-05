@@ -411,28 +411,42 @@ Simulate residuals for models
 ```{r}
 sim2.1 <- simulateResiduals(nbin_Acroporidae_fixed) 
 testResiduals(sim2.1) #fine
+testZeroInflation(sim2.1) #P<0.05
 plot(sim2.1) #bad
 
 sim2.2 <- simulateResiduals(nbin_Acroporidae_interaction)
 testResiduals(sim2.2) #fine
+testZeroInflation(sim2.2) # P = 0.768
 plot(sim2.2) #fine
 
-sim2.3 <- simulateResiduals(zbin_Acroporidae_fixed)
-testResiduals(sim2.3) #fine
-plot(sim2.3) #bad
+# sim2.3 <- simulateResiduals(zbin_Acroporidae_fixed)
+# testResiduals(sim2.3) #fine
+# plot(sim2.3) #bad
 
 
-sim2.4 <- simulateResiduals(zbin_Acroporidae_interaction)
-testResiduals(sim2.4) #fine
-plot(sim2.4) #fine
+# sim2.4 <- simulateResiduals(zbin_Acroporidae_interaction)
+# testResiduals(sim2.4) #fine
+# plot(sim2.4) #fine
 
 sim2.5 <- simulateResiduals(pois_Acroporidae_fixed) #not a good fit
 testResiduals(sim2.5) #bad
+testZeroInflation(sim2.5) #p <0.05, therefore i should fit a zi pois
 plot(sim2.5) #bad
 
 sim2.6 <- simulateResiduals(pois_Acroporidae_interaction) #not a good fit
-testResiduals(sim2.6) #bad
+testResiduals(sim2.6) #significant deviation
+testZeroInflation(sim2.6) # p = 0.64 which is pretty close
 plot(sim2.6) #bad
+```
+
+
+```{r}
+zi_pois_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year+ (1 | Reef/Site),
+                                     ziformula = ~1,
+      family = "poisson", data = Acroporidae)
+
+sim2.7 <- simulateResiduals(zi_pois_Acroporidae_fixed)
+testResiduals(sim2.7) #significant deviation
 ```
 
 Compare AIC of those models
@@ -440,38 +454,53 @@ Compare AIC of those models
 ```{r}
 AIC( nbin_Acroporidae_interaction, zbin_Acroporidae_interaction)
 
-model.sel(nbin_Acroporidae_interaction, zbin_Acroporidae_interaction)
+model.sel(nbin_Acroporidae_interaction, nbin_Acroporidae_fixed)
 ```
 
 ### 1.1.3 Pocilloporidae
 ```{r}
 sim3.1 <- simulateResiduals(pois_Pocilloporidae_fixed)
-testResiduals(sim3.1)
-sim3.1_plot <- plotResiduals(sim3.1, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+testResiduals(sim3.1) #significant deviation
+testZeroInflation(sim3.1) # p<0.05 so need to run a zi pois
 
 sim3.2 <- simulateResiduals(pois_Pocilloporidae_interaction)
-testResiduals(sim3.2)
-sim3.2_plot <- plotResiduals(sim3.2, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+testResiduals(sim3.2) #significant deviation
+testZeroInflation(sim3.2) #p<0.05
 
 sim3.3 <- simulateResiduals(nbin_Pocilloporidae_interaction)
-testResiduals(sim3.3)
-sim3.3_plot <- plotResiduals(sim3.3, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+testResiduals(sim3.3) #passes
+testZeroInflation(sim3.3) #passes
 
 sim3.4 <- simulateResiduals(nbin_Pocilloporidae_fixed)
-testResiduals(sim3.4)
-sim3.4_plot <- plotResiduals(sim3.4, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+testResiduals(sim3.4) #passes
+testZeroInflation(sim3.4) #p =0.72
 
-sim3.5 <- simulateResiduals(zbin_Pocilloporidae_fixed)
-testResiduals(sim3.5)
-sim3.5_plot <- plotResiduals(sim3.5, quantreg = FALSE, plot = FALSE) # Returns ggplot object
+# sim3.5 <- simulateResiduals(zbin_Pocilloporidae_fixed)
+# testResiduals(sim3.5)
+# 
+# sim3.6 <- simulateResiduals(zbin_Pocilloporidae_interaction)
+# testResiduals(sim3.6)
 
-sim3.6 <- simulateResiduals(zbin_Pocilloporidae_interaction)
-testResiduals(sim3.6)
-sim3.6_plot <- plotResiduals(sim3.6, quantreg = FALSE, plot = FALSE) # Returns ggplot object
 ```
 
 ```{r}
-model.sel(pois_Pocilloporidae_fixed, nbin_Pocilloporidae_fixed, zbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
+zi_pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + Year  + (1 | Reef/Site), 
+                                        ziformula = ~1,
+      family = "poisson", data = Pocilloporidae)
+sim3.7 <- simulateResiduals(zi_pois_Pocilloporidae_fixed)
+testResiduals(sim3.7) #significant deviation
+
+zi_pois_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
+                                              ziformula = ~1,
+        family = "poisson", data = Pocilloporidae)
+
+sim3.8 <- simulateResiduals(zi_pois_Pocilloporidae_interaction)
+testResiduals(sim3.8)  #fails
+```
+
+
+```{r}
+model.sel(nbin_Pocilloporidae_fixed, nbin_Pocilloporidae_interaction)
 ```
 
 ### 1.1.4. Poritidae
@@ -627,13 +656,16 @@ nbin <- glmmTMB(Total_juveniles ~ Year*Shelf+(1 | Reef/Site),
 
 ```{r}
 sim14.1 <- simulateResiduals(pois)
-testResiduals(sim14.1) # significant deviations KS
+testResiduals(sim14.1)
+testZeroInflation(sim14.1) # Is the number of observed zeros significantly different from what the model predicts? no
 
 sim14.2 <- simulateResiduals(nbin)
-testResiduals(sim14.2) #not the best looking model ever but not significant deviation
+testResiduals(sim14.2) #passes
+testZeroInflation(sim14.2) #nope
 ```
 
 ```{r}
+model.sel(pois, nbin)
 summary(nbin)
 ```
 
@@ -749,16 +781,21 @@ model.sel(z_pois, nbin)
 
 ## 2.2. Composition
 ```{r}
+Belt_10m <- Belt_10m |> 
+  rename("Other Hard Coral" = Other_HC
+  )
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_belt <- Belt_10m %>%
   select(
-    Year, Reef, Shelf, Site, Transect, 26:29
+    Year, Reef, Shelf, Site, Transect, Acroporidae, Pocilloporidae, Poritidae, `Other Hard Coral`
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
-site_by_belt <- site_by_belt |>                                                         # ensure only vegetated tiles included 
+site_by_belt <- site_by_belt |>                   
   group_by(Reef, Year, Shelf) %>%               # this was missing in your code
-  summarise(across(Acroporidae:Other_HC, mean), .groups = "drop")
+  summarise(across(Acroporidae:`Other Hard Coral`, mean), .groups = "drop")
+
+
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_belt <- site_by_belt %>%
@@ -1021,7 +1058,6 @@ ln_avg_poci_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site),
 gaus_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site) + (1 | Year), 
         family = "gaussian", data = Poci)
 
-
 gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site) + (1 | Year),
         family = Gamma(link = "log"), data = Poci)
 gamma_avg_Pocilloporidae_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site),
@@ -1036,13 +1072,13 @@ gaus_avg_poci_nested <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Shelf/Reef/Site),
 gamma_avg_Pocilloporidae_nested <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Shelf/Reef/Site),
         family = Gamma(link = "log"), data = Poci)
 
-ln_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci*Shelf +(1 | Reef/Site), 
+ln_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci * Shelf +(1 | Reef/Site), 
          family = "lognormal", data = Poci)
 
-gau_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci*Shelf +(1 | Reef/Site), 
+gau_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci * Shelf +(1 | Reef/Site), 
          family = "gaussian", data = Poci)
 
-gamma_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci*Shelf +(1 | Reef/Site), 
+gamma_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci * Shelf +(1 | Reef/Site), 
          family = Gamma(link = "log"), data = Poci)
 ```
 
