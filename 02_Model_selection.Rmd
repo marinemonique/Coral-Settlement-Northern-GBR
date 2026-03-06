@@ -987,10 +987,10 @@ st_join <- Coral_settlement_nGBR |>
     por_mean_st = mean(Poritid),
     acro_sd_st = sd(Acroporidae),
     poci_sd_st = sd(Pocilloporidae),
-    por_sd_st = sd(Poritid),
-    acro_median_st = median(Acroporidae),
-    poci_median_st = median(Pocilloporidae),
-    por_median_st = median(Poritid),
+    por_sd_st = sd(Poritid)
+    # acro_median_st = median(Acroporidae),
+    # poci_median_st = median(Pocilloporidae),
+    # por_median_st = median(Poritid),
   )
 
 combined_averages <- left_join(join_pit, st_join)
@@ -1010,58 +1010,58 @@ Acro <- combined_averages |>
 ```{r}
 gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
          family = Gamma(link = "log"), data = Acro)
-sim <- simulateResiduals(gamma_avg_Acroporidae_fixed)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(gamma_avg_Acroporidae_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
 
 ln_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
         family = "lognormal", data = Acro)
-sim <- simulateResiduals(ln_avg_Acroporidae_fixed)
-testResiduals(sim) #passes
-testZeroInflation(sim)
+# sim <- simulateResiduals(ln_avg_Acroporidae_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
 
 gau_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
         family = "gaussian", data = Acro)
-sim <- simulateResiduals(gau_avg_Acroporidae_fixed)
-testResiduals(sim) #fails
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(gau_avg_Acroporidae_fixed)
+# testResiduals(sim) #fails
+# testZeroInflation(sim) #passes
 
 gamma_avg_Acroporidae_nested <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Reef/Site), 
          family = Gamma(link = "log"), data = Acro)
-sim <- simulateResiduals(gamma_avg_Acroporidae_nested)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(gamma_avg_Acroporidae_nested)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
 
 ln_avg_Acroporidae_nested <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Reef/Site), 
         family = "lognormal", data = Acro)
-sim <- simulateResiduals(ln_avg_Acroporidae_nested)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(ln_avg_Acroporidae_nested)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
 
 gaus_avg_Acroporidae_nested <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Reef/Site), 
         family = "gaussian", data = Acro)
-sim <- simulateResiduals(gaus_avg_Acroporidae_nested)
-testResiduals(sim) #fails miserably
-testZeroInflation(sim)
+# sim <- simulateResiduals(gaus_avg_Acroporidae_nested)
+# testResiduals(sim) #fails miserably
+# testZeroInflation(sim)
 
 #interaction with Shelf
 gamma_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Site), 
          family = Gamma(link = "log"), data = Acro)
-sim <- simulateResiduals(gamma_avg_Acroporidae_int)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(gamma_avg_Acroporidae_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
 
 ln_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Site), 
         family = "lognormal", data = Acro)
-sim <- simulateResiduals(ln_avg_Acroporidae_int)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(ln_avg_Acroporidae_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
 
 gaus_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Site), 
         family = "gaussian", data = Acro)
-sim <- simulateResiduals(gaus_avg_Acroporidae_int)
-testResiduals(sim) #terrible, truly.
-testZeroInflation(sim)
+# sim <- simulateResiduals(gaus_avg_Acroporidae_int)
+# testResiduals(sim) #terrible, truly.
+# testZeroInflation(sim)
 ```
 
 Log normal models worked best for all of these
@@ -1198,6 +1198,8 @@ summary(ln_avg_Poritid_fixed)
 
 All of the models had significant intercepts, but the estimate for mean_por was not significant in any of the models.
 
+*Note the very small variances explained by the conditional model. Perhaps should not include them, but then the model structure would be different to other families.*
+
 
 # 5. Recruitment and Juveniles
 These models will need to be lagged. 
@@ -1256,28 +1258,28 @@ testResiduals(sim) #passes
 testZeroInflation(sim) #passed
 
 #Nested
-ln_acro_juv_st_nested <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Shelf/Reef/Site),
-              family = "lognormal",
-           data = model_df_acro)
-sim <- simulateResiduals(ln_acro_juv_st_nested)
-testResiduals(sim) # passed but not amazing
-testZeroInflation(sim) #passed
-
-gau_acro_juv_st_nested<- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1| Shelf/Reef/Site),
-              family = "gaussian",
-           data = model_df_acro)
-
-sim <- simulateResiduals(gau_acro_juv_st_nested)
-testResiduals(sim) # passed but doesn't look great
-testZeroInflation(sim) #passed
-
-gamma_acro_juv_st_nested <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Shelf/Reef/Site),
-              family = Gamma(link = "log"),
-           data = model_df_acro)
-
-sim <- simulateResiduals(gau_acro_juv_st_nested)
-testResiduals(sim) #passes but not amazing
-testZeroInflation(sim) #passes
+# ln_acro_juv_st_nested <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Shelf/Reef/Site),
+#               family = "lognormal",
+#            data = model_df_acro)
+# sim <- simulateResiduals(ln_acro_juv_st_nested)
+# testResiduals(sim) # passed but not amazing
+# testZeroInflation(sim) #passed
+# 
+# gau_acro_juv_st_nested<- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1| Shelf/Reef/Site),
+#               family = "gaussian",
+#            data = model_df_acro)
+# 
+# sim <- simulateResiduals(gau_acro_juv_st_nested)
+# testResiduals(sim) # passed but doesn't look great
+# testZeroInflation(sim) #passed
+# 
+# gamma_acro_juv_st_nested <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Shelf/Reef/Site),
+#               family = Gamma(link = "log"),
+#            data = model_df_acro)
+# 
+# sim <- simulateResiduals(gau_acro_juv_st_nested)
+# testResiduals(sim) #passes but not amazing
+# testZeroInflation(sim) #passes
 
 # interaction between shelf and st
 
@@ -1307,7 +1309,10 @@ testZeroInflation(sim) #passes
 ```
 
 ```{r}
-model.sel(gau_acro_juv_st_int, gau_acro_juv_st_nested, gau_acro_juv_st_fixed, gamma_acro_juv_st_fixed, gamma_acro_juv_st_int, gamma_acro_juv_st_nested, ln_acro_juv_st_int, ln_acro_juv_st_nested, ln_acro_juv_st_fixed)
+model.sel(gau_acro_juv_st_int, 
+          #gau_acro_juv_st_nested, gamma_acro_juv_st_nested, ln_acro_juv_st_nested,
+          gau_acro_juv_st_fixed, gamma_acro_juv_st_fixed,
+          gamma_acro_juv_st_int,  ln_acro_juv_st_int,  ln_acro_juv_st_fixed)
 ```
 
 ```{r}
@@ -1330,26 +1335,26 @@ ln_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + Shelf + (1|Reef/
               family = "lognormal",
            data = model_df_poci)
 
-sim <- simulateResiduals(ln_poci_juv_st_fixed)
-testResiduals(sim) #passes
-testZeroInflation(sim)
+# sim <- simulateResiduals(ln_poci_juv_st_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
 
 
 gau_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1+Shelf + (1|Reef/Site),
               family = "gaussian",
            data = model_df_poci)
 
-sim <- simulateResiduals(gau_poci_juv_st_fixed)
-testResiduals(sim) #passes but doesn't look great
-testZeroInflation(sim)
+# sim <- simulateResiduals(gau_poci_juv_st_fixed)
+# testResiduals(sim) #passes but doesn't look great
+# testZeroInflation(sim)
 
 gamma_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1+ Shelf + (1|Reef/Site),
               family = Gamma(link = "log"),
            data = model_df_poci)
 
-sim <- simulateResiduals(gau_poci_juv_st_fixed)
-testResiduals(sim) #passes
-testZeroInflation(sim)
+# sim <- simulateResiduals(gau_poci_juv_st_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
 
 #Interaction with Shelf
 ln_poci_juv_st_int <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
@@ -1375,32 +1380,34 @@ sim <- simulateResiduals(gamma_poci_juv_st_int)
 testResiduals(sim) # passed
 testZeroInflation(sim)
 
-#Nested
-ln_poci_juv_st_nested <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Shelf/Reef/Site),
-              family = "lognormal",
-           data = model_df_poci)
-sim <- simulateResiduals(ln_poci_juv_st_nested)
-testResiduals(sim) # passed
-testZeroInflation(sim)
-
-gau_poci_juv_st_nested <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Shelf/Reef/Site),
-              family = "gaussian",
-           data = model_df_poci)
-sim <- simulateResiduals(ln_poci_juv_st_nested)
-testResiduals(sim) # passed
-testZeroInflation(sim)
-
-gamma_poci_juv_st_nested <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Shelf/Reef/Site),
-              family = Gamma(link = "log"),
-           data = model_df_poci)
-sim <- simulateResiduals(gamma_poci_juv_st_nested)
-testResiduals(sim) # passed
-testZeroInflation(sim)
+# #Nested
+# ln_poci_juv_st_nested <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Shelf/Reef/Site),
+#               family = "lognormal",
+#            data = model_df_poci)
+# sim <- simulateResiduals(ln_poci_juv_st_nested)
+# testResiduals(sim) # passed
+# testZeroInflation(sim)
+# 
+# gau_poci_juv_st_nested <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Shelf/Reef/Site),
+#               family = "gaussian",
+#            data = model_df_poci)
+# sim <- simulateResiduals(ln_poci_juv_st_nested)
+# testResiduals(sim) # passed
+# testZeroInflation(sim)
+# 
+# gamma_poci_juv_st_nested <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Shelf/Reef/Site),
+#               family = Gamma(link = "log"),
+#            data = model_df_poci)
+# sim <- simulateResiduals(gamma_poci_juv_st_nested)
+# testResiduals(sim) # passed
+# testZeroInflation(sim)
 ```
 
 
 ```{r}
-model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, gau_poci_juv_st_nested, gamma_poci_juv_st_fixed, gamma_poci_juv_st_int, gamma_poci_juv_st_nested, ln_poci_juv_st_fixed, ln_poci_juv_st_int, ln_poci_juv_st_nested)
+model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, 
+          #gau_poci_juv_st_nested, gamma_poci_juv_st_nested,ln_poci_juv_st_nested,
+gamma_poci_juv_st_fixed, gamma_poci_juv_st_int,  ln_poci_juv_st_fixed, ln_poci_juv_st_int)
 ```
 
 

@@ -658,8 +658,7 @@ Not appropriate for composition analysis.
 # anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.006932 * ***
 ```
 
-# 5. Brood stock and larval supply
-# 4. Brood stock (PIT) and Recruitment (Tiles)
+# 5. Brood stock (PIT) and Recruitment (Tiles)
 
 ```{r}
 st_join <- Coral_settlement_nGBR |> 
@@ -674,6 +673,18 @@ st_join <- Coral_settlement_nGBR |>
     acro_median_st = median(Acroporidae),
     poci_median_st = median(Pocilloporidae),
     por_median_st = median(Poritid),
+  )
+
+join_pit <- PIT |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_aco = mean(Acroporidae),
+    sd_aco = sd(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    PIT = n()
   )
 
 combined_averages <- left_join(join_pit, st_join)
@@ -948,6 +959,18 @@ model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_juv_st_fixed, gau_
 
 Acro_juv_st_df <- model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_juv_st_fixed, gau_acro_juv_st_int_wo_yr, ln_acro_juv_st_int_wo_yr) |> as.data.frame()
 ```
+```{r}
+ln_acro_juv_st_int <- glmmTMB(mean_acro ~ scale(st_mean_acro_lag1, scale = FALSE) * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+
+summary(model_df_acro$st_mean_acro_lag1)
+
+summary(ln_acro_juv_st_int)
+```
+
+
+
 
 Tukey HSD among Shelf
 ```{r}
@@ -994,6 +1017,10 @@ gau_poci_juv_st_int <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf * Year + (1
 model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, ln_poci_juv_st_fixed, ln_poci_juv_st_int, gau_poci_juv_st_int_wo_yr, ln_poci_juv_st_int_wo_yr)
 
 Poci_juv_st_df <- model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, ln_poci_juv_st_fixed, ln_poci_juv_st_int, gau_poci_juv_st_int_wo_yr, ln_poci_juv_st_int_wo_yr) |> as.data.frame()
+```
+
+```{r}
+summary(ln_poci_juv_st_int_wo_yr)
 ```
 
 Tukey HSD among Shelf
