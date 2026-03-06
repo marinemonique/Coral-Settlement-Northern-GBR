@@ -330,6 +330,32 @@ A <- ggplot()+
         text = element_text(size =9))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 A
+
+A.2 <- ggplot()+
+    geom_jitter(data = total_mean_site, aes(x=Year, y = mean_site, group = Shelf), 
+                position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.85),
+    size = 0.9,
+    alpha = 0.5,
+    colour = "#A8A8A8")+
+  geom_pointrange(data = total_model_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin = asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.85))+
+  theme_classic()+
+  labs(y = expression(atop("Predicted total recruits",
+  "(" * tile^{-1} * ")")))+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend.position = c(1,1), legend.justification = c(1,1),
+        text = element_text(size =9))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+A.2
 ```
 
 ### 1.1.1 Acroporidae
@@ -566,8 +592,12 @@ recruits_wo_other <- ggarrange(A, B, C, D, ncol =2, nrow = 2, labels = c("A","B"
 recruits_wo_other <- ggarrange(A, B, C, D, ncol =1, nrow = 4, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
 
   ggsave(recruits_wo_other, filename = "Figure2.PDF", 
-         #width = 189,
+         width = 189,
          height = 225, units = "mm"
+        )
+   ggsave(recruits_wo_other, filename = "Figure2.PNG", 
+         width = 275,
+         height = 210, units = "mm"
         )
 ```
 
@@ -940,10 +970,26 @@ juv_por_plot
 ```{r}
 ggarrange(A, juv_total_plot, B, juv_acro_plot, C,juv_poci_plot, D, juv_por_plot, ncol = 2, nrow = 4, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D", "E", "F", "G", "H") )
 
-Total_st_juv <- ggarrange(A, juv_total_plot, ncol = 1, labels = c("A", "B"), common.legend = TRUE)
+Total_st_juv <- ggarrange(A.2, juv_total_plot, ncol = 1, labels = c("A", "B"), common.legend = TRUE)
 Total_st_juv
+
+ggsave(Total_st_juv,
+       filename = "Total_ST_juv.PDF",
+       height = 200,
+       width = 189,
+       unit = "mm")
 ```
 
+
+```{r}
+Juv_4 <- ggarrange(juv_total_plot, juv_acro_plot, juv_poci_plot, juv_por_plot, ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D") )
+
+ggsave(Juv_4,
+       filename = "Figure4.PNG",
+       height = 200,
+       width = 275,
+       unit = "mm")
+```
 
 ### 2.1.5. Other Hard Corals
 
@@ -1052,6 +1098,55 @@ belt_matrix_filtered <- site_by_belt %>%
   )
 
 belt_hellinger <- decostand(belt_matrix_filtered,                                                         method = "hellinger")
+
+```
+
+```{r}
+# # Step 1: Create site-by-species matrix with Site_ID
+# site_by_belt <- Belt_10m %>%
+#   select(
+#     Year, Reef, Shelf, Site, Transect, 26:29
+#   ) %>%
+#   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
+# 
+# site_by_belt <- site_by_belt |>                                                         # ensure only vegetated tiles included 
+#   group_by(Reef, Year, Shelf) %>%               # this was missing in your code
+#   summarise(across(Acroporidae:Other_HC, mean), .groups = "drop")
+# 
+# # Step 2: Metadata (KEEP Site_ID)
+# metadata_belt <- site_by_belt %>%
+#   select(Shelf, Year, Reef)
+# 
+# # Step 3: Species matrix
+# belt_matrix_filtered <- site_by_belt %>%
+#   select(
+#     4:7
+#   )
+```
+Test whether hellinger transformation has less dispersion
+```{r}
+# create a distance matrix
+belt_dist <- vegdist(belt_matrix_filtered, method = "hellinger")
+
+# With respect to Shelf
+betadisper(belt_dist, metadata_belt$Shelf)
+anova(betadisper(belt_dist, metadata_belt$Shelf)) # Significant was 0.1688 *
+```
+
+```{r}
+permanova_result_juv <- adonis2(belt_hellinger ~ Shelf,
+  data = site_by_belt,
+  method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
+  by = "margin",
+  permutations = 999)
+
+print(permanova_result)
+
+
+# euc_hellinger <- vegdist(recruit_hellinger, method = "euclidean")
+# # With respect to Shelf
+# betadisper(euc_hellinger, Recruits$Shelf)
+# anova(betadisper(euc_hellinger, Recruits$Shelf))
 ```
 
 ```{r}
@@ -1104,7 +1199,7 @@ belt_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colo
          vjust = -0.5, # lift slightly above bottom
          size = 3)+
   scale_x_continuous(limits = c(-0.85, 1))+
-  scale_y_continuous(limits = c(-1.05, 1))
+  scale_y_continuous(limits = c(-1.05, 0.95))
 
 belt_A
 ```
@@ -1162,8 +1257,8 @@ belt_B <- ggplot()+
          colour = "Shelf",
         shape = "Year"
     )+
-  scale_x_continuous(limits = c(-0.85, 0.95))+
-  scale_y_continuous(limits = c(-1.05, 1))
+  scale_x_continuous(limits = c(-0.85, 1))+
+  scale_y_continuous(limits = c(-1.05, 0.95))
 belt_B
 ```
 ```{r}
@@ -1180,6 +1275,13 @@ ggsave(belt_Figure,
   height = 200, 
   units = "mm"
 )
+
+ggsave(belt_Figure,
+  filename = "belt_NMDS.PDF",
+  height = 200, 
+  units = "mm"
+)
+
 ```
 
 # 3. Benthic Cover
@@ -1354,8 +1456,14 @@ Benthic_Figure
 Need to move the stress to somewhere less weird, and change CCA name because it looks dumb currently.
 
 ```{r}
-ggsave(
+ggsave(Benthic_Figure,
   filename = "Benthic_NMDS.png",
+  height = 240, 
+  units = "mm"
+)
+
+ggsave(Benthic_Figure,
+  filename = "Benthic_NMDS.PDF",
   height = 240, 
   units = "mm"
 )
@@ -1607,8 +1715,5 @@ Benthic_Figure <- ggarrange(
 
 # complete_composition <- ggarrange(ST_NMDS, belt_Figure, Benthic_Figure, widths = c(0.8, 0.8, 1), ncol = 3)
 # complete_composition
-
-
-
 ```
 

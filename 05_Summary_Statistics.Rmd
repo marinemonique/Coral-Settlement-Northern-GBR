@@ -954,7 +954,7 @@ PIT_long <- PIT |>
 
 ```{r}
 Summary_table_PIT <- PIT_long |> 
-  group_by(Benthos,Year, Shelf, Reef, Site) |> 
+  group_by(Benthos, Site, Year, Shelf, Reef) |> 
   summarise(
     mean = mean(Points),
     sd = sd(Points),
@@ -967,8 +967,34 @@ Summary_table_PIT <- PIT_long |>
 ```
 
 ```{r}
+#present / absent
+PIT_long |> 
+  filter(Points > 0) |> 
+  group_by(Site, Benthos, Shelf) |> 
+  summarise(
+    mean = mean(Points),
+    sd = sd(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points),
+    PITs = n()
+  ) |> 
+  filter(
+    Benthos == "Soft Coral"
+    #Benthos == "Sand and Rubble"
+    #Benthos == "Green Macroalgae"
+    #Benthos == "Poritidae"
+    #Benthos == "Pocilloporidae"
+    #Benthos == "Acroporidae"
+    #Benthos == "Brown Macroalgae" #all inner shelf sites, 4 mid shelf sites (3 of which are around Lizard)
+    #Benthos == "CCA" #CCA was not present at any Inner shelf sites
+    )
+```
+
+
+```{r}
 Summary_table_PIT |> 
-  group_by(Benthos) |> 
+  group_by(Benthos, Site) |> 
   summarise(
     min_mean = min(mean),
     max_mean = max(mean)
