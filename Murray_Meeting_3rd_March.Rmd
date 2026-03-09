@@ -1,0 +1,586 @@
+---
+title: "Murray Meeting 3rd of March"
+author: "Monique White"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lme4)
+library(lmerTest)
+library(car)
+library(emmeans)
+library("FactoMineR")
+library("factoextra")
+library(FactoMineR)
+library(factoextra)
+library(vegan) #to do NMDS
+library(PCAmixdata)
+library(ggfortify)
+library(glmmTMB) # Generalized Linear Mixed Models using Template Model Builder
+library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression models
+library(ggpubr)
+library(ggeffects) #to be able to do ggpredict
+library(ggh4x) # to specify x and y axis if desired
+library(MuMIn) #model selection function
+library(ggrepel)
+
+#Coral Recruits
+## Recruitment data
+Coral_settlement_nGBR_CS <- read.csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
+  mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR_CS %>% 
+  filter(Shelf.posn != "Coral Sea", #remove coral sea data
+        !Obs %in% c(1499, 1621, 1622)) #Remove loose tiles with heavy biofouling
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR %>% 
+  rename("Shelf"= Shelf.posn,
+         "Year_Collected"= Year..Jan.,
+         "Site_#"= Site..,
+         "Acroporidae" =Acropora,
+         "Pocilloporidae" = Pocillopora,
+         "Poritid" = Porites) |> 
+  mutate(Year_Collected = factor(Year_Collected))
+  
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |>
+  filter(Shelf == "Outer" | (Shelf %in% c("Inner", "Mid") & Tile %in% as.character(1:10)))
+
+Coral_settlement_nGBR$Year_Collected <- factor(Coral_settlement_nGBR$Year_Collected)
+Coral_settlement_nGBR$Shelf <- factor(Coral_settlement_nGBR$Shelf)
+
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  mutate(
+    Year = case_when(
+      Year_Collected == "2022" ~ "2021-22",
+      Year_Collected == "2023" ~ "2022-23",
+      Year_Collected == "2024" ~ "2023-24",
+      Year_Collected == "2025" ~ "2024-25",
+      Year_Collected == "2026" ~ "2025-26"
+  ),
+  Deployment = case_when(
+      Year_Collected == "2022" ~ "21/22",
+      Year_Collected == "2023" ~ "22/23",
+      Year_Collected == "2024" ~ "23/24",
+      Year_Collected == "2025" ~ "24/25",
+      Year_Collected == "2026" ~ "25/26"
+  )) |> 
+mutate(
+  notes = case_when(
+    notes %in% c("dislodged", "dislodged tile", "dettached tile") ~ "Dislodged",
+    notes %in% c("lots of tube worms") ~ "Lots of tube worms",
+    TRUE ~ notes
+  ))
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+mutate(
+  notes = case_when(
+    !notes %in% c("Dislodged", "Lots of tube worms")~"No notes",
+    TRUE ~ notes
+  ))
+
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  filter(notes != "Dislodged")
+
+# Mean or mean no. tiles per site / year
+Join_Coral <- Coral_settlement_nGBR |> 
+  group_by(Shelf, Year, Site, Reef) |> 
+  summarise(
+    st_mean_acro = mean(Acroporidae),
+    st_sd_acro = sd(Acroporidae),
+    st_mean_poci = mean(Pocilloporidae),
+    st_sd_poci = sd(Pocilloporidae),
+    st_mean_por = mean(Poritid),
+    st_sd_por = sd(Poritid),
+    st_mean_total = mean(total),
+    st_sd_total = sd(total),
+    Tiles = n()
+  )
+# Benthic Data
+
+PIT <- read_csv("PIT_50m.csv") %>%
+  mutate(across(8:109, ~replace_na(.x, 0)))# Read in data
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ))
+
+
+PIT<- PIT |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site))
+
+join_pit <- PIT |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_aco = mean(Acroporidae),
+    sd_aco = sd(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    PIT = n()
+  )
+
+# Juvenile data
+Belt_10m <- read_csv("Belt_10m.csv") |> 
+  mutate(across(8:28, ~replace_na(.x, 0)))
+
+Belt_10m <- Belt_10m |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ))
+
+Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
+Belt_10m <- Belt_10m |>
+  mutate(
+    Other_HC = Favia + Favites + Goniastrea + Astrea +
+                 Echinopora + Galaxea + Turbinaria +
+                 Psammacora + Pavona
+  )
+
+join_belt <- Belt_10m |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    mean_acro = mean(Acroporidae),
+    sd_acro = sd(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    sd_poci = sd(Pocilloporidae),
+    mean_por = mean(Poritidae),
+    sd_por = sd(Poritidae),
+    mean_total = mean(Total_juveniles),
+    sd_total = sd(Total_juveniles),
+    Belt = n()
+  )
+```
+
+# 1. Multiple comparison correction
+
+when the pairs function, I get the Tukey-adjusted p values.
+But those P-values are Tukey adjusted within a given year (when ~ Shelf | Year), or in a given Shelf (when the formula is ~ Year | Shelf); right?
+I saw some papers then do a Benjamin Hochberg adjustment, and I wonder if I apply that to all p-values finally, to get the significant pairwise contrasts? But even when I do that, if I am applying the BH correction at the point of the finished model, but not both models together at the same time (e.g., the following BH adjustment
+```{r}
+# emm_shelf <- emmeans(model, ~ Shelf | Year, type = "response")
+# contrast_shelf_df <- as.data.frame(
+#     summary(pairs(emm_shelf), infer = TRUE)
+#   ) %>%
+#     dplyr::rename(
+#       Ratio = ratio,
+#       Lower_CI = asymp.LCL,
+#       Upper_CI = asymp.UCL,
+#       p_Tukey = p.value )
+# 
+#   contrast_shelf_df$p_BH <- p.adjust(
+#     contrast_shelf_df$p_Tukey,
+#     method = "BH" )
+```
+
+does not account for the other comparison, (emm_year <- emmeans(model, ~ Year | Shelf, type = "response")).
+
+## 1.1. Example for Total Recruits
+
+```{r}
+nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+```
+
+```{r}
+# tuk1 <- emmeans:::tukey.emmc(unique(Coral_settlement_nGBR$Shelf))
+# tuk2 <- emmeans:::tukey.emmc(unique(Coral_settlement_nGBR$Year))
+```
+
+Example with shelf year
+```{r}
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  mutate(
+    shelfyear = paste(Shelf, Year)
+  )
+unique(Coral_settlement_nGBR$shelfyear)
+nbin_total_yr2 <- glmmTMB(total ~ shelfyear +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+
+summary(nbin_total_yr2)
+
+cmat <- cbind(
+  "Inner v Mid 21/22" = c(1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Inner v Out 21/22" = c(1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Mid v Out 21/22" = c(0, 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Inner v Mid 22/23" = c(0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0, 0),
+  "Inner v Out 22/23" = c(0, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0),
+  "Mid v Out 22/23" = c(0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0),
+  "Inner v Mid 23/24" = c(0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0),
+  "Inner v Out 23/24" = c(0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0),
+  "Mid v Out 23/24" = c(0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0),
+  "Inner v Mid 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0),
+  "Inner v Out 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1),
+  "Mid v Out 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1),
+  "Inner 21/22 v 22/23" = c(1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Inner 21/22 v 23/24" = c(1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0),
+  "Inner 21/22 v 24/25" = c(1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0),
+  "Inner 22/23 v 23/24" = c(0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0),
+  "Inner 22/23 v 24/25" = c(0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0),
+  "Inner 23/24 v 24/25" = c(0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0),
+  "Mid 21/22 v 22/23" = c(0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0),
+  "Mid 21/22 v 23/24" = c(0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0),
+  "Mid 21/22 v 24/25" = c(0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0),
+  "Mid 22/23 v 23/24" = c(0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0),
+  "Mid 22/23 v 24/25" = c(0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0),
+  "Mid 23/24 v 24/25" = c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0),
+  "Outer 21/22 v 22/23" = c(0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0),
+  "Outer 21/22 v 23/24" = c(0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0),
+  "Outer 21/22 v 24/25" = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1),
+  "Outer 22/23 v 23/24" = c(0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0),
+  "Outer 22/23 v 24/25" = c(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1),
+  "Outer 23/24 v 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1)
+)
+nbin_total_yr2 |> emmeans(~shelfyear, type="response") |> 
+  contrast(method=list(shelfyear=cmat), adjust= "tukey")
+```
+
+```{r}
+Coral_settlement_nGBR$shelfyear <- factor(Coral_settlement_nGBR$shelfyear,
+                                          levels = c(
+    "Inner 2021-22","Mid 2021-22","Outer 2021-22",
+    "Inner 2022-23","Mid 2022-23","Outer 2022-23",
+    "Inner 2023-24","Mid 2023-24","Outer 2023-24",
+    "Inner 2024-25","Mid 2024-25","Outer 2024-25"
+  )
+)
+emm <- emmeans(nbin_total_yr2, ~ shelfyear, type = "response")
+
+levels(emm)
+contrast_list <- as.list(as.data.frame(cmat))
+
+contrast(
+  emm,
+  method = contrast_list,
+  adjust = "holm"   # recommended
+)
+```
+
+
+```{r}
+
+nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+## Shelf within Year
+  emm_shelf <- emmeans(nbin_total_yr2, ~ Shelf | Year, type = "response")
+
+  emm_shelf_df <- as.data.frame(summary(emm_shelf)) %>%
+    dplyr::rename(
+      Mean = response,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL
+    )
+
+  contrast_shelf_df <- as.data.frame(
+    summary(pairs(emm_shelf), infer = TRUE)
+  ) %>%
+    dplyr::rename(
+      Ratio = ratio,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL,
+      p_Tukey = p.value
+    )
+
+  contrast_shelf_df$p_BH <- p.adjust(
+    contrast_shelf_df$p_Tukey,
+    method = "BH"
+  )
+  
+contrast_shelf_df
+
+## Year within Shelf
+
+  emm_year <- emmeans(nbin_total_yr2, ~ Year | Shelf, type = "response")
+
+  emm_year_df <- as.data.frame(summary(emm_year)) %>%
+    dplyr::rename(
+      Mean = response,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL
+    )
+
+  contrast_year_df <- as.data.frame(
+    summary(pairs(emm_year), infer = TRUE)
+  ) %>%
+    dplyr::rename(
+      Ratio = ratio,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL,
+      p_Tukey = p.value
+    )
+
+  contrast_year_df$p_BH <- p.adjust(
+    contrast_year_df$p_Tukey,
+    method = "BH"
+  )
+
+contrast_year_df
+```
+
+
+# 2. Brood stock (PIT) and Recruitment (Tiles)
+
+```{r}
+st_join <- Coral_settlement_nGBR |> 
+  group_by(Site, Year) |> 
+  summarise(
+    acro_mean_st = mean(Acroporidae),
+    poci_mean_st = mean(Pocilloporidae),
+    por_mean_st = mean(Poritid),
+    acro_sd_st = sd(Acroporidae),
+    poci_sd_st = sd(Pocilloporidae),
+    por_sd_st = sd(Poritid),
+    acro_median_st = median(Acroporidae),
+    poci_median_st = median(Pocilloporidae),
+    por_median_st = median(Poritid),
+  )
+
+combined_averages <- left_join(join_pit, st_join)
+```
+
+Now these are both averages, it can't follow an integer and would need to follow a different family of error distribution.
+
+## 2.1. Acroporidae
+
+Despite not being interested in across the shelf differences, as shelf has only three levels there are two few levels for a stable random effect. (Is that correct?)
+Or should I be including Shelf as a random effect too?
+
+*Note that I could not get the Gamma family ones to run in glmmTMB, despite filtering so that the response variable (acro_mean_st) was not 0*
+Maybe centre data to make the intercept make more sense
+scale(mean_aco, scale = FALSE) only centreing
+scale(mean_aco) centre and scale (mean of 0 and SD 1)
+
+```{r}
+Acro <- combined_averages |> 
+  filter(acro_mean_st > 0)
+
+gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ scale(mean_aco, scale = FALSE) +(1 | Reef/Site) + (1 | Year),
+        family = Gamma(link = "log"), data = Acro)
+
+ln_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
+        family = "lognormal", data = Acro)
+
+gaus_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
+        family = "gaussian", data = Acro)
+
+```
+
+```{r}
+sim13.1 <- simulateResiduals(gamma_avg_Acroporidae_fixed) #didn't work
+testResiduals(sim13.1)
+testZeroInflation(sim13.1)
+# sim13.2 <- simulateResiduals(ln_avg_Acroporidae_fixed)
+# testResiduals(sim13.2)
+# testZeroInflation(sim13.2)
+# 
+# sim13.3 <- simulateResiduals(gaus_avg_Acroporidae_fixed)
+# testResiduals(sim13.3) # definitelty not this one
+# testZeroInflation(sim13.3)
+```
+
+Log normal models worked best for all of these
+```{r}
+summary(ln_avg_Acroporidae_fixed)
+```
+When I am reporting this output, the mean cover is not a significant predictor of recruitment, and the estimate (slope) is nearly 0.
+Just want to confirm I am reporting the correct thing.
+Otherwise I would use a Spearmans correlation that may also make more sense and be easier to report.
+
+# 3. Recruitment and Juveniles
+These models will need to be lagged. 
+
+```{r}
+combine_belt_st <- left_join(join_belt, Join_Coral)
+
+# Only including years in which both data is included (once lagging has happened)
+combine_belt_st <- combine_belt_st |> 
+  mutate(Year_start = as.numeric(substr(Year, 1, 4)))
+
+gropd_df2 <- combine_belt_st %>%
+  arrange(Reef, Site, Year_start) %>%   # make sure data are ordered
+  group_by(Reef, Site) %>%              # or group_by(Reef) if Site not needed
+  mutate(
+    st_mean_acro_lag1 = lag(st_mean_acro, 1),
+    st_mean_poci_lag1 = lag(st_mean_poci, 1),
+    st_mean_por_lag1 = lag(st_mean_por, 1),
+  ) %>%
+  ungroup()
+```
+
+
+## 3.1. Acroporidae
+
+Remove first year row
+```{r}
+model_df_acro <- gropd_df2 %>%
+  filter(!is.na(mean_acro))
+```
+
+
+Fit model. check if mean_acro is approximately normal. *Note this may be the wrong approach. I am not sure if this method of shopping around with variables is problematic, and that I should have a model in mind before fitting... The reason I sometimes left out variables was to see if they were contributing enough to justify the penalty of having them...*
+
+
+```{r}
+ln_acro_juv_st_fixed <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + Shelf + Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+# sim <- simulateResiduals(ln_acro_juv_st_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
+
+gau_acro_juv_st_fixed <- glmmTMB(mean_acro ~ st_mean_acro_lag1 +Shelf + Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_acro)
+# sim <- simulateResiduals(gau_acro_juv_st_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
+
+#without year
+ln_acro_juv_st_int_wo_yr <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+# sim <- simulateResiduals(ln_acro_juv_st_int_wo_yr)
+# testResiduals(sim) # passed
+# testZeroInflation(sim)
+
+gau_acro_juv_st_int_wo_yr<- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_acro)
+# sim <- simulateResiduals(gau_acro_juv_st_int_wo_yr)
+# testResiduals(sim) # passed but doesn't look great
+# testZeroInflation(sim)
+
+ln_acro_juv_st_int <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+# sim <- simulateResiduals(ln_acro_juv_st_int)
+# testResiduals(sim) #outlier test significant
+# testZeroInflation(sim)
+
+gau_acro_juv_st_int <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf * Year + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_acro)
+# sim <- simulateResiduals(gau_acro_juv_st_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
+
+# year as random variable
+ln_acro_juv_st_int_yr <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site) + (1 | Year),
+              family = "lognormal",
+           data = model_df_acro)
+# sim <- simulateResiduals(ln_acro_juv_st_int_yr)
+# testResiduals(sim) # passed
+# testZeroInflation(sim)
+
+gau_acro_juv_st_int_yr<- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site) + (1 | Year),
+              family = "gaussian",
+           data = model_df_acro)
+# sim <- simulateResiduals(gau_acro_juv_st_int_yr)
+# testResiduals(sim) # passed
+# testZeroInflation(sim)
+```
+
+```{r}
+model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_juv_st_fixed, gau_acro_juv_st_int_wo_yr, ln_acro_juv_st_int_wo_yr, gau_acro_juv_st_int_yr, ln_acro_juv_st_int_yr)
+```
+
+```{r echo=FALSE}
+model.sel(gau_acro_juv_st_int, gau_acro_juv_st_fixed, ln_acro_juv_st_fixed, gau_acro_juv_st_int_wo_yr, ln_acro_juv_st_int_wo_yr, gau_acro_juv_st_int_yr, ln_acro_juv_st_int_yr) |> knitr::kable()
+```
+
+No inferential justification for having interaction term
+```{r}
+library(multcomp)
+```
+
+```{r}
+Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+  mutate(
+    shelfyear = paste(Shelf, Year)
+  )
+Coral_settlement_nGBR$shelfyear <- factor(Coral_settlement_nGBR$shelfyear,
+                                          levels = c(
+    "Inner 2021-22","Mid 2021-22","Outer 2021-22",
+    "Inner 2022-23","Mid 2022-23","Outer 2022-23",
+    "Inner 2023-24","Mid 2023-24","Outer 2023-24",
+    "Inner 2024-25","Mid 2024-25","Outer 2024-25"
+  )
+)
+nbin_total_yr2 <- glmmTMB(
+  total ~ 0 + shelfyear + (1 | Reef/Site),
+  family = "nbinom2",
+  data = Coral_settlement_nGBR
+)
+
+summary(nbin_total_yr2)
+
+cmat <- cbind(
+  "Inner v Mid 21/22" = c(1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Inner v Out 21/22" = c(1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Mid v Out 21/22" = c(0, 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Inner v Mid 22/23" = c(0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0, 0),
+  "Inner v Out 22/23" = c(0, 0, 0, 1, 0, -1, 0, 0, 0, 0, 0, 0),
+  "Mid v Out 22/23" = c(0, 0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0),
+  "Inner v Mid 23/24" = c(0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 0),
+  "Inner v Out 23/24" = c(0, 0, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0),
+  "Mid v Out 23/24" = c(0, 0, 0, 0, 0, 0, 0, 1, -1, 0, 0, 0),
+  "Inner v Mid 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1, 0),
+  "Inner v Out 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, -1),
+  "Mid v Out 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -1),
+  "Inner 21/22 v 22/23" = c(1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0),
+  "Inner 21/22 v 23/24" = c(1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0),
+  "Inner 21/22 v 24/25" = c(1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0),
+  "Inner 22/23 v 23/24" = c(0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0),
+  "Inner 22/23 v 24/25" = c(0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0),
+  "Inner 23/24 v 24/25" = c(0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0),
+  "Mid 21/22 v 22/23" = c(0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0),
+  "Mid 21/22 v 23/24" = c(0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0),
+  "Mid 21/22 v 24/25" = c(0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0),
+  "Mid 22/23 v 23/24" = c(0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0),
+  "Mid 22/23 v 24/25" = c(0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0),
+  "Mid 23/24 v 24/25" = c(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0),
+  "Outer 21/22 v 22/23" = c(0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 0),
+  "Outer 21/22 v 23/24" = c(0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 0),
+  "Outer 21/22 v 24/25" = c(0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1),
+  "Outer 22/23 v 23/24" = c(0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0),
+  "Outer 22/23 v 24/25" = c(0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, -1),
+  "Outer 23/24 v 24/25" = c(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1)
+)
+cmat <- t(cmat)
+#glht(nbin_total_yr2, linfct = cmat(period = "Tukey"))
+glht_res <- glht(nbin_total_yr2, linfct = mcp(shelfyear = cmat), type = "tukey")
+
+glht_res <- glht(nbin_total_yr2, linfct = mcp(shelfyear = "Tukey"))
+summary(glht_res)
+```
+
