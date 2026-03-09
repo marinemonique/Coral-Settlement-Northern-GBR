@@ -975,6 +975,275 @@ Benthic_envfit <- vec_scores |>
   rownames_to_column(var = "label_category")
 ```
 
+## 3.2. Family benthic cover
+```{r}
+PIT_adult <- PIT |> 
+  select(Year, Shelf, Reef, Site, Transect,Acroporidae, Pocilloporidae, Poritidae, `Other Hard Coral`)
+```
+
+```{r}
+# Acroporidae adult Model
+pois_acro_adult <- glmmTMB(Acroporidae ~ Shelf + Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT_adult)
+# sim <- simulateResiduals(pois_acro_adult)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p = 0.112
+
+nbin_acro_adult <- glmmTMB(Acroporidae ~ Shelf +  Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT_adult)
+# sim <- simulateResiduals(nbin_acro_adult)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p = 0.224
+
+pois_acro_adult_int <- glmmTMB(Acroporidae ~ Shelf * Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT_adult)
+# sim <- simulateResiduals(pois_acro_adult_int)
+# testResiduals(sim)  #passes
+# testZeroInflation(sim) #p = 0.16
+
+nbin_acro_adult_int <- glmmTMB(Acroporidae ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT_adult)
+# sim <- simulateResiduals(nbin_acro_adult_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p=0.16
+```
+
+```{r}
+model.sel(pois_acro_adult, pois_acro_adult_int, nbin_acro_adult, nbin_acro_adult_int)
+```
+
+```{r}
+summary(nbin_acro_adult_int)
+```
+High variability among sites (54% of variance), whereas reef only accounts for 2% on top of what site within reef.
+
+### 3.2.2. Pocilloporidae
+
+```{r}
+pois_poci_adult <- glmmTMB(Pocilloporidae ~ Shelf + Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT_adult)
+# sim <- simulateResiduals(pois_poci_adult)
+# testResiduals(sim)#passes
+# testZeroInflation(sim) # p =0.6
+
+nbin_poci_adult <- glmmTMB(Pocilloporidae ~ Shelf +  Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT_adult)
+# sim <- simulateResiduals(nbin_poci_adult)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) # p = 0.672
+
+pois_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT_adult)
+# sim <- simulateResiduals(pois_poci_adult_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p=0.376
+
+nbin_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT_adult)
+# sim <- simulateResiduals(nbin_poci_adult_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) # p = 0.456
+```
+
+```{r}
+model.sel(pois_poci_adult, pois_poci_adult_int, nbin_poci_adult, nbin_poci_adult_int)
+```
+
+```{r}
+summary(pois_poci_adult_int)
+```
+
+Sites and reef account  for very little of the variation seen in shelf and year.
+
+### 3.2.3. Poritidae
+
+```{r}
+pois_por_adult <- glmmTMB(Poritidae ~ Shelf + Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT_adult)
+#  sim <- simulateResiduals(pois_por_adult)
+#  testResiduals(sim)#passes
+# testZeroInflation(sim) # p =1
+
+nbin_por_adult <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT_adult)
+# sim <- simulateResiduals(nbin_por_adult)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) # p = 0.888
+
+pois_por_adult_int <- glmmTMB(Poritidae ~ Shelf * Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT_adult)
+# sim <- simulateResiduals(pois_por_adult_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p=0.816
+
+nbin_por_adult_int <- glmmTMB(Poritidae ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT_adult)
+# sim <- simulateResiduals(nbin_por_adult_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) # p = 0.816
+```
+
+
+```{r}
+model.sel(nbin_por_adult_int, nbin_por_adult, pois_por_adult, pois_por_adult_int)
+```
+Interaction term doesn't significantly improve model for Poritidae
+
+```{r}
+summary(nbin_por_adult)
+```
+
+Despite that, I need to include the interaction term here to be asking the same ecological question.
+```{r}
+summary(nbin_por_adult_int)
+```
+
+### 3.2.4. Total Hard coral
+```{r}
+PIT <- PIT |> 
+  mutate(
+    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard Coral`
+  )
+```
+
+```{r}
+pois_HC_adult <- glmmTMB(Total_HC_Cover ~ Shelf + Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT)
+#  sim <- simulateResiduals(pois_HC_adult)
+#  testResiduals(sim)#passes
+# testZeroInflation(sim) # p = 0.88, consider zero inflation
+
+nbin_HC_adult <- glmmTMB(Total_HC_Cover ~ Shelf +  Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT)
+# sim <- simulateResiduals(nbin_HC_adult)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) # p = 0.072
+
+pois_HC_adult_int <- glmmTMB(Total_HC_Cover ~ Shelf * Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT)
+# sim <- simulateResiduals(pois_HC_adult_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p=0.104
+
+nbin_HC_adult_int <- glmmTMB(Total_HC_Cover ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT)
+# sim <- simulateResiduals(nbin_HC_adult_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) # p = 0.136
+
+```
+
+```{r}
+model.sel(pois_HC_adult, pois_HC_adult, nbin_HC_adult, nbin_HC_adult_int)
+```
+```{r}
+summary(nbin_HC_adult_int)
+```
+
+##3.3. Inhibitors of recruitment
+
+###3.3.1. Macroalgae
+Does the macroalgal cover differ spatio-temporally in the NGBR?
+
+```{r}
+pois_brown_ma_int <- glmmTMB(`Brown Macroalgae` ~ Shelf * Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT)
+sim <- simulateResiduals(pois_brown_ma_int)
+testResiduals(sim) #passes
+testZeroInflation(sim) #p=0.24
+
+nbin_brown_ma_int <- glmmTMB(`Brown Macroalgae` ~ Shelf * Year + (1 | Reef/Site),  
+        family = "nbinom2", data = PIT)
+sim <- simulateResiduals(nbin_brown_ma_int)
+testResiduals(sim) #passes
+testZeroInflation(sim) #p=0.272
+```
+
+```{r}
+model.sel(pois_brown_ma_int, nbin_brown_ma_int)
+```
+
+```{r}
+pois_green_ma_int <- glmmTMB(`Green Macroalgae` ~ Shelf * Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT)
+sim <- simulateResiduals(pois_green_ma_int)
+testResiduals(sim) #passes
+testZeroInflation(sim) #p=0.504
+
+nbin_green_ma_int <- glmmTMB(`Green Macroalgae` ~ Shelf * Year + (1 | Reef/Site),  
+        family = "nbinom2", data = PIT)
+sim <- simulateResiduals(nbin_green_ma_int)
+testResiduals(sim) #passes
+testZeroInflation(sim) #p=1
+```
+
+```{r}
+model.sel(nbin_green_ma_int, pois_green_ma_int)
+```
+```{r}
+summary(nbin_green_ma_int)
+```
+Oh the random effects here are quite small, might not add to model.
+
+
+###3.3.2. Turf
+
+Does the turf cover spatiaotemporally differ?
+```{r}
+# pois_turf <- glmmTMB(Poritidae ~ Shelf + Year + (1 | Reef/Site), 
+#       family = "poisson", data = PIT_adult)
+# #  sim <- simulateResiduals(pois_por_adult)
+# #  testResiduals(sim)#passes
+# # testZeroInflation(sim) # p =1
+# 
+# nbin_turf <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site), 
+#         family = "nbinom2", data = PIT_adult)
+# # sim <- simulateResiduals(nbin_por_adult)
+# # testResiduals(sim) #passes
+# # testZeroInflation(sim) #
+
+pois_turf_int <- glmmTMB(Turf ~ Shelf * Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT)
+sim <- simulateResiduals(pois_turf_int)
+testResiduals(sim) #passes
+testZeroInflation(sim) # p = 0.232
+
+nbin_turf_int <- glmmTMB(Turf ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT)
+sim <- simulateResiduals(nbin_turf_int)
+testResiduals(sim) #passes
+testZeroInflation(sim) # p = 0.312
+```
+```{r}
+model.sel(pois_turf_int, nbin_turf_int)
+```
+
+```{r}
+summary(nbin_turf_int)
+```
+
+
+###3.3.3. CCA
+Does CCA cover differ spatiotemporally?
+```{r}
+# pois_CCA_int <- glmmTMB(CCA ~ Shelf * Year + (1 | Reef/Site), 
+#       family = "poisson", data = PIT)
+# sim <- simulateResiduals(pois_CCA_int)
+# testResiduals(sim) # Dispersion significant.. Need to explore what to do for that
+# testDispersion(sim) #dispersion = 0.096342, p-value = 0.024, Not sure that this model would work. Need to look at random variables in model.
+# testZeroInflation(sim) # p = 0.296
+# 
+# 
+# nbin_CCA_int <- glmmTMB(CCA ~ Shelf * Year +(1 | Reef/Site), 
+#         family = "nbinom2", data = PIT)
+# sim <- simulateResiduals(nbin_CCA_int)
+# testResiduals(sim) # Dispersion also significant...
+# testZeroInflation(sim) # p = 0.488
+```
+
+couldn't resolve dispersion for this. Not sure whether to bother anyways.
+
+
 
 # 4. Brood stock (PIT) and Recruitment (Tiles)
 

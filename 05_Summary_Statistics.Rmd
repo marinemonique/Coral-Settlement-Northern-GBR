@@ -834,7 +834,7 @@ Belt_10m |>
     sum_acro = sum(Acroporidae),
     sum_poci = sum(Pocilloporidae),
     sum_pori = sum(Poritidae),
-    sum_oth = sum(Other_HC),
+    sum_oth = sum(Other_HC_R),
     n = n()
   )
 
@@ -845,7 +845,7 @@ Belt_10m |>
     sum_acro = sum(Acroporidae),
     sum_poci = sum(Pocilloporidae),
     sum_pori = sum(Poritidae),
-    sum_oth = sum(Other_HC),
+    sum_oth = sum(Other_HC_R),
     sum_Favites = sum(Favites),
     sum_favia = sum(Favia),
     sum_goniastrea = sum(Goniastrea),
@@ -939,11 +939,24 @@ Belt_10m |>
     min_poci = min(Pocilloporidae),
     max_poci = max(Pocilloporidae),
     min_por = min(Poritidae),
-    max_por = max(Poritidae)
+    max_por = max(Poritidae),
+    mean_acro = mean(Acroporidae),
+    mean_poci = mean(Pocilloporidae),
+    mean_pori = mean(Poritidae),
+    n_transects = n()
   )
 ```
 
 # 3. Benthic Cover
+```{r}
+PIT |> 
+  group_by(Shelf) |> 
+  summarise(
+    n_PIT = n()
+  )
+```
+
+
 ```{r}
 PIT_long <- PIT |> 
   pivot_longer(cols = 95:108, names_to = "Benthos", values_to = "Points")
@@ -964,6 +977,39 @@ Summary_table_PIT <- PIT_long |>
     PITs = n()
   )
 
+```
+```{r}
+#brown macroalgae
+PIT_long |> 
+  filter(Benthos == "Brown Macroalgae") |> 
+  group_by(Benthos, Site, 
+           #Year, 
+           Shelf, Reef) |> 
+  summarise(
+    mean = mean(Points),
+    sd = sd(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points),
+    PITs = n()
+  )
+```
+
+```{r}
+#Turf
+PIT_long |> 
+  filter(Benthos == "Turf") |> 
+  group_by(Benthos, Site, 
+           #Year, 
+           Shelf, Reef) |> 
+  summarise(
+    mean = mean(Points),
+    sd = sd(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points),
+    PITs = n()
+  )
 ```
 
 ```{r}

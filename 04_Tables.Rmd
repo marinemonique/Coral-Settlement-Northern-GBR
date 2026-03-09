@@ -658,6 +658,38 @@ Not appropriate for composition analysis.
 # anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.006932 * ***
 ```
 
+##4.2. Spatio-temporal variability in brood stock
+
+### 4.2.1 Total Hard Coral cover %
+
+```{r}
+PIT <- PIT |> 
+  mutate(
+    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard Coral`
+  )
+
+nbin_HC_adult_int <- glmmTMB(Total_HC_Cover ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT)
+```
+
+
+### 4.2.2. Acroporidae Hard coral cover
+
+```{r}
+nbin_acro_adult_int <- glmmTMB(Acroporidae ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT)
+```
+
+
+### 4.2.3. Pocilloporidae Hard Coral Cover %
+
+```{r}
+pois_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
+      family = "poisson", data = PIT)
+```
+
+
+
 # 5. Brood stock (PIT) and Recruitment (Tiles)
 
 ```{r}
@@ -1155,15 +1187,96 @@ extract_emm_results <- function(model, filename) {
 }
 
 
-extract_emm_results(nbin_total_yr2, "output/Total_Recruits.xlsx")
-extract_emm_results(nbin_Acroporidae_interaction, "output/Acroporidae_recruits.xlsx")
-extract_emm_results(nbin_Pocilloporidae_interaction, "output/Pocilloporidae_recruits.xlsx")
-extract_emm_results(nbin_Poritid_interaction, "output/Poritidae_recruits.xlsx")
-extract_emm_results(nbin_total_juv, "output/Total_juveniles.xlsx")
-extract_emm_results(nbin_acro_juv, "output/Acroporidae_juveniles.xlsx")
-extract_emm_results(nbin_poci_juv, "output/Pocilloporidae_juveniles.xlsx")
-extract_emm_results(nbin_por_juv, "output/Poritidae_juveniles.xlsx")
+# extract_emm_results(nbin_total_yr2, "output/Total_Recruits.xlsx")
+# extract_emm_results(nbin_Acroporidae_interaction, "output/Acroporidae_recruits.xlsx")
+# extract_emm_results(nbin_Pocilloporidae_interaction, "output/Pocilloporidae_recruits.xlsx")
+# extract_emm_results(nbin_Poritid_interaction, "output/Poritidae_recruits.xlsx")
+# extract_emm_results(nbin_total_juv, "output/Total_juveniles.xlsx")
+# extract_emm_results(nbin_acro_juv, "output/Acroporidae_juveniles.xlsx")
+# extract_emm_results(nbin_poci_juv, "output/Pocilloporidae_juveniles.xlsx")
+# extract_emm_results(nbin_por_juv, "output/Poritidae_juveniles.xlsx")
 
+# extract_emm_results(nbin_HC_adult_int, "output/Adult_HC.xlsx")
+# extract_emm_results(nbin_acro_adult_int, "output/Adult_acro.xlsx")
+
+```
+
+```{r}
+extract_emm_results_pois <- function(model, filename) {
+  ## ==============================
+  ## Shelf within Year
+  ## ==============================
+
+  emm_shelf <- emmeans(model, ~ Shelf | Year, type = "response")
+
+  emm_shelf_df <- as.data.frame(summary(emm_shelf)) %>%
+    dplyr::rename(
+      Mean = rate,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL
+    )
+
+  contrast_shelf_df <- as.data.frame(
+    summary(pairs(emm_shelf), infer = TRUE)
+  ) %>%
+    dplyr::rename(
+      Ratio = ratio,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL,
+      p_Tukey = p.value
+    )
+
+  contrast_shelf_df$p_BH <- p.adjust(
+    contrast_shelf_df$p_Tukey,
+    method = "BH"
+  )
+
+
+  ## ==============================
+  ## Year within Shelf
+  ## ==============================
+
+  emm_year <- emmeans(model, ~ Year | Shelf, type = "response")
+
+  emm_year_df <- as.data.frame(summary(emm_year)) %>%
+    dplyr::rename(
+      Mean = rate,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL
+    )
+
+  contrast_year_df <- as.data.frame(
+    summary(pairs(emm_year), infer = TRUE)
+  ) %>%
+    dplyr::rename(
+      Ratio = ratio,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL,
+      p_Tukey = p.value
+    )
+
+  contrast_year_df$p_BH <- p.adjust(
+    contrast_year_df$p_Tukey,
+    method = "BH"
+  )
+
+
+  ## ==============================
+  ## Export to Excel
+  ## ==============================
+
+  openxlsx::write.xlsx(
+    list(
+      "EMM_Shelf_within_Year" = emm_shelf_df,
+      "Shelf_Contrasts" = contrast_shelf_df,
+      "EMM_Year_within_Shelf" = emm_year_df,
+      "Year_Contrasts" = contrast_year_df
+    ),
+    file = filename
+  )
+}
+
+extract_emm_results_pois(pois_poci_adult_int, "output/Adult_poci.xlsx")
 ```
 
 
