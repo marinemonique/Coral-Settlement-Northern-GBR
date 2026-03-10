@@ -30,6 +30,7 @@ library(ggeffects) #to be able to do ggpredict
 library(ggh4x) # to specify x and y axis if desired
 library(MuMIn) #model selection function
 library(ggrepel)
+library(ggordiplots) #nmds and ordination plots
 
 # Import and clean data
 ## Recruitment data
@@ -308,7 +309,7 @@ total_mean_site <- Coral_settlement_nGBR |>
 ```{r}
 A <- ggplot()+
     geom_jitter(data = total_mean_site, aes(x=Year, y = mean_site, group = Shelf), 
-                position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.85),
+                position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
     size = 0.9,
     alpha = 0.5,
     colour = "#A8A8A8")+
@@ -327,7 +328,7 @@ A <- ggplot()+
                "2026" = "25/26")
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
-        text = element_text(size =9))+
+        text = element_text(size =12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 A
 
@@ -353,7 +354,7 @@ A.2 <- ggplot()+
                "2026" = "25/26")
     )+
   theme(legend.position = c(1,1), legend.justification = c(1,1),
-        text = element_text(size =9))+
+        text = element_text(size =12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 A.2
 ```
@@ -384,7 +385,7 @@ acro_mean_site <- Acroporidae |>
 ```{r}
 B <- ggplot()+
      geom_jitter(data =acro_mean_site, aes(x=Year, y=mean_site, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
     size = 0.9,
     alpha = 0.5,
     colour = "grey"
@@ -392,7 +393,7 @@ B <- ggplot()+
   geom_pointrange(data = nbin_acroa_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
              y=response, 
              color=Shelf),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(y=expression("Acroporidae recruits ( " * tile^{-1} * ")"))+
   scale_x_discrete(
@@ -406,7 +407,7 @@ B <- ggplot()+
   theme(
     #legend.position = c(1,1), legend.justification = c(1,1),
         legend = element_blank(),
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 B
 ```
@@ -442,7 +443,7 @@ Generate figure
 ```{r}
 C <- ggplot()+
      geom_jitter(data =poci_mean_site, aes(x=Year, y=mean_site, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
     size = 0.9,
     alpha = 0.5,
     colour = "#A8A8A8"
@@ -450,7 +451,7 @@ C <- ggplot()+
   geom_pointrange(data = nbin_poci_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
              y=response, 
              color=Shelf),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(y=expression("Pocilloporidae recruits ( " * tile^{-1} * ")"))+
   scale_x_discrete(
@@ -464,7 +465,7 @@ C <- ggplot()+
   theme(
     #legend.position = c(1,1), legend.justification = c(1,1),
         legend= element_blank(),
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 C
 ```
@@ -498,7 +499,7 @@ Generate figure
 ```{r}
 D <- ggplot()+
      geom_jitter(data =pori_mean_site, aes(x=Year, y=mean_site, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
     size = 0.9,
     alpha = 0.5,
     colour = "#A8A8A8"
@@ -506,7 +507,7 @@ D <- ggplot()+
   geom_pointrange(data = nbin_pori_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
              y=response, 
              color=Shelf),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(y=expression("Poritidae recruits ( " * tile^{-1} * ")"))+
   scale_x_discrete(
@@ -520,7 +521,7 @@ D <- ggplot()+
   theme(
     #legend.position = c(1,1), legend.justification = c(1,1),
         legend = element_blank(),
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 D
 ```
@@ -574,7 +575,7 @@ E <- ggplot()+
   theme(
     #legend.position = c(1,1), legend.justification = c(1,1),
         legend = element_blank(),
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 E
 ```
@@ -582,11 +583,11 @@ E
 Combined figure
 
 ```{r}
-recruits_wo_other <- ggarrange(B, C, D, ncol =1, nrow = 3, labels = c("B", "C", "D"), common.legend = TRUE, legend = "none")
-
-recruits_wo_other <- ggarrange(A, recruits_wo_other, ncol =1, labels = c("A", ""), heights = c(1, 3))
-
-recruits_wo_other
+# recruits_wo_other <- ggarrange(B, C, D, ncol =1, nrow = 3, labels = c("B", "C", "D"), common.legend = TRUE, legend = "none")
+# 
+# recruits_wo_other <- ggarrange(A, recruits_wo_other, ncol =1, labels = c("A", ""), heights = c(1, 3))
+# 
+# recruits_wo_other
 
 recruits_wo_other <- ggarrange(A, B, C, D, ncol =2, nrow = 2, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
 recruits_wo_other <- ggarrange(A, B, C, D, ncol =1, nrow = 4, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
@@ -596,9 +597,15 @@ recruits_wo_other <- ggarrange(A, B, C, D, ncol =1, nrow = 4, labels = c("A","B"
          height = 225, units = "mm"
         )
    ggsave(recruits_wo_other, filename = "Figure2.PNG", 
-         width = 275,
-         height = 210, units = "mm"
+         width = 320,
+         height = 220, units = "mm"
         )
+   ggsave(recruits_wo_other, filename = "Figure2.PDF", 
+         width = 320,
+         height = 220,
+         units = "mm"
+        )
+   
 ```
 
 ```{r}
@@ -614,8 +621,8 @@ ggarrange(A, bottom, ncol = 1, labels = c("A", ""), heights = c(1, 1.5)) |>
 
 ## 1.2. Composition of Vegetated tiles
 ```{r}
-Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
-  rename("Other Hard\nCorals" = Other)
+# Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
+#   rename("Other Hard Corals" = Other)
 ```
 
 
@@ -623,18 +630,16 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR |>
 Recruits <- Coral_settlement_nGBR %>%
   filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
   group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
-  summarise(across(Acroporidae:`Other Hard
-Corals`, mean), .groups = "drop")
+  summarise(across(Acroporidae:Other, mean), .groups = "drop")
 
-recruit_hellinger <- decostand(Recruits %>% select(Acroporidae, Pocilloporidae, Poritid, `Other Hard
-Corals`),
+recruit_hellinger <- decostand(Recruits %>% select(Acroporidae, Pocilloporidae, Poritid, Other),
                                                          method = "hellinger")
 
 # reef year?
 reef_year <- Recruits |> 
   select(Reef, Year_Collected, Shelf)
 
-permanova_result <- adonis2(recruit_hellinger ~ Year_Collected * Shelf,
+permanova_result <- adonis2(recruit_hellinger ~ Shelf,
   data = Recruits,
   method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
   by = "margin",
@@ -684,11 +689,41 @@ Recruits_envfit <- Recruits_envfit |>
   rownames_to_column(var = "label_family")
 ```
 
+
+```{r}
+library(MASS)  # for mvrnorm
+library(vegan)
+
+# Function to generate ellipse points for ggplot
+ellipse_points <- function(ell_obj, npoints = 100) {
+  do.call(rbind,
+    lapply(names(ell_obj), function(g) {
+      center <- ell_obj[[g]]$center      # centroid
+      cov_mat <- ell_obj[[g]]$cov        # covariance matrix
+      angles <- seq(0, 2*pi, length.out = npoints)
+      circle <- cbind(cos(angles), sin(angles))
+      # scale unit circle by sqrt of covariance (1 SD)
+      ellipse <- t(center + t(circle %*% chol(cov_mat)))
+      data.frame(NMDS1 = ellipse[,1],
+                 NMDS2 = ellipse[,2],
+                 Shelf = g)
+    })
+  )
+}
+
+ell <- ordiellipse(nmds, groups = scores$Shelf, kind = "sd", draw = "none")
+ell_df <- ellipse_points(ell, npoints = 100)
+```
+
+
 ```{r}
 p1 <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
      geom_point(size = 1.5, alpha = 0.8) +
-    stat_ellipse(aes(group = Shelf, colour = Shelf),
-                 level = 0.75, linewidth = 0.5) +
+  geom_path(data = ell_df,
+            aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
+            linewidth = 0.6) +
+    # stat_ellipse(aes(group = Shelf, colour = Shelf),
+    #              level = 0.75, linewidth = 0.5) +
      theme_bw(base_size = 14) +
      theme(
   panel.grid = element_blank(),
@@ -739,6 +774,7 @@ p2 <- ggplot()+
   scale_y_continuous(limits = c(-1, 1))
 
 ST_NMDS <- ggarrange(p1, p2, ncol = 1, heights = c(1, 1))
+ST_NMDS
 ```
 
 ```{r}
@@ -772,7 +808,7 @@ total_juv_emm <-  nbin |>
 
 juv_total_plot <-  ggplot()+
    geom_point(data =total_juv_site, aes(x=Year, y=mean_site, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
     size = 0.9,
     alpha = 0.5,
     colour = "#A8A8A8")+
@@ -782,7 +818,7 @@ juv_total_plot <-  ggplot()+
   geom_pointrange(data = total_juv_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
    y = expression(atop("Predicted Scleractinian",
@@ -826,7 +862,7 @@ acro_juv_emm <-  nbin |>
 
 juv_acro_plot <-  ggplot()+
    geom_point(data =acro_juv_site, aes(x=Year, y=mean_site, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
     size = 0.9,
     alpha = 0.5,
     colour = "#A8A8A8")+
@@ -836,7 +872,7 @@ juv_acro_plot <-  ggplot()+
   geom_pointrange(data = acro_juv_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
     y = expression(atop("Predicted Acroporidae",
@@ -853,10 +889,12 @@ juv_acro_plot <-  ggplot()+
     )+
   #facet_wrap(~Family, ncol = 1, scales = "free_y")+
   theme(legend.position = "bottom",
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 juv_acro_plot
 ```
+
+*text box of the error family is an option for when models are from different distributions*
 
 ### 2.1.3. Pocilloporidae
 
@@ -880,7 +918,7 @@ poci_juv_emm <-  nbin |>
 
 juv_poci_plot <-  ggplot()+
    geom_point(data =poci_juv_site, aes(x=Year, y=mean_site, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
     size = 0.9,
     alpha = 0.5,
     colour = "#A8A8A8")+
@@ -890,7 +928,7 @@ juv_poci_plot <-  ggplot()+
   geom_pointrange(data = poci_juv_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
     y = expression(atop("Predicted Pocilloporidae juveniles",
@@ -907,7 +945,7 @@ juv_poci_plot <-  ggplot()+
     )+
   #facet_wrap(~Family, ncol = 1, scales = "free_y")+
   theme(legend.position = "bottom",
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 juv_poci_plot
 ```
@@ -935,7 +973,7 @@ por_juv_emm <-  nbin |>
 
 juv_por_plot <-  ggplot()+
    geom_point(data =por_juv_site, aes(x=Year, y=mean_site, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
     size = 0.9,
     alpha = 0.5,
     colour = "#A8A8A8")+
@@ -945,7 +983,7 @@ juv_por_plot <-  ggplot()+
   geom_pointrange(data = por_juv_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
     y = expression(atop("Predicted Poritidae juveniles",
@@ -962,7 +1000,7 @@ juv_por_plot <-  ggplot()+
     )+
   #facet_wrap(~Family, ncol = 1, scales = "free_y")+
   theme(legend.position = "bottom",
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 juv_por_plot
 ```
@@ -978,16 +1016,28 @@ ggsave(Total_st_juv,
        height = 200,
        width = 189,
        unit = "mm")
+
+ggsave(Total_st_juv,
+       filename = "Total_ST_juv.PDF",
+       height = 200,
+       width = 189,
+       unit = "mm")
 ```
 
 
 ```{r}
 Juv_4 <- ggarrange(juv_total_plot, juv_acro_plot, juv_poci_plot, juv_por_plot, ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D") )
 
+# ggsave(Juv_4,
+#        filename = "Figure4.PNG",
+#        height = 200,
+#        width = 275,
+#        unit = "mm")
+
 ggsave(Juv_4,
        filename = "Figure4.PNG",
-       height = 200,
-       width = 275,
+       width = 320,
+      height = 220,
        unit = "mm")
 ```
 
@@ -1170,11 +1220,44 @@ scores <- scores |>
       Year == "2022-23" ~ "22/23",
       Year == "2021-22" ~ "21/22")
   )
+```
+
+```{r}
+library(MASS)  # for mvrnorm
+library(vegan)
+
+# Function to generate ellipse points for ggplot
+ellipse_points <- function(ell_obj, npoints = 100) {
+  do.call(rbind,
+    lapply(names(ell_obj), function(g) {
+      center <- ell_obj[[g]]$center      # centroid
+      cov_mat <- ell_obj[[g]]$cov        # covariance matrix
+      angles <- seq(0, 2*pi, length.out = npoints)
+      circle <- cbind(cos(angles), sin(angles))
+      # scale unit circle by sqrt of covariance (1 SD)
+      ellipse <- t(center + t(circle %*% chol(cov_mat)))
+      data.frame(NMDS1 = ellipse[,1],
+                 NMDS2 = ellipse[,2],
+                 Shelf = g)
+    })
+  )
+}
+
+ell <- ordiellipse(nmds, groups = scores$Shelf, kind = "sd", draw = "none")
+ell_df <- ellipse_points(ell, npoints = 100)
+```
+
+
+```{r}
 
 belt_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
      geom_point(size = 1.5, alpha = 0.8) +
-    stat_ellipse(aes(group = Shelf, colour = Shelf),
-                 level = 0.75, linewidth = 0.5) +
+  geom_path(data = ell_df,
+            aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
+            linewidth = 0.6) +
+  
+    # stat_ellipse(aes(group = Shelf, colour = Shelf),
+    #              level = 0.75, linewidth = 0.5) +
      theme_bw(base_size = 14) +
      theme(
   panel.grid = element_blank(),
@@ -1343,11 +1426,39 @@ scores <- scores |>
       Year == "2022-23" ~ "22/23",
       Year == "2021-22" ~ "21/22")
   )
+```
 
+```{r}
+# Function to generate ellipse points for ggplot
+ellipse_points <- function(ell_obj, npoints = 100) {
+  do.call(rbind,
+    lapply(names(ell_obj), function(g) {
+      center <- ell_obj[[g]]$center      # centroid
+      cov_mat <- ell_obj[[g]]$cov        # covariance matrix
+      angles <- seq(0, 2*pi, length.out = npoints)
+      circle <- cbind(cos(angles), sin(angles))
+      # scale unit circle by sqrt of covariance (1 SD)
+      ellipse <- t(center + t(circle %*% chol(cov_mat)))
+      data.frame(NMDS1 = ellipse[,1],
+                 NMDS2 = ellipse[,2],
+                 Shelf = g)
+    })
+  )
+}
+
+ell <- ordiellipse(nmds, groups = scores$Shelf, kind = "sd", draw = "none")
+ell_df <- ellipse_points(ell, npoints = 100)
+```
+
+
+```{r}
 Benthic_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
      geom_point(size = 1.5, alpha = 0.8) +
-    stat_ellipse(aes(group = Shelf, colour = Shelf),
-                 level = 0.75, linewidth = 0.5) +
+  geom_path(data = ell_df,
+            aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
+            linewidth = 0.6) +
+    # stat_ellipse(aes(group = Shelf, colour = Shelf),
+    #              level = 0.75, linewidth = 0.5) +
      theme_bw(base_size = 14) +
      theme(
   panel.grid = element_blank(),
@@ -1571,15 +1682,6 @@ poci_adult_plot <-  ggplot()+
         text = element_text(size = 9))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 poci_adult_plot
-```
-
-```{r}
-ggarrange(acro_adult_plot, poci_adult_plot, labels = c("A", "B"), ncol = 1, nrow =2, common.legend = TRUE, legend = "bottom")
-
-ggsave(filename = "Adult_acro_poci.PNG",
-       width = 189,
-       height = 210,
-       unit = "mm")
 ```
 
 
@@ -1887,7 +1989,7 @@ gamma_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + (1|Reef/
            data = model_df_por)
 
 pred <- ggpredict(
-  ln_por_juv_st_fixed,
+  gamma_por_juv_st_fixed,
   terms = c("st_mean_por_lag1 [all]", "Shelf")
 )
 

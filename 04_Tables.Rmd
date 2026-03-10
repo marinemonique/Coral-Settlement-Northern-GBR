@@ -297,6 +297,8 @@ Belt_10m |>  group_by(Shelf,Reef,Site, Year) |>
 ```{r}
 nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site), 
         family = "nbinom2", data = Coral_settlement_nGBR)
+
+summary(nbin_total_yr2)
 ```
 
 After discussion with Murray Logan, I think this is the correct way to go. Using Holm adjustment as I can't use Tukey.
@@ -544,7 +546,7 @@ pairs(emm_year_response)
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_belt <- Belt_10m %>%
   select(
-    Year, Reef, Shelf, Site, Transect, 26:29
+    Year, Reef, Shelf, Site, Transect, Acroporidae, Pocilloporidae, Poritidae, Other_HC
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
@@ -686,6 +688,12 @@ nbin_acro_adult_int <- glmmTMB(Acroporidae ~ Shelf * Year +(1 | Reef/Site),
 ```{r}
 pois_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
       family = "poisson", data = PIT)
+```
+
+### 4.2.4 Poritidae Hard coral cover %
+```{r}
+nbin_por_adult_int <- glmmTMB(Poritidae ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT)
 ```
 
 
@@ -1198,7 +1206,7 @@ extract_emm_results <- function(model, filename) {
 
 # extract_emm_results(nbin_HC_adult_int, "output/Adult_HC.xlsx")
 # extract_emm_results(nbin_acro_adult_int, "output/Adult_acro.xlsx")
-
+#extract_emm_results(nbin_por_adult_int, "output/Adult_por.xlsx")
 ```
 
 ```{r}

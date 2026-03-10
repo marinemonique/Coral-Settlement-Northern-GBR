@@ -1134,7 +1134,7 @@ nbin_HC_adult_int <- glmmTMB(Total_HC_Cover ~ Shelf * Year +(1 | Reef/Site),
 ```
 
 ```{r}
-model.sel(pois_HC_adult, pois_HC_adult, nbin_HC_adult, nbin_HC_adult_int)
+model.sel(pois_HC_adult_int, pois_HC_adult, nbin_HC_adult, nbin_HC_adult_int)
 ```
 ```{r}
 summary(nbin_HC_adult_int)
