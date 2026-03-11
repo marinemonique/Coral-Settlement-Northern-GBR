@@ -1506,82 +1506,83 @@ ln_acro_juv_st_fixed <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + Shelf + (1|Reef/
               family = "lognormal",
            data = model_df_acro)
 
-sim <- simulateResiduals(ln_acro_juv_st_fixed)
-testResiduals(sim) #passes
-testZeroInflation(sim)
+# sim <- simulateResiduals(ln_acro_juv_st_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
 
 gau_acro_juv_st_fixed <- glmmTMB(mean_acro ~ st_mean_acro_lag1 +Shelf + (1|Reef/Site),
               family = "gaussian",
            data = model_df_acro)
 
-sim <- simulateResiduals(gau_acro_juv_st_fixed)
-testResiduals(sim) #passes
-testZeroInflation(sim)
+# sim <- simulateResiduals(gau_acro_juv_st_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
 
 gamma_acro_juv_st_fixed <- glmmTMB(mean_acro ~ st_mean_acro_lag1 +Shelf + (1|Reef/Site),
               family = Gamma(link = "log"),
            data = model_df_acro)
 
-sim <- simulateResiduals(gau_acro_juv_st_fixed)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passed
-
-#Nested
-# ln_acro_juv_st_nested <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Shelf/Reef/Site),
-#               family = "lognormal",
-#            data = model_df_acro)
-# sim <- simulateResiduals(ln_acro_juv_st_nested)
-# testResiduals(sim) # passed but not amazing
+# sim <- simulateResiduals(gau_acro_juv_st_fixed)
+# testResiduals(sim) #passes
 # testZeroInflation(sim) #passed
-# 
-# gau_acro_juv_st_nested<- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1| Shelf/Reef/Site),
-#               family = "gaussian",
-#            data = model_df_acro)
-# 
-# sim <- simulateResiduals(gau_acro_juv_st_nested)
-# testResiduals(sim) # passed but doesn't look great
-# testZeroInflation(sim) #passed
-# 
-# gamma_acro_juv_st_nested <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Shelf/Reef/Site),
-#               family = Gamma(link = "log"),
-#            data = model_df_acro)
-# 
-# sim <- simulateResiduals(gau_acro_juv_st_nested)
-# testResiduals(sim) #passes but not amazing
-# testZeroInflation(sim) #passes
 
-# interaction between shelf and st
 
 ln_acro_juv_st_int <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site),
               family = "lognormal",
            data = model_df_acro)
 
-sim <- simulateResiduals(ln_acro_juv_st_int)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(ln_acro_juv_st_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
 
 gau_acro_juv_st_int <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site),
               family = "gaussian",
            data = model_df_acro)
 
-sim <- simulateResiduals(gau_acro_juv_st_int)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(gau_acro_juv_st_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
 
 gamma_acro_juv_st_int <- glmmTMB(mean_acro ~ st_mean_acro_lag1 * Shelf + (1|Reef/Site),
               family = Gamma(link = "log"),
            data = model_df_acro)
 
-sim <- simulateResiduals(gamma_acro_juv_st_int)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(gamma_acro_juv_st_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+# Not including shelf, accounting for reef and site
+
+ln_acro_juv_st <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_acro)
+
+# sim <- simulateResiduals(ln_acro_juv_st)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
+
+gau_acro_juv_st <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_acro)
+
+# sim <- simulateResiduals(gau_acro_juv_st)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
+
+gamma_acro_juv_st <- glmmTMB(mean_acro ~ st_mean_acro_lag1 + (1|Reef/Site),
+              family = Gamma(link = "log"),
+           data = model_df_acro)
+# sim <- simulateResiduals(gamma_acro_juv_st)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
 ```
 
 ```{r}
 model.sel(gau_acro_juv_st_int, 
           #gau_acro_juv_st_nested, gamma_acro_juv_st_nested, ln_acro_juv_st_nested,
           gau_acro_juv_st_fixed, gamma_acro_juv_st_fixed,
-          gamma_acro_juv_st_int,  ln_acro_juv_st_int,  ln_acro_juv_st_fixed)
+          gamma_acro_juv_st_int,  ln_acro_juv_st_int,  ln_acro_juv_st_fixed,
+          gau_acro_juv_st, gamma_acro_juv_st, ln_acro_juv_st)
 ```
 
 ```{r}
@@ -1629,25 +1630,25 @@ gamma_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1+ Shelf + (1|Ree
 ln_poci_juv_st_int <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
               family = "lognormal",
            data = model_df_poci)
-sim <- simulateResiduals(ln_poci_juv_st_int)
-testResiduals(sim) # passed
-testZeroInflation(sim)
+# sim <- simulateResiduals(ln_poci_juv_st_int)
+# testResiduals(sim) # passed
+# testZeroInflation(sim)
 
 gau_poci_juv_st_int<- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
               family = "gaussian",
            data = model_df_poci)
 
-sim <- simulateResiduals(gau_poci_juv_st_int)
-testResiduals(sim) # passed but doesn't look great
-testZeroInflation(sim)
+# sim <- simulateResiduals(gau_poci_juv_st_int)
+# testResiduals(sim) # passed but doesn't look great
+# testZeroInflation(sim)
 
 gamma_poci_juv_st_int<- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
               family = Gamma(link = "log"),
            data = model_df_poci)
 
-sim <- simulateResiduals(gamma_poci_juv_st_int)
-testResiduals(sim) # passed
-testZeroInflation(sim)
+# sim <- simulateResiduals(gamma_poci_juv_st_int)
+# testResiduals(sim) # passed
+# testZeroInflation(sim)
 
 # #Nested
 # ln_poci_juv_st_nested <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Shelf/Reef/Site),
@@ -1670,13 +1671,37 @@ testZeroInflation(sim)
 # sim <- simulateResiduals(gamma_poci_juv_st_nested)
 # testResiduals(sim) # passed
 # testZeroInflation(sim)
+
+ln_poci_juv_st <- glmmTMB(mean_poci ~ st_mean_poci_lag1  + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_poci)
+# sim <- simulateResiduals(ln_poci_juv_st)
+# testResiduals(sim) # passed
+# testZeroInflation(sim)
+
+gau_poci_juv_st <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_poci)
+
+# sim <- simulateResiduals(gau_poci_juv_st)
+# testResiduals(sim) # passed but doesn't look great
+# testZeroInflation(sim)
+
+gamma_poci_juv_st <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + (1|Reef/Site),
+              family = Gamma(link = "log"),
+           data = model_df_poci)
+
+# sim <- simulateResiduals(gamma_poci_juv_st)
+# testResiduals(sim) # significant deviation
+# testZeroInflation(sim)
 ```
 
 
 ```{r}
 model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, 
           #gau_poci_juv_st_nested, gamma_poci_juv_st_nested,ln_poci_juv_st_nested,
-gamma_poci_juv_st_fixed, gamma_poci_juv_st_int,  ln_poci_juv_st_fixed, ln_poci_juv_st_int)
+gamma_poci_juv_st_fixed, gamma_poci_juv_st_int,  ln_poci_juv_st_fixed, ln_poci_juv_st_int,
+ln_poci_juv_st, gau_poci_juv_st)
 ```
 
 

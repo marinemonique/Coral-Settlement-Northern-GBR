@@ -688,6 +688,8 @@ nbin_acro_adult_int <- glmmTMB(Acroporidae ~ Shelf * Year +(1 | Reef/Site),
 ```{r}
 pois_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
       family = "poisson", data = PIT)
+
+
 ```
 
 ### 4.2.4 Poritidae Hard coral cover %
