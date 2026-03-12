@@ -90,7 +90,7 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR |>
   filter(notes != "Dislodged")
 
 Pocilloporidae <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Pocilloporidae, Top_Pocil, 
          Under_Pocil, Side_Pocil, total)
@@ -107,7 +107,7 @@ Pocilloporidae_orientation <- Pocilloporidae_orientation %>%
                values_to = "Recruits")
 
 Acroporidae <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Acroporidae, Top_Acr, 
          Under_Acr, Side_Acr, total)
@@ -124,7 +124,7 @@ Acroporidae_orientation <- Acroporidae_orientation %>%
                values_to = "Recruits")
 
 Poritid <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Poritid, Top_Por, Under_Por, 
          Side_Por, total)
@@ -141,7 +141,7 @@ Poritidae_orientation <- Poritidae_orientation %>%
                values_to = "Recruits")
 
 Other <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Other, Top_other, 
          Under_oth, Side_other, total)
@@ -245,12 +245,12 @@ Combined1 <- left_join(Coral_settlement_nGBR, join_belt)
 
 ## Total recuits
 total_recruits <- Coral_settlement_nGBR %>%
-  select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  dplyr::select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
   pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total")
 
 #Order so that Other is last in Family
 total_recruits <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  dplyr::select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
   pivot_longer(cols = 6:9, names_to = "Family", values_to = "Total") %>%
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 
@@ -259,7 +259,7 @@ total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
 ## Position on tile
 
 position_total_recruits <- Coral_settlement_nGBR %>%
-  select(2:9, 15:29, 32) %>% 
+  dplyr::select(2:9, 15:29, 32) %>% 
   pivot_longer(cols = 21:23, names_to = "Pos", values_to = "Total")
 
 position_total_recruits <- position_total_recruits |> 
@@ -276,7 +276,7 @@ position_total_recruits <- left_join(position_total_recruits, join)
 
 ## Family recruitment data
 family_total_recruits <- Coral_settlement_nGBR %>%
-  select(2:13) %>% 
+  dplyr::select(2:13) %>% 
   pivot_longer(cols = 9:12, names_to = "Family", values_to = "Total") |> 
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 ```
@@ -310,15 +310,16 @@ total_mean_site <- Coral_settlement_nGBR |>
 A <- ggplot()+
     geom_jitter(data = total_mean_site, aes(x=Year, y = mean_site, group = Shelf), 
                 position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
   geom_pointrange(data = total_model_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin = asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.85))+
   theme_classic()+
-  labs(y = expression("Total recruits (" * tile^{-1} * ")"))+
+  labs(y = expression("Predicted recruits (" * tile^{-1} * ")"),
+       title = "Total")+
   scale_x_discrete(
     "Deployment",
     labels = c("2021-22" = "21/22",
@@ -335,16 +336,16 @@ A
 A.2 <- ggplot()+
     geom_jitter(data = total_mean_site, aes(x=Year, y = mean_site, group = Shelf), 
                 position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.85),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
   geom_pointrange(data = total_model_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin = asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.85))+
   theme_classic()+
-  labs(y = expression(atop("Predicted total recruits",
-  "(" * tile^{-1} * ")")))+
+  labs(y = expression("Predicted recruits (" * tile^{-1} * ")"),
+       title = "Total")+
   scale_x_discrete(
     "Deployment",
     labels = c("2021-22" = "21/22",
@@ -386,16 +387,18 @@ acro_mean_site <- Acroporidae |>
 B <- ggplot()+
      geom_jitter(data =acro_mean_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "grey"
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060",
+    shape = 1
   )+
   geom_pointrange(data = nbin_acroa_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
              y=response, 
              color=Shelf),
                   position = position_dodge(width = 0.85))+
   theme_classic()+
-  labs(y=expression("Acroporidae recruits ( " * tile^{-1} * ")"))+
+  labs(y=expression("Predicted recruits (" * tile^{-1} * ")"),
+       title = "Acroporidae")+
   scale_x_discrete(
     "Deployment",
     labels = c("2021-22" = "21/22",
@@ -444,16 +447,17 @@ Generate figure
 C <- ggplot()+
      geom_jitter(data =poci_mean_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8"
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1
   )+
   geom_pointrange(data = nbin_poci_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
              y=response, 
              color=Shelf),
                   position = position_dodge(width = 0.85))+
   theme_classic()+
-  labs(y=expression("Pocilloporidae recruits ( " * tile^{-1} * ")"))+
+  labs(y=expression("Predicted recruits (" * tile^{-1} * ")"),
+       title = "Pocilloporidae")+
   scale_x_discrete(
     "Deployment",
     labels = c("2021-22" = "21/22",
@@ -500,16 +504,17 @@ Generate figure
 D <- ggplot()+
      geom_jitter(data =pori_mean_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8"
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1
   )+
   geom_pointrange(data = nbin_pori_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
              y=response, 
              color=Shelf),
                   position = position_dodge(width = 0.85))+
   theme_classic()+
-  labs(y=expression("Poritidae recruits ( " * tile^{-1} * ")"))+
+  labs(y=expression("Predicted recruits (" * tile^{-1} * ")"),
+       title = "Poritidae")+
   scale_x_discrete(
     "Deployment",
     labels = c("2021-22" = "21/22",
@@ -554,14 +559,14 @@ other_mean_site <- Other |>
 E <- ggplot()+
      geom_jitter(data =other_mean_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8"
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1
   )+
   geom_pointrange(data = nbin_other_data,aes(ymin = asymp.LCL, ymax = asymp.UCL,x=Year,
              y=response, 
              color=Shelf),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85), )+
   theme_classic()+
   labs(y=expression("Other recruits ( " * tile^{-1} * ")"))+
   scale_x_discrete(
@@ -589,18 +594,20 @@ Combined figure
 # 
 # recruits_wo_other
 
-recruits_wo_other <- ggarrange(A, B, C, D, ncol =2, nrow = 2, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
-recruits_wo_other <- ggarrange(A, B, C, D, ncol =1, nrow = 4, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
 
-  ggsave(recruits_wo_other, filename = "Figure2.PDF", 
-         width = 189,
-         height = 225, units = "mm"
-        )
-   ggsave(recruits_wo_other, filename = "Figure2.PNG", 
-         width = 320,
-         height = 220, units = "mm"
-        )
-   ggsave(recruits_wo_other, filename = "Figure2.PDF", 
+# recruits_wo_other <- ggarrange(A, B, C, D, ncol =1, nrow = 4, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
+# 
+#   ggsave(recruits_wo_other, filename = "Figure2.PDF", 
+#          width = 189,
+#          height = 325, units = "mm"
+#         )
+  
+recruits_wo_other <- ggarrange(A, B, C, D, ncol =2, nrow = 2, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
+   # ggsave(recruits_wo_other, filename = "Figure2.PNG", 
+   #       width = 320,
+   #       height = 220, units = "mm"
+   #      )
+   ggsave(recruits_wo_other, filename = "figures/Figure2.PDF",
          width = 320,
          height = 220,
          units = "mm"
@@ -632,12 +639,12 @@ Recruits <- Coral_settlement_nGBR %>%
   group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
   summarise(across(Acroporidae:Other, mean), .groups = "drop")
 
-recruit_hellinger <- decostand(Recruits %>% select(Acroporidae, Pocilloporidae, Poritid, Other),
+recruit_hellinger <- decostand(Recruits %>% dplyr::select(Acroporidae, Pocilloporidae, Poritid, Other),
                                                          method = "hellinger")
 
 # reef year?
 reef_year <- Recruits |> 
-  select(Reef, Year_Collected, Shelf)
+  dplyr::select(Reef, Year_Collected, Shelf)
 
 permanova_result <- adonis2(recruit_hellinger ~ Shelf,
   data = Recruits,
@@ -717,8 +724,8 @@ ell_df <- ellipse_points(ell, npoints = 100)
 
 
 ```{r}
-p1 <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
-     geom_point(size = 1.5, alpha = 0.8) +
+p1 <- ggplot(data = scores, aes(x = NMDS1, y = NMDS2,colour = Shelf)) +
+     geom_point(size = 1.75, alpha = 0.8) +
   geom_path(data = ell_df,
             aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
             linewidth = 0.6) +
@@ -744,6 +751,52 @@ p1 <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour =
          size = 3)+
   scale_x_continuous(limits = c(-1, 1))+
   scale_y_continuous(limits = c(-1, 1))
+
+p1.5 <- ggplot() +
+     geom_point(data = scores, aes(x = NMDS1, y = NMDS2, colour = Shelf), size = 1.75, alpha = 0.8) +
+  geom_path(data = ell_df,
+            aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
+            linewidth = 0.6) +
+  geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = Recruits_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_family),
+                  inherit.aes = FALSE,
+                  size = 2.5,
+                  box.padding = 0.5, 
+                  min.segment.length = Inf,
+                  nudge_x = -0.1,
+                  nudge_y = 0.1)+
+     theme_bw(base_size = 14) +
+     theme(
+  panel.grid = element_blank(),
+  legend.position = c(0.75, 0.85),   # x = centre, y = near bottom
+  legend.justification = c(0.5, 0), # anchor legend by bottom-centre
+  legend.background = element_rect(fill = "white", colour = NA),
+  legend.direction = "horizontal",
+  text = element_text(size = 9),
+  title = element_text(size = 9)
+)  +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+    annotate("text",
+         x = 0.95,
+         y = -0.95,
+         label = paste0("Stress = ", round(nmds$stress, 3)),
+         hjust = 1,
+         vjust = 0,
+         size = 3)+
+  scale_x_continuous(limits = c(-1, 1))+
+  scale_y_continuous(limits = c(-1, 1))+
+     labs(
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf",
+        shape = "Year Collected"
+    )
+
+p1.5
 
 p2 <- ggplot()+
   geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
@@ -778,9 +831,19 @@ ST_NMDS
 ```
 
 ```{r}
-ggsave(filename = "Figure3.PNG",
-       plot = ST_NMDS,
-       height = 220,
+# ggsave(filename = "Figure3.PNG",
+#        plot = ST_NMDS,
+#        height = 220,
+#        unit = "mm")
+# 
+# ggsave(filename = "figures/Figure3.PDF",
+#        plot = ST_NMDS,
+#        height = 220,
+#        unit = "mm")
+# 
+ggsave(filename = "figures/recruit_vec_nmds.PDF",
+       plot = p1.5,
+       height = 125, width = 150,
        unit = "mm")
 ```
 
@@ -809,9 +872,9 @@ total_juv_emm <-  nbin |>
 juv_total_plot <-  ggplot()+
    geom_point(data =total_juv_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
  # geom_point(data = total_juv_emm, aes(x=Year,
  #             y=response, 
  #             color=Shelf))+
@@ -821,8 +884,8 @@ juv_total_plot <-  ggplot()+
                   position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
-   y = expression(atop("Predicted Scleractinian",
-                    " juveniles (10"~m^{2}*")"^{-1})),
+   y = expression("Predicted juveniles (10"~m^{-2}*")"),
+   title = "Total",
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -835,7 +898,7 @@ juv_total_plot <-  ggplot()+
     )+
   #facet_wrap(~Family, ncol = 1, scales = "free_y")+
   theme(legend.position = "none",
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 juv_total_plot
 ```
@@ -844,7 +907,7 @@ juv_total_plot
 
 ```{r}
 Acro <- Belt_10m |> 
-  select(Year, Shelf, Reef, Site, Acroporidae)
+  dplyr::select(Year, Shelf, Reef, Site, Acroporidae)
 
 nbin <- glmmTMB(Acroporidae ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Acro)
@@ -863,9 +926,9 @@ acro_juv_emm <-  nbin |>
 juv_acro_plot <-  ggplot()+
    geom_point(data =acro_juv_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
  # geom_point(data = total_juv_emm, aes(x=Year,
  #             y=response, 
  #             color=Shelf))+
@@ -874,9 +937,9 @@ juv_acro_plot <-  ggplot()+
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.85))+
   theme_classic()+
-  labs(
-    y = expression(atop("Predicted Acroporidae",
-                    "juveniles (10"~m^{2}*")"^{-1})),
+ labs(
+   y = expression("Predicted juveniles (10"~m^{-2}*")"),
+   title = "Acroporidae",
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -900,7 +963,7 @@ juv_acro_plot
 
 ```{r}
 Poc <- Belt_10m |> 
-  select(Year, Shelf, Reef, Site, Pocilloporidae)
+  dplyr::select(Year, Shelf, Reef, Site, Pocilloporidae)
 
 nbin <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Poc)
@@ -919,9 +982,9 @@ poci_juv_emm <-  nbin |>
 juv_poci_plot <-  ggplot()+
    geom_point(data =poci_juv_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
  # geom_point(data = total_juv_emm, aes(x=Year,
  #             y=response, 
  #             color=Shelf))+
@@ -931,8 +994,8 @@ juv_poci_plot <-  ggplot()+
                   position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
-    y = expression(atop("Predicted Pocilloporidae juveniles",
-                    "(per 10"~m^{2}*")")),
+   y = expression("Predicted juveniles (10"~m^{-2}*")"),
+   title = "Pocilloporidae",
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -955,7 +1018,7 @@ juv_poci_plot
 
 ```{r}
 Por <- Belt_10m |> 
-  select(Year, Shelf, Reef, Site, Poritidae)
+  dplyr::select(Year, Shelf, Reef, Site, Poritidae)
 
 nbin <- glmmTMB(Poritidae ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Por)
@@ -974,9 +1037,9 @@ por_juv_emm <-  nbin |>
 juv_por_plot <-  ggplot()+
    geom_point(data =por_juv_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
  # geom_point(data = total_juv_emm, aes(x=Year,
  #             y=response, 
  #             color=Shelf))+
@@ -985,9 +1048,9 @@ juv_por_plot <-  ggplot()+
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.85))+
   theme_classic()+
-  labs(
-    y = expression(atop("Predicted Poritidae juveniles",
-                    "(per 10"~m^{2}*")")),
+ labs(
+   y = expression("Predicted juveniles (10"~m^{-2}*")"),
+   title = "Poritidae",
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -1006,22 +1069,22 @@ juv_por_plot
 ```
 
 ```{r}
-ggarrange(A, juv_total_plot, B, juv_acro_plot, C,juv_poci_plot, D, juv_por_plot, ncol = 2, nrow = 4, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D", "E", "F", "G", "H") )
-
-Total_st_juv <- ggarrange(A.2, juv_total_plot, ncol = 1, labels = c("A", "B"), common.legend = TRUE)
-Total_st_juv
-
-ggsave(Total_st_juv,
-       filename = "Total_ST_juv.PDF",
-       height = 200,
-       width = 189,
-       unit = "mm")
-
-ggsave(Total_st_juv,
-       filename = "Total_ST_juv.PDF",
-       height = 200,
-       width = 189,
-       unit = "mm")
+# ggarrange(A, juv_total_plot, B, juv_acro_plot, C,juv_poci_plot, D, juv_por_plot, ncol = 2, nrow = 4, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D", "E", "F", "G", "H") )
+# 
+# Total_st_juv <- ggarrange(A.2, juv_total_plot, ncol = 1, labels = c("A", "B"), common.legend = TRUE)
+# Total_st_juv
+# 
+# ggsave(Total_st_juv,
+#        filename = "Total_ST_juv.PDF",
+#        height = 200,
+#        width = 189,
+#        unit = "mm")
+# 
+# ggsave(Total_st_juv,
+#        filename = "Total_ST_juv.PDF",
+#        height = 200,
+#        width = 189,
+#        unit = "mm")
 ```
 
 
@@ -1039,13 +1102,19 @@ ggsave(Juv_4,
        width = 320,
       height = 220,
        unit = "mm")
+
+ggsave(Juv_4,
+       filename = "figures/Figure4.PDF",
+       width = 320,
+      height = 220,
+       unit = "mm")
 ```
 
 ### 2.1.5. Other Hard Corals
 
 ```{r}
 Other_juv <- Belt_10m |> 
-  select(Year, Shelf, Reef, Site, Other_HC)
+  dplyr::select(Year, Shelf, Reef, Site, Other_HC)
 
 
 nbin <- glmmTMB(Other_HC ~ Year*Shelf+(1 | Reef/Site), 
@@ -1065,16 +1134,16 @@ oth_juv_emm <-  nbin |>
 juv_oth_plot <-  ggplot()+
    geom_point(data =oth_juv_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
  # geom_point(data = total_juv_emm, aes(x=Year,
  #             y=response, 
  #             color=Shelf))+
   geom_pointrange(data = oth_juv_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
     y = expression(atop("Predicted other hard coral juveniles",
@@ -1127,7 +1196,7 @@ Belt_10m <- Belt_10m |>
   )
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_belt <- Belt_10m %>%
-  select(
+  dplyr::select(
     Year, Reef, Shelf, Site, Transect, Acroporidae, Pocilloporidae, Poritidae, `Other Hard Coral`
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
@@ -1139,11 +1208,11 @@ site_by_belt <- site_by_belt |>                                                 
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_belt <- site_by_belt %>%
-  select(Shelf, Year, Reef)
+  dplyr::select(Shelf, Year, Reef)
 
 # Step 3: Species matrix
 belt_matrix_filtered <- site_by_belt %>%
-  select(
+  dplyr::select(
     4:7
   )
 
@@ -1180,7 +1249,7 @@ belt_dist <- vegdist(belt_matrix_filtered, method = "hellinger")
 
 # With respect to Shelf
 betadisper(belt_dist, metadata_belt$Shelf)
-anova(betadisper(belt_dist, metadata_belt$Shelf)) # Significant was 0.1688 *
+anova(betadisper(belt_dist, metadata_belt$Shelf)) # p =0.1596
 ```
 
 ```{r}
@@ -1251,7 +1320,7 @@ ell_df <- ellipse_points(ell, npoints = 100)
 ```{r}
 
 belt_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
-     geom_point(size = 1.5, alpha = 0.8) +
+     geom_point(size = 1.75, alpha = 0.8) +
   geom_path(data = ell_df,
             aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
             linewidth = 0.6) +
@@ -1315,6 +1384,60 @@ belt_envfit <- vec_scores |>
 ```
 
 ```{r}
+belt_w_vectors <- ggplot() +
+  geom_segment(data = belt_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = belt_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_category),
+                  inherit.aes = FALSE,
+                  size = 2.5,
+                  box.padding = 0.1, 
+                  min.segment.length = Inf,
+                  nudge_x = -0.05,
+                  nudge_y = -0.1)+
+  geom_point(data = scores, aes(x = NMDS1, y = NMDS2, colour = Shelf), size = 1.75, alpha = 0.8) +
+  geom_path(data = ell_df,
+            aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
+            linewidth = 0.6) +
+     theme_bw(base_size = 14) +
+     theme(
+  panel.grid = element_blank(),
+  legend.position = c(0.75, 0.85),   # x = centre, y = near bottom
+  legend.justification = c(0.5, 0), # anchor legend by bottom-centre
+  legend.background = element_rect(fill = "white", colour = NA),
+  legend.direction = "horizontal",
+  text = element_text(size = 9),
+  title = element_text(size = 9)
+) +
+     labs(
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf"
+    ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+    annotate("text",
+         x = 0.95,     # right limit
+         y = -0.75,       # bottom limit
+         label = paste0("Stress = ", round(nmds$stress, 3)),
+         hjust = 1.05, # push slightly inward
+         vjust = -0.5, # lift slightly above bottom
+         size = 3)+
+  scale_x_continuous(limits = c(-0.85, 1))+
+  scale_y_continuous(limits = c(-1.05, 0.95))
+
+belt_w_vectors
+
+ggsave(belt_w_vectors,
+  filename = "figures/juv_vec_nms.PDF",
+  height = 125, width = 150,
+  units = "mm"
+)
+
+```
+
+```{r}
 belt_B <- ggplot()+
   geom_segment(data = belt_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
              arrow = arrow(length = unit(1/3, "picas")),
@@ -1360,7 +1483,7 @@ ggsave(belt_Figure,
 )
 
 ggsave(belt_Figure,
-  filename = "belt_NMDS.PDF",
+  filename = "figures/belt_NMDS.PDF",
   height = 200, 
   units = "mm"
 )
@@ -1378,7 +1501,7 @@ ggsave(belt_Figure,
 #          "Sand and\nRubble" = `Sand and Rubble`)
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
-  select(
+  dplyr::select(
     Year, Reef, Shelf, Site, Transect, 95:108
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
@@ -1389,11 +1512,11 @@ site_by_PIT <- site_by_PIT |>                                                   
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_PIT <- site_by_PIT %>%
-  select(Shelf, Year, Reef)
+  dplyr::select(Shelf, Year, Reef)
 
 # Step 3: Species matrix
 PIT_matrix_filtered <- site_by_PIT %>%
-  select(
+  dplyr::select(
     4:17
   )
 ```
@@ -1453,7 +1576,7 @@ ell_df <- ellipse_points(ell, npoints = 100)
 
 ```{r}
 Benthic_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
-     geom_point(size = 1.5, alpha = 0.8) +
+     geom_point(size = 1.75, alpha = 0.8) +
   geom_path(data = ell_df,
             aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
             linewidth = 0.6) +
@@ -1574,7 +1697,7 @@ ggsave(Benthic_Figure,
 )
 
 ggsave(Benthic_Figure,
-  filename = "Benthic_NMDS.PDF",
+  filename = "figures/Benthic_NMDS.PDF",
   height = 240, 
   units = "mm"
 )
@@ -1600,21 +1723,21 @@ acro_adult_emm <-  nbin_acro_adult_int |>
 
 acro_adult_plot <-  ggplot()+
    geom_point(data =acro_adult_site, aes(x=Year, y=mean_site, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
  # geom_point(data = total_juv_emm, aes(x=Year,
  #             y=response, 
  #             color=Shelf))+
   geom_pointrange(data = acro_adult_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
-   y = expression(atop("Predicted Acroporidae",
-                    "cover (%)")),
+   y = expression("Predicted cover (%)"),
+   title = "Acroporidae",
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -1652,21 +1775,21 @@ poci_adult_emm <-  pois_poci_adult_int |>
 
 poci_adult_plot <-  ggplot()+
    geom_point(data =poci_adult_site, aes(x=Year, y=mean_site, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
  # geom_point(data = total_juv_emm, aes(x=Year,
  #             y=response, 
  #             color=Shelf))+
   geom_pointrange(data = poci_adult_emm,aes(x=Year,
              y=rate, 
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
-   y = expression(atop("Predicted Pocilloporidae",
-                    "cover (%)")),
+   y = expression("Predicted cover (%)"),
+   title = "Pocilloporidae",
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -1702,21 +1825,21 @@ por_adult_emm <-  nbin_por_adult_int |>
 
 por_adult_plot <-  ggplot()+
    geom_point(data =por_adult_site, aes(x=Year, y=mean_site, group = Shelf),
-    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
  # geom_point(data = total_juv_emm, aes(x=Year,
  #             y=response, 
  #             color=Shelf))+
   geom_pointrange(data = por_adult_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
-   y = expression(atop("Predicted Poritidae",
-                    "cover (%)")),
+   y = expression("Predicted cover (%)"),
+   title = "Poritidae",
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -1759,20 +1882,20 @@ HC_adult_emm <-  nbin_HC_adult_int |>
 HC_adult_plot <-  ggplot()+
    geom_point(data =HC_adult_site, aes(x=Year, y=mean_site, group = Shelf),
     position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.8),
-    size = 0.9,
-    alpha = 0.5,
-    colour = "#A8A8A8")+
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
  # geom_point(data = total_juv_emm, aes(x=Year,
  #             y=response, 
  #             color=Shelf))+
   geom_pointrange(data = HC_adult_emm,aes(x=Year,
              y=response, 
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.8))+
+                  position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
-   y = expression(atop("Predicted hard coral",
-                    "cover (%)")),
+   y = expression("Predicted cover (%)"),
+   title = "Total",
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -1797,6 +1920,12 @@ ggsave(filename = "Figure6.PNG",
        height = 200,
        width = 275,
        unit = "mm")
+
+ggsave(filename = "figures/Figure6.PDF",
+       width = 320,
+      height = 220,
+       unit = "mm")
+
 
 ```
 
