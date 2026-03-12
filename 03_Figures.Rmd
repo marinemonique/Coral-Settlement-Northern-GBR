@@ -753,10 +753,6 @@ p1 <- ggplot(data = scores, aes(x = NMDS1, y = NMDS2,colour = Shelf)) +
   scale_y_continuous(limits = c(-1, 1))
 
 p1.5 <- ggplot() +
-     geom_point(data = scores, aes(x = NMDS1, y = NMDS2, colour = Shelf), size = 1.75, alpha = 0.8) +
-  geom_path(data = ell_df,
-            aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
-            linewidth = 0.6) +
   geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
              arrow = arrow(length = unit(1/3, "picas")),
              linetype = "solid",
@@ -769,6 +765,10 @@ p1.5 <- ggplot() +
                   min.segment.length = Inf,
                   nudge_x = -0.1,
                   nudge_y = 0.1)+
+  geom_point(data = scores, aes(x = NMDS1, y = NMDS2, colour = Shelf), size = 1.75, alpha = 0.8) +
+  geom_path(data = ell_df,
+            aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
+            linewidth = 0.6) +
      theme_bw(base_size = 14) +
      theme(
   panel.grid = element_blank(),
