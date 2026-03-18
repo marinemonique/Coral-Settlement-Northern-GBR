@@ -1070,7 +1070,7 @@ PIT |>
 
 ```{r}
 PIT_long <- PIT |> 
-  pivot_longer(cols = 95:108, names_to = "Benthos", values_to = "Points")
+  pivot_longer(cols = 6:20, names_to = "Benthos", values_to = "Points")
 
 ```
 
@@ -1103,7 +1103,7 @@ write.csv(file = "PIT_long_reef.csv")
 ```{r}
 #brown macroalgae
 PIT_long |> 
-  filter(Benthos == "Brown Macroalgae") |> 
+  filter(Benthos == "Brown MA") |> 
   group_by(Benthos, Site, 
            #Year, 
            Shelf, Reef) |> 
@@ -1117,13 +1117,13 @@ PIT_long |>
   )
 
 PIT_long |> 
-  filter(Benthos == "Brown Macroalgae",
+  filter(Benthos == "Brown MA",
          Points > 25)
 # Brown macroaglae > 50% in 53 transects
 
 53/241 * 100
 PIT_long |> 
-  filter(Benthos == "Brown Macroalgae",
+  filter(Benthos == "Brown MA",
          Points > 25) |> 
   group_by(Site) |> 
   summarise(
@@ -1174,13 +1174,13 @@ PIT_long |>
     PITs = n()
   ) |> 
   filter(
-    Benthos == "Soft Coral"
+    Benthos == "Soft coral"
     #Benthos == "Sand and Rubble"
-    #Benthos == "Green Macroalgae"
+    #Benthos == "Green MA"
     #Benthos == "Poritidae"
     #Benthos == "Pocilloporidae"
     #Benthos == "Acroporidae"
-    #Benthos == "Brown Macroalgae" #all inner shelf sites, 4 mid shelf sites (3 of which are around Lizard)
+    #Benthos == "Brown MA" #all inner shelf sites, 4 mid shelf sites (3 of which are around Lizard)
     #Benthos == "CCA" #CCA was not present at any Inner shelf sites
     )
 ```
@@ -1286,28 +1286,28 @@ PIT_long |>
 Macroalgae brown
 
 ```{r}
-PIT_brown_macro_long <- PIT |> 
-  pivot_longer(cols = 42:56, names_to = "Benthos", values_to = "Points") |> 
-  select(1:7, Benthos, Points)
+# PIT_brown_macro_long <- PIT |> 
+#   pivot_longer(cols = 42:56, names_to = "Benthos", values_to = "Points") |> 
+#   select(1:7, Benthos, Points)
 ```
 
 ```{r}
-Summary_table_brown_macroalgae <- PIT_brown_macro_long |> 
-  group_by(Benthos,Year, Shelf, Reef, Site) |> 
-  summarise(
-    mean = mean(Points),
-    sd = sd(Points),
-    se = sd(Points)/(n()^0.5),
-    min = min(Points),
-    max = max(Points),
-    PITs = n()
-  )
+# Summary_table_brown_macroalgae <- PIT_brown_macro_long |> 
+#   group_by(Benthos,Year, Shelf, Reef, Site) |> 
+#   summarise(
+#     mean = mean(Points),
+#     sd = sd(Points),
+#     se = sd(Points)/(n()^0.5),
+#     min = min(Points),
+#     max = max(Points),
+#     PITs = n()
+#   )
 ```
 
 ```{r}
-PIT_Coral_Genera <- PIT |> 
-  pivot_longer(cols = 8:37, names_to = "Benthos", values_to = "Points") |> 
-  select(1:7, Benthos, Points)
+# PIT_Coral_Genera <- PIT |> 
+#   pivot_longer(cols = 8:37, names_to = "Benthos", values_to = "Points") |> 
+#   select(1:7, Benthos, Points)
 ```
 
 ```{r}
