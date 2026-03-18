@@ -1972,8 +1972,6 @@ ggsave(filename = "figures/Figure6.PDF",
        width = 180,
       height = 275,
        unit = "mm")
-
-
 ```
 
 ##3.3. Inhibitors

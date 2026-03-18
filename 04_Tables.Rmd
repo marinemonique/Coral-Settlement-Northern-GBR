@@ -144,8 +144,10 @@ Join_Coral <- Coral_settlement_nGBR |>
 
 # Benthic Data
 
-PIT <- read_csv("PIT_50m.csv") %>%
-  mutate(across(8:93, ~replace_na(.x, 0)))# Read in data
+# Benthic Data
+PIT <- PIT <- read_csv("PIT_final.csv") %>%
+  mutate(across(8:94, ~replace_na(.x, 0))) %>%
+  mutate(across(8:94, as.numeric))
 
 PIT <- PIT %>% 
   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
@@ -168,6 +170,42 @@ PIT<- PIT |>
     Shelf = factor(Shelf),
     Reef = factor(Reef),
     Site = factor(Site))
+
+
+PIT <- PIT %>%
+  mutate(
+    Acroporidae = rowSums(select(., `Acropora - branching`:`Montipora`), na.rm = TRUE),
+    
+    Pocilloporidae = rowSums(select(., Pocillopora:Stylophora), na.rm = TRUE),
+    
+    Poritidae = rowSums(select(., `Porites - branching`:Goniopora), na.rm = TRUE),
+    
+    `Other Hard coral` = rowSums(select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE),
+    
+    `Soft coral` = rowSums(select(., Lobophytum:`Soft-other`), na.rm = TRUE),
+    `Brown MA` = rowSums(select(., Sargassum:Lobophora), na.rm = TRUE),
+    `Red MA` = rowSums(select(., Asparagopsis:Jania), na.rm = TRUE),
+    `Green MA`= rowSums(select(., Halimeda:Valonia), na.rm = TRUE),
+    `Sand and Rubble` = rowSums(select(., Sand:Rubble), na.rm = TRUE),
+    Turf = rowSums(select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE),
+    Other = rowSums(select(., Sponge:Clam), na.rm = TRUE),
+    Zoantharian = rowSums(select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
+  )
+
+PIT <- PIT |> 
+  select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
+
+PIT <- PIT |> 
+  mutate(
+    sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE)
+  )
+
+summary(PIT$sum)
+
+PIT <- PIT |> 
+  mutate(
+    across(Acroporidae:Halophila, ~ .x * 2)
+  )
 
 join <- PIT |> 
   group_by(Year, Shelf, Reef, Site) |> 
@@ -621,13 +659,13 @@ Indicates strong separation among Shelf groups relative to within-group variatio
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
   select(
-    Year, Reef, Shelf, Site, Transect, 95:108
+    Year, Reef, Shelf, Site, Transect, 6:20
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
-site_by_PIT <- site_by_PIT |>                                                         # ensure only vegetated tiles included 
-  group_by(Reef, Year, Shelf) %>%               # this was missing in your code
-  summarise(across(`Soft Coral`:CCA, mean), .groups = "drop")
+site_by_PIT <- site_by_PIT |>                                                         
+  group_by(Reef, Year, Shelf) %>%               
+  summarise(across(Acroporidae:Halophila, mean), .groups = "drop")
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_PIT <- site_by_PIT %>%
@@ -636,7 +674,7 @@ metadata_PIT <- site_by_PIT %>%
 # Step 3: Species matrix
 PIT_matrix_filtered <- site_by_PIT %>%
   select(
-    4:17
+    Acroporidae:Halophila
   )
 ```
 
@@ -649,7 +687,7 @@ betadisper(PIT_dist, metadata_PIT$Shelf)
 anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01143 * ***
 ```
 
-##4.1.2. Hellinger
+
 Not appropriate for composition analysis.
 ```{r}
 # # create a distance matrix
@@ -660,6 +698,14 @@ Not appropriate for composition analysis.
 # anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.006932 * ***
 ```
 
+```{r}
+PIT <- PIT |> 
+  mutate(
+    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard coral`
+  )
+```
+
+
 ##4.2. Spatio-temporal variability in brood stock
 
 ### 4.2.1 Total Hard Coral cover %
@@ -667,7 +713,7 @@ Not appropriate for composition analysis.
 ```{r}
 PIT <- PIT |> 
   mutate(
-    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard Coral`
+    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard coral`
   )
 
 nbin_HC_adult_int <- glmmTMB(Total_HC_Cover ~ Shelf * Year +(1 | Reef/Site), 
@@ -688,8 +734,6 @@ nbin_acro_adult_int <- glmmTMB(Acroporidae ~ Shelf * Year +(1 | Reef/Site),
 ```{r}
 pois_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
       family = "poisson", data = PIT)
-
-
 ```
 
 ### 4.2.4 Poritidae Hard coral cover %
@@ -807,6 +851,10 @@ model.sel(gamma_avg_Acroporidae_fixed, ln_avg_Acroporidae_fixed, gamma_avg_Acrop
 
 Appendix summary of model
 ```{r}
+
+gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ scale(mean_aco, scale = FALSE) +(1 | Reef/Site) + (1 | Year), 
+         family = Gamma(link = "log"), data = Acro)
+
 summary(gamma_avg_Acroporidae_fixed)
 ```
 
@@ -898,6 +946,9 @@ Summary of best performing model for appendix
 
 Without year performs slightly better
 ```{r}
+gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ scale(mean_poci, scale = FALSE) + (1 | Reef/Site) + (1 | Year),
+        family = Gamma(link = "log"), data = Poci)
+
 summary(gamma_avg_Pocilloporidae_fixed)
 ```
 
@@ -934,6 +985,8 @@ model.sel(gamma_avg_Poritid_fixed, ln_avg_Poritid_fixed)
 ```
 
 ```{r}
+ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ scale(mean_por, scale = FALSE) + (1 | Reef/Site) + (1 | Year), 
+        family = "lognormal", data = Por)
 summary(ln_avg_Poritid_fixed)
 ```
 
@@ -1205,10 +1258,10 @@ extract_emm_results <- function(model, filename) {
 # extract_emm_results(nbin_acro_juv, "output/Acroporidae_juveniles.xlsx")
 # extract_emm_results(nbin_poci_juv, "output/Pocilloporidae_juveniles.xlsx")
 # extract_emm_results(nbin_por_juv, "output/Poritidae_juveniles.xlsx")
-
+# 
 # extract_emm_results(nbin_HC_adult_int, "output/Adult_HC.xlsx")
 # extract_emm_results(nbin_acro_adult_int, "output/Adult_acro.xlsx")
-#extract_emm_results(nbin_por_adult_int, "output/Adult_por.xlsx")
+# extract_emm_results(nbin_por_adult_int, "output/Adult_por.xlsx")
 ```
 
 ```{r}
@@ -1286,7 +1339,7 @@ extract_emm_results_pois <- function(model, filename) {
   )
 }
 
-extract_emm_results_pois(pois_poci_adult_int, "output/Adult_poci.xlsx")
+# extract_emm_results_pois(pois_poci_adult_int, "output/Adult_poci.xlsx")
 ```
 
 
