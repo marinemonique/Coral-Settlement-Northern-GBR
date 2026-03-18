@@ -136,8 +136,10 @@ Poritid <- Coral_settlement_nGBR %>%
 
 # Benthic Data
 
-PIT <- read_csv("PIT_50m.csv") %>%
-  mutate(across(8:93, ~replace_na(.x, 0)))# Read in data
+# Benthic Data
+PIT <- PIT <- read_csv("PIT_final.csv") %>%
+  mutate(across(8:94, ~replace_na(.x, 0))) %>%
+  mutate(across(8:94, as.numeric))
 
 PIT <- PIT %>% 
   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
@@ -154,11 +156,48 @@ PIT <- PIT |>
       TRUE ~ Site
     ))
 
+
 PIT<- PIT |> 
   mutate(
     Shelf = factor(Shelf),
     Reef = factor(Reef),
     Site = factor(Site))
+
+
+PIT <- PIT %>%
+  mutate(
+    Acroporidae = rowSums(select(., `Acropora - branching`:`Montipora`), na.rm = TRUE),
+    
+    Pocilloporidae = rowSums(select(., Pocillopora:Stylophora), na.rm = TRUE),
+    
+    Poritidae = rowSums(select(., `Porites - branching`:Goniopora), na.rm = TRUE),
+    
+    `Other Hard coral` = rowSums(select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE),
+    
+    `Soft coral` = rowSums(select(., Lobophytum:`Soft-other`), na.rm = TRUE),
+    `Brown MA` = rowSums(select(., Sargassum:Lobophora), na.rm = TRUE),
+    `Red MA` = rowSums(select(., Asparagopsis:Jania), na.rm = TRUE),
+    `Green MA`= rowSums(select(., Halimeda:Valonia), na.rm = TRUE),
+    `Sand and Rubble` = rowSums(select(., Sand:Rubble), na.rm = TRUE),
+    Turf = rowSums(select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE),
+    Other = rowSums(select(., Sponge:Clam), na.rm = TRUE),
+    Zoantharian = rowSums(select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
+  )
+
+PIT <- PIT |> 
+  select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
+
+PIT <- PIT |> 
+  mutate(
+    sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE)
+  )
+
+summary(PIT$sum)
+
+PIT <- PIT |> 
+  mutate(
+    across(Acroporidae:Halophila, ~ .x * 2)
+  )
 
 # Combined <- left_join(Coral_settlement_nGBR, join)
 
@@ -240,6 +279,60 @@ Coral_settlement_nGBR |>
             total_side = sum(Side.Total),
             total_top = sum(Top.Total)) |> 
   knitr::kable()
+```
+Range of recruits to tiles
+
+```{r}
+Coral_settlement_nGBR |> 
+  summarise(
+    min_recruits = min(total),
+    max_recruits = max(total)
+  )
+```
+
+compare to hughes that found the max no reecruits at Lizard was 366
+```{r}
+Coral_settlement_nGBR |> 
+  filter(Reef == "Lizard") |> 
+  summarise(
+    min_recruits = min(total),
+    max_recruits = max(total)
+  )
+```
+
+
+
+Relative proportion
+```{r}
+Coral_settlement_nGBR |> 
+  group_by(Year, Reef, Site, Shelf) |> 
+  summarise(
+    Acro_prop = sum(Acroporidae)/sum(total),
+    Poci_prop =  sum(Pocilloporidae)/sum(total),
+    por_prop =  sum(Poritid)/sum(total),
+    Tiles = n()
+  ) 
+
+```
+
+```{r}
+Coral_settlement_nGBR |> 
+  group_by(Year, Reef, Site, Shelf) |> 
+  summarise(
+    Acro_prop = sum(Acroporidae)/sum(total),
+    Poci_prop =  sum(Pocilloporidae)/sum(total),
+    por_prop =  sum(Poritid)/sum(total),
+    Tiles = n()
+  ) |> 
+  ungroup() |> 
+  pivot_longer(cols = 5:7, names_to = "Family", values_to = "Avg Relative abundance" ) |> 
+  group_by(Shelf, Year, Reef, Family) |> 
+  summarise(
+    mean = mean(`Avg Relative abundance`),
+    min = min(`Avg Relative abundance`),
+    max = max(`Avg Relative abundance`)
+  )
+  
 ```
 
 ### 1.1.1. Acroporidae
@@ -821,7 +914,25 @@ Belt_10m |>
   summarise(
     juveniles = sum(Total_juveniles)
   )
+
+#how many belt transects were there no juveniles
+Belt_10m |> 
+  filter(Total_juveniles == 0) |> 
+  summarise(
+    belt_transects_wo_juveniles = n()
+  )
+
+#how many belt transects were there no juveniles
+Belt_10m |> 
+  filter(Total_juveniles == 39) |> 
+  summarise(
+    belt_transects_max_juveniles = n()
+  )
+
+
+
 ```
+
 
 
 
@@ -977,6 +1088,17 @@ Summary_table_PIT <- PIT_long |>
     PITs = n()
   )
 
+
+PIT_long |> 
+  group_by(Benthos, Shelf, Reef) |> 
+  summarise(
+    mean = mean(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points),
+    PITs = n()
+  ) |> 
+write.csv(file = "PIT_long_reef.csv")
 ```
 ```{r}
 #brown macroalgae
@@ -993,6 +1115,32 @@ PIT_long |>
     max = max(Points),
     PITs = n()
   )
+
+PIT_long |> 
+  filter(Benthos == "Brown Macroalgae",
+         Points > 25)
+# Brown macroaglae > 50% in 53 transects
+
+53/241 * 100
+PIT_long |> 
+  filter(Benthos == "Brown Macroalgae",
+         Points > 25) |> 
+  group_by(Site) |> 
+  summarise(
+    n = n()
+  )
+```
+
+CCA
+
+```{r}
+PIT_long |> 
+  filter(Benthos == "CCA",) |> 
+  group_by(Site) |> 
+  summarise(
+    n = n()
+  )
+
 ```
 
 ```{r}

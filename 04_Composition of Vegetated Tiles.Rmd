@@ -24,6 +24,7 @@ library(DHARMa) # Diagnostics for Hierarchical (multi-level/mixed) regression mo
 library(ggpubr)
 library(data.table) #not sure if required at this point
 library(plotly) #interactive nmds
+library(ggrepel)
 
 #import and clean data
 Coral_settlement_nGBR_CS <- read_csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
@@ -99,25 +100,25 @@ PIT<- PIT |>
     Reef = factor(Reef),
     Site = factor(Site))
 
-join <- PIT |> 
-  group_by(Year, Shelf, Reef, Site) |> 
-  summarise(
-    mean_aco = mean(Acroporidae),
-    sd_aco = sd(Acroporidae),
-    mean_poci = mean(Pocilloporidae),
-    sd_poci = sd(Pocilloporidae),
-    mean_por = mean(Poritidae),
-    sd_por = sd(Poritidae),
-    mean_macroalgae = mean(Macroalgae),
-    sd_macroalgae = sd(Macroalgae),
-    mean_sand =mean(Rubble_and_Sand),
-    sd_sand = sd(Rubble_and_Sand),
-    mean_turf = mean(Turf),
-    sd_turf = sd(Turf),
-    PIT = n()
-  )
-
-Combined <- left_join(Coral_settlement_nGBR, join)
+# join <- PIT |> 
+#   group_by(Year, Shelf, Reef, Site) |> 
+#   summarise(
+#     mean_aco = mean(Acroporidae),
+#     sd_aco = sd(Acroporidae),
+#     mean_poci = mean(Pocilloporidae),
+#     sd_poci = sd(Pocilloporidae),
+#     mean_por = mean(Poritidae),
+#     sd_por = sd(Poritidae),
+#     mean_macroalgae = mean(Macroalgae),
+#     sd_macroalgae = sd(Macroalgae),
+#     mean_sand =mean(Rubble_and_Sand),
+#     sd_sand = sd(Rubble_and_Sand),
+#     mean_turf = mean(Turf),
+#     sd_turf = sd(Turf),
+#     PIT = n()
+#   )
+# 
+# Combined <- left_join(Coral_settlement_nGBR, join)
 ```
 
 ```{r}
@@ -172,7 +173,10 @@ As the permdisp was better for the sqrt transformation, I chose to do that trans
 Here we are analysing the hellinger recruit matrix as a function of year and shelf, and their interaction
 ```{r}
 # Bray–Curtis PERMANOVA
-permanova_result <- adonis2(recruit_hellinger ~ Year_Collected * Shelf, data = environment_data, method = "bray", by = "term", permutations = 999) 
+permanova_result <- adonis2(recruit_hellinger ~ Year_Collected * Shelf, 
+                            data = environment_data, 
+                            method = "bray", 
+                            by = "term", permutations = 999) 
 
 print(permanova_result)
 ```
@@ -193,7 +197,9 @@ psuedo_f
 # reorder because the DF is different, and that means you need to do ADONis twice
 
 ```{r}
-permanova_result <- adonis2(recruit_hellinger ~ Shelf * Year_Collected, data = environment_data, method = "bray", by = "term", permutations = 999) 
+permanova_result <- adonis2(recruit_hellinger ~ Shelf * Year_Collected, 
+                            data = environment_data, method = "bray", 
+                            by = "term", permutations = 999) 
 
 print(permanova_result)
 ```
@@ -224,7 +230,10 @@ psuedo_f
 
 Run with Site as well, to see if that is explaining some of the variation
 ```{r}
-permanova_result3 <- adonis2(recruit_hellinger ~ Year_Collected * Shelf/Site, data = environment_data, method = "bray", by = "term", permutations = 999) 
+permanova_result3 <- adonis2(recruit_hellinger ~ Year_Collected * Shelf/Site, 
+                             data = environment_data,
+                             method = "bray", by = "term", 
+                             permutations = 999) 
 print(permanova_result3)
 ```
 
@@ -233,7 +242,10 @@ May also mean I need to include site as the shape or something in the NMDS.
 
 ```{r}
  #Nested PERMANOVA with site as strata
-n_p <- adonis2(recruit_hellinger ~ Shelf/Site *Year_Collected, data = environment_data, method = "bray",  strata = environment_data$Site, permutations = 999 ) 
+n_p <- adonis2(recruit_hellinger ~ Shelf/Site *Year_Collected, data = environment_data, 
+               method = "bray",  
+               strata = environment_data$Site, 
+               permutations = 999 ) 
 
 print(n_p)
 ```
@@ -241,7 +253,11 @@ print(n_p)
 Issue with this is that I don't know how to get the individual predictors in the model, I can just see that the model is significant. Doesn't particularly help me writing my results.
 ```{r}
  #Nested PERMANOVA with shelf as strata
-n_p <- adonis2(recruit_hellinger ~ Shelf/Site *Year_Collected, data = environment_data, method = "bray",  strata = environment_data$Shelf, permutations = 999 ) 
+n_p <- adonis2(recruit_hellinger ~ Shelf/Site *Year_Collected, 
+               data = environment_data,
+               method = "bray",  
+               strata = environment_data$Shelf, 
+               permutations = 999 ) 
 
 print(n_p)
 ```
@@ -286,13 +302,21 @@ anova(betadisper(bray, environment_data$Year_Collected))
 
 ```{r}
 # Bray–Curtis PERMANOVA
-adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray")
+adonis2(Recruits_sqrt ~ Year_Collected * Shelf, 
+        data = environment_data, 
+        method = "bray")
 
 #Nested PERMANOVA
-adonis2(Recruits_sqrt ~ Year_Collected * Shelf, data = environment_data, method = "bray",  strata = environment_data$Reef) |> 
+adonis2(Recruits_sqrt ~ Year_Collected * Shelf,
+        data = environment_data, 
+        method = "bray",  
+        strata = environment_data$Reef) |> 
 print()
 
-adonis2(Recruits_sqrt~ Year_Collected * Shelf/Site, data = environment_data, method = "bray", by = "term", permutations = 999,
+adonis2(Recruits_sqrt~ Year_Collected * Shelf/Site, 
+        data = environment_data, method = "bray", 
+        by = "term", 
+        permutations = 999,
         strata = environment_data$Site) |> print()
 ```
 

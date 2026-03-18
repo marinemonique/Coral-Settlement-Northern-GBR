@@ -165,9 +165,9 @@ Join_Coral <- Coral_settlement_nGBR |>
   )
 
 # Benthic Data
-
-PIT <- read_csv("PIT_50m.csv") %>%
-  mutate(across(8:109, ~replace_na(.x, 0)))# Read in data
+PIT <- PIT <- read_csv("PIT_final.csv") %>%
+  mutate(across(8:94, ~replace_na(.x, 0))) %>%
+  mutate(across(8:94, as.numeric))
 
 PIT <- PIT %>% 
   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
@@ -190,6 +190,44 @@ PIT<- PIT |>
     Shelf = factor(Shelf),
     Reef = factor(Reef),
     Site = factor(Site))
+
+
+PIT <- PIT %>%
+  mutate(
+    Acroporidae = rowSums(select(., `Acropora - branching`:`Montipora`), na.rm = TRUE),
+    
+    Pocilloporidae = rowSums(select(., Pocillopora:Stylophora), na.rm = TRUE),
+    
+    Poritidae = rowSums(select(., `Porites - branching`:Goniopora), na.rm = TRUE),
+    
+    `Other Hard coral` = rowSums(select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE),
+    
+    `Soft coral` = rowSums(select(., Lobophytum:`Soft-other`), na.rm = TRUE),
+    `Brown MA` = rowSums(select(., Sargassum:Lobophora), na.rm = TRUE),
+    `Red MA` = rowSums(select(., Asparagopsis:Jania), na.rm = TRUE),
+    `Green MA`= rowSums(select(., Halimeda:Valonia), na.rm = TRUE),
+    `Sand and Rubble` = rowSums(select(., Sand:Rubble), na.rm = TRUE),
+    Turf = rowSums(select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE),
+    Other = rowSums(select(., Sponge:Clam), na.rm = TRUE),
+    Zoantharian = rowSums(select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
+  )
+
+PIT <- PIT |> 
+  select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
+
+PIT <- PIT |> 
+  mutate(
+    sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE)
+  )
+
+summary(PIT$sum)
+
+PIT <- PIT |> 
+  mutate(
+    across(Acroporidae:Halophila, ~ .x * 2)
+  )
+
+
 
 join_pit <- PIT |> 
   group_by(Year, Shelf, Reef, Site) |> 
@@ -620,7 +658,7 @@ model.sel(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fi
 
 ```{r}
 Recruits <- Coral_settlement_nGBR %>%
-  filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
+  #filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
   group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
   summarise(across(Acroporidae:Other, mean), .groups = "drop")
 
@@ -643,7 +681,7 @@ print(permanova_result)
 
 ```{r}
 Recruits <- Coral_settlement_nGBR %>%
-  filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
+  #filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
   group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
   summarise(across(Acroporidae:Other, mean), .groups = "drop")
 
@@ -901,13 +939,13 @@ belt_envfit <- vec_scores |>
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
   select(
-    Year, Reef, Shelf, Site, Transect, 95:108
+    Year, Reef, Shelf, Site, Transect, 6:20
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
-site_by_PIT <- site_by_PIT |>                                                         # ensure only vegetated tiles included 
-  group_by(Reef, Year, Shelf) %>%               # this was missing in your code
-  summarise(across(`Soft Coral`:CCA, mean), .groups = "drop")
+site_by_PIT <- site_by_PIT |>                                                         
+  group_by(Reef, Year, Shelf) %>%               
+  summarise(across(Acroporidae:Halophila, mean), .groups = "drop")
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_PIT <- site_by_PIT %>%
@@ -916,7 +954,7 @@ metadata_PIT <- site_by_PIT %>%
 # Step 3: Species matrix
 PIT_matrix_filtered <- site_by_PIT %>%
   select(
-    4:17
+    Acroporidae:Halophila
   )
 ```
 
@@ -1331,11 +1369,31 @@ gaus_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Sit
 # sim <- simulateResiduals(gaus_avg_Acroporidae_int)
 # testResiduals(sim) #terrible, truly.
 # testZeroInflation(sim)
+
+gamma_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
+         family = Gamma(link = "log"), data = Acro)
+# sim <- simulateResiduals(gamma_avg_Acroporidae_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+ln_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
+        family = "lognormal", data = Acro)
+# sim <- simulateResiduals(ln_avg_Acroporidae_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
+
+gau_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
+        family = "gaussian", data = Acro)
+# sim <- simulateResiduals(gau_avg_Acroporidae_fixed2)
+# testResiduals(sim) #fails
+# testZeroInflation(sim) #passes
 ```
 
 Log normal models worked best for all of these
 ```{r}
-model.sel(gamma_avg_Acroporidae_fixed, ln_avg_Acroporidae_fixed, gamma_avg_Acroporidae_nested, ln_avg_Acroporidae_nested, gamma_avg_Acroporidae_int, ln_avg_Acroporidae_int)
+model.sel(gamma_avg_Acroporidae_fixed, ln_avg_Acroporidae_fixed, 
+          #gamma_avg_Acroporidae_nested, ln_avg_Acroporidae_nested, gamma_avg_Acroporidae_int, ln_avg_Acroporidae_int,
+          gamma_avg_Acroporidae_fixed2, ln_avg_Acroporidae_fixed2)
 
 summary(gamma_avg_Acroporidae_fixed)
 ```

@@ -166,8 +166,10 @@ Join_Coral <- Coral_settlement_nGBR |>
 
 # Benthic Data
 
-PIT <- read_csv("PIT_50m.csv") %>%
-  mutate(across(8:93, ~replace_na(.x, 0)))# Read in data
+# Benthic Data
+PIT <- PIT <- read_csv("PIT_final.csv") %>%
+  mutate(across(8:94, ~replace_na(.x, 0))) %>%
+  mutate(across(8:94, as.numeric))
 
 PIT <- PIT %>% 
   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
@@ -190,6 +192,42 @@ PIT<- PIT |>
     Shelf = factor(Shelf),
     Reef = factor(Reef),
     Site = factor(Site))
+
+
+PIT <- PIT %>%
+  mutate(
+    Acroporidae = rowSums(select(., `Acropora - branching`:`Montipora`), na.rm = TRUE),
+    
+    Pocilloporidae = rowSums(select(., Pocillopora:Stylophora), na.rm = TRUE),
+    
+    Poritidae = rowSums(select(., `Porites - branching`:Goniopora), na.rm = TRUE),
+    
+    `Other Hard coral` = rowSums(select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE),
+    
+    `Soft coral` = rowSums(select(., Lobophytum:`Soft-other`), na.rm = TRUE),
+    `Brown MA` = rowSums(select(., Sargassum:Lobophora), na.rm = TRUE),
+    `Red MA` = rowSums(select(., Asparagopsis:Jania), na.rm = TRUE),
+    `Green MA`= rowSums(select(., Halimeda:Valonia), na.rm = TRUE),
+    `Sand and Rubble` = rowSums(select(., Sand:Rubble), na.rm = TRUE),
+    Turf = rowSums(select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE),
+    Other = rowSums(select(., Sponge:Clam), na.rm = TRUE),
+    Zoantharian = rowSums(select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
+  )
+
+PIT <- PIT |> 
+  select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
+
+PIT <- PIT |> 
+  mutate(
+    sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE)
+  )
+
+summary(PIT$sum)
+
+PIT <- PIT |> 
+  mutate(
+    across(Acroporidae:Halophila, ~ .x * 2)
+  )
 
 join <- PIT |> 
   group_by(Year, Shelf, Reef, Site) |> 
@@ -602,14 +640,14 @@ Combined figure
 #          height = 325, units = "mm"
 #         )
   
-recruits_wo_other <- ggarrange(A, B, C, D, ncol =2, nrow = 2, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
+recruits_wo_other <- ggarrange(A, B, C, D, ncol =1, nrow = 4, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
    # ggsave(recruits_wo_other, filename = "Figure2.PNG", 
    #       width = 320,
    #       height = 220, units = "mm"
    #      )
    ggsave(recruits_wo_other, filename = "figures/Figure2.PDF",
-         width = 320,
-         height = 220,
+         width = 180,
+         height = 300,
          units = "mm"
         )
    
@@ -635,7 +673,7 @@ ggarrange(A, bottom, ncol = 1, labels = c("A", ""), heights = c(1, 1.5)) |>
 
 ```{r}
 Recruits <- Coral_settlement_nGBR %>%
-  filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
+  #filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
   group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
   summarise(across(Acroporidae:Other, mean), .groups = "drop")
 
@@ -667,7 +705,7 @@ set.seed(999)     # for reproducibility
 nmds <- metaMDS(recruit_hellinger, distance = "euclidean", k = 2, trymax = 100)
 
 #Check the Stress Value
-nmds$stress
+nmds$stress #0.02386391
 
 # Extract NMDS for plot
 site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
@@ -1089,24 +1127,37 @@ juv_por_plot
 
 
 ```{r}
-Juv_4 <- ggarrange(juv_total_plot, juv_acro_plot, juv_poci_plot, juv_por_plot, ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D") )
+# Juv_4 <- ggarrange(juv_total_plot, juv_acro_plot, juv_poci_plot, juv_por_plot, ncol = 2, nrow = 2, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D") )
+# 
+# ggsave(Juv_4,
+#        filename = "Figure4.PNG",
+#        width = 320,
+#       height = 220,
+#        unit = "mm")
+# 
+# ggsave(Juv_4,
+#        filename = "figures/Figure4.PDF",
+#        width = 320,
+#       height = 220,
+#        unit = "mm")
 
+Juv_4 <- ggarrange(juv_total_plot, juv_acro_plot, juv_poci_plot, juv_por_plot, ncol = 1, nrow = 4, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D") )
 # ggsave(Juv_4,
 #        filename = "Figure4.PNG",
 #        height = 200,
 #        width = 275,
 #        unit = "mm")
 
-ggsave(Juv_4,
-       filename = "Figure4.PNG",
-       width = 320,
-      height = 220,
-       unit = "mm")
+# ggsave(Juv_4,
+#        filename = "Figure4.PNG",
+#        width = 320,
+#       height = 220,
+#        unit = "mm")
 
 ggsave(Juv_4,
        filename = "figures/Figure4.PDF",
-       width = 320,
-      height = 220,
+       width = 180,
+      height = 275,
        unit = "mm")
 ```
 
@@ -1495,29 +1546,25 @@ ggsave(belt_Figure,
 ## 3.1. Composition across the shelf
 
 ```{r}
-# PIT <- PIT |> 
-#   rename("Other Hard\nCoral" =`Other Hard Coral`,
-#          "Red\nMacroalgae" = `Red Macroalgae`,
-#          "Sand and\nRubble" = `Sand and Rubble`)
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
-  dplyr::select(
-    Year, Reef, Shelf, Site, Transect, 95:108
+  select(
+    Year, Reef, Shelf, Site, Transect, 6:20
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
-site_by_PIT <- site_by_PIT |>                                                         # ensure only vegetated tiles included 
-  group_by(Reef, Year, Shelf) %>%               # this was missing in your code
-  summarise(across(`Soft Coral`:CCA, mean), .groups = "drop")
+site_by_PIT <- site_by_PIT |>                                                         
+  group_by(Reef, Year, Shelf) %>%               
+  summarise(across(Acroporidae:Halophila, mean), .groups = "drop")
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_PIT <- site_by_PIT %>%
-  dplyr::select(Shelf, Year, Reef)
+  select(Shelf, Year, Reef)
 
 # Step 3: Species matrix
 PIT_matrix_filtered <- site_by_PIT %>%
-  dplyr::select(
-    4:17
+  select(
+    Acroporidae:Halophila
   )
 ```
 
@@ -1527,7 +1574,7 @@ PIT_dist <- vegdist(PIT_matrix_filtered, method = "bray")
 
 # With respect to Shelf
 betadisper(PIT_dist, metadata_PIT$Shelf)
-anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01143 * ***
+anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01612 * ***
 ```
 
 ```{r}
@@ -1681,7 +1728,6 @@ Benthic_B <- ggplot()+
 ```{r}
 Benthic_Figure <- ggarrange(
   Benthic_A, Benthic_B, labels = c("A", "B"), heights = c(0.9, 1), ncol = 1
-  
 )
 
 Benthic_Figure
@@ -1750,7 +1796,7 @@ acro_adult_plot <-  ggplot()+
     )+
   #facet_wrap(~Family, ncol = 1, scales = "free_y")+
   theme(legend.position = "none",
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 acro_adult_plot
 ```
@@ -1802,7 +1848,7 @@ poci_adult_plot <-  ggplot()+
     )+
   #facet_wrap(~Family, ncol = 1, scales = "free_y")+
   theme(legend.position = "none",
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 poci_adult_plot
 ```
@@ -1852,7 +1898,7 @@ por_adult_plot <-  ggplot()+
     )+
   #facet_wrap(~Family, ncol = 1, scales = "free_y")+
   theme(legend.position = "none",
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 por_adult_plot
 
@@ -1863,7 +1909,7 @@ por_adult_plot
 ```{r}
 PIT <- PIT |> 
   mutate(
-    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard Coral`
+    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard coral`
   )
 
 nbin_HC_adult_int <- glmmTMB(Total_HC_Cover ~ Shelf * Year +(1 | Reef/Site), 
@@ -1908,22 +1954,23 @@ HC_adult_plot <-  ggplot()+
     )+
   #facet_wrap(~Family, ncol = 1, scales = "free_y")+
   theme(legend.position = "none",
-        text = element_text(size = 9))+
+        text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 HC_adult_plot
 ```
 
 ```{r}
-ggarrange(HC_adult_plot, acro_adult_plot, poci_adult_plot, por_adult_plot, labels = c("A", "B", "C", "D"), ncol = 2, nrow = 2)
+#ggarrange(HC_adult_plot, acro_adult_plot, poci_adult_plot, por_adult_plot, labels = c("A", "B", "C", "D"), ncol = 2, nrow = 2)
+# 
+# ggsave(filename = "Figure6.PNG",
+#        height = 200,
+#        width = 275,
+#        unit = "mm")
 
-ggsave(filename = "Figure6.PNG",
-       height = 200,
-       width = 275,
-       unit = "mm")
-
+ggarrange(HC_adult_plot, acro_adult_plot, poci_adult_plot, por_adult_plot, labels = c("A", "B", "C", "D"), ncol = 1, nrow = 4)
 ggsave(filename = "figures/Figure6.PDF",
-       width = 320,
-      height = 220,
+       width = 180,
+      height = 275,
        unit = "mm")
 
 
@@ -1983,15 +2030,19 @@ pred <- ggpredict(
 
 #produces a pred with 9 values of acroporidae cover, and represents the population-level prediction (random effects set to zero) is usually what you want for interpretation and plotting the relationship.
 
-# acro_benthic_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
-#   geom_line(size = 1.2) +
-#   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
-#               alpha = 0.2, colour = NA) +
-#   labs(x= expression("Observed Acroporidae cover"),
-#        y = expression(atop("Predicted Acroporidae", "recruits per tile"))) +
-#   theme_classic()
-# 
-# acro_benthic_st
+acro_benthic_st <- ggplot(pred, aes(x = x, y = predicted, 
+                                    #colour = group
+                                    )) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
+                  #fill = group
+                  ),
+              alpha = 0.2, colour = NA) +
+  labs(x= expression("Observed Acroporidae cover (%)"),
+       y = expression(atop("Predicted Acroporidae", "recruits per tile"))) +
+  theme_classic()
+
+acro_benthic_st
 ```
 
 ### 3.2.2 Pocilloporidae
@@ -1999,11 +2050,77 @@ pred <- ggpredict(
 ```{r}
 Poci <- combined_averages |> 
   filter(poci_mean_st > 0)
-gamma_avg_Pocilloporidae_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site),
+
+
+gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site) + (1 | Year),
         family = Gamma(link = "log"), data = Poci)
+
+pred <- ggpredict(
+  gamma_avg_Pocilloporidae_fixed,
+  terms = c("mean_poci")
+)
+
+#produces a pred with 9 values of acroporidae cover, and represents the population-level prediction (random effects set to zero) is usually what you want for interpretation and plotting the relationship.
+
+poci_benthic_st <- ggplot(pred, aes(x = x, y = predicted, 
+                                    #colour = group
+                                    )) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
+                  #fill = group
+                  ),
+              alpha = 0.2, colour = NA) +
+  labs(x= expression("Observed Pocilloporidae cover (%)"),
+       y = expression(atop("Predicted Pocilloporidae", "recruits per tile"))) +
+  theme_classic()
+
+poci_benthic_st
 ```
 
 ### 3.2.3. Poritidae
+
+```{r}
+Por <- combined_averages |> 
+  filter(por_mean_st > 0)
+ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site) + (1 | Year), 
+        family = "lognormal", data = Por)
+
+pred <- ggpredict(
+  ln_avg_Poritid_fixed,
+  terms = c("mean_por")
+)
+
+#produces a pred with 9 values of acroporidae cover, and represents the population-level prediction (random effects set to zero) is usually what you want for interpretation and plotting the relationship.
+
+por_benthic_st <- ggplot(pred, aes(x = x, y = predicted, 
+                                   #colour = group
+                                   )) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
+                  #fill = group
+                  ),
+              alpha = 0.2, 
+              colour = NA) +
+  labs(x= expression("Observed Poritidae cover (%)"),
+       y = expression(atop("Predicted Poritidae", "recruits per tile"))) +
+  theme_classic()
+
+por_benthic_st
+```
+
+```{r}
+ggarrange(acro_benthic_st, poci_benthic_st, por_benthic_st, 
+          labels = c("A", "B", "C"),
+          ncol = 1,
+          nrow = 3
+          )
+
+ggsave(filename = "figures/benthic_and_recruitment.PDF",
+       width = 180,
+       height = 220,
+       unit = "mm")
+```
+
 
 
 
