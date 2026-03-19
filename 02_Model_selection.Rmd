@@ -713,9 +713,16 @@ pois <- glmmTMB(Total_juveniles ~ Year*Shelf+(1 | Reef/Site),
 
 nbin <- glmmTMB(Total_juveniles ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Belt_10m)
+
+pois2 <- glmmTMB(Total_juveniles ~ Year + Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Belt_10m)
+
+nbin2 <- glmmTMB(Total_juveniles ~ Year + Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Belt_10m)
+
 ```
 
-```{r}
+```{r eval = FALSE}
 sim14.1 <- simulateResiduals(pois)
 testResiduals(sim14.1)
 testZeroInflation(sim14.1) # Is the number of observed zeros significantly different from what the model predicts? no
@@ -723,10 +730,19 @@ testZeroInflation(sim14.1) # Is the number of observed zeros significantly diffe
 sim14.2 <- simulateResiduals(nbin)
 testResiduals(sim14.2) #passes
 testZeroInflation(sim14.2) #nope
+
+sim <- simulateResiduals(pois2)
+testResiduals(sim) #passes
+testZeroInflation(sim) # Is the number of observed zeros significantly different from what the model predicts? p = 0.208
+
+sim <- simulateResiduals(nbin2)
+testResiduals(sim) #passes
+testZeroInflation(sim) #p=0.584
+
 ```
 
 ```{r}
-model.sel(pois, nbin)
+model.sel(pois, nbin, pois2, nbin2)
 summary(nbin)
 ```
 
@@ -741,6 +757,12 @@ pois <- glmmTMB(Acroporidae ~ Year*Shelf+(1 | Reef/Site),
 
 nbin <- glmmTMB(Acroporidae ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Acro)
+
+pois2 <- glmmTMB(Acroporidae ~ Year + Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Acro)
+
+nbin2 <- glmmTMB(Acroporidae ~ Year + Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Acro)
 ```
 
 ```{r}
@@ -751,11 +773,19 @@ testZeroInflation(sim15.1) # p= 0.12
 sim15.2 <- simulateResiduals(nbin)
 testResiduals(sim15.2) #passes
 testZeroInflation(sim15.2) #p=0.416
+
+sim <- simulateResiduals(pois2)
+testResiduals(sim) #passes
+testZeroInflation(sim) # Is the number of observed zeros significantly different from what the model predicts? p = 0.008, therefore will require zero inflation
+
+sim <- simulateResiduals(nbin2)
+testResiduals(sim) #passes
+testZeroInflation(sim) #p=0.32
 ```
 
 Both meet assumptions
 ```{r}
-model.sel(pois, nbin) #nbin behaves better
+model.sel(pois, nbin, pois2, nbin2) #nbin behaves better
 ```
 
 ### 2.1.3. Pocilloporidae
@@ -769,6 +799,12 @@ pois <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site),
 
 nbin <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Poc)
+
+pois2 <- glmmTMB(Pocilloporidae ~ Year + Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Poc)
+
+nbin2 <- glmmTMB(Pocilloporidae ~ Year + Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Poc)
 ```
 
 ```{r}
@@ -779,9 +815,17 @@ testZeroInflation(sim16.1) #p=0.968
 sim16.2 <- simulateResiduals(nbin)
 testResiduals(sim16.2) #passed
 testZeroInflation(sim16.2) #p =1
+
+sim <- simulateResiduals(pois2)
+testResiduals(sim) #outlier test significant
+testZeroInflation(sim) # Is the number of observed zeros significantly different from what the model predicts? p = 784
+
+sim <- simulateResiduals(nbin2)
+testResiduals(sim) #passes
+testZeroInflation(sim) #p=0.928
 ```
 ```{r}
-model.sel(pois, nbin) #nbin behaves better
+model.sel(pois, nbin, pois2, nbin2) #nbin behaves better
 ```
 
 ### 2.1.4. Poritidae
@@ -795,6 +839,12 @@ pois <- glmmTMB(Poritidae ~ Year*Shelf+(1 | Reef/Site),
 
 nbin <- glmmTMB(Poritidae ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Por)
+
+pois2 <- glmmTMB(Poritidae ~ Year + Shelf+(1 | Reef/Site), 
+      family = "poisson", data = Por)
+
+nbin2 <- glmmTMB(Poritidae ~ Year + Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Por)
 ```
 
 ```{r}
@@ -805,11 +855,19 @@ testZeroInflation(sim17.1) #p=0.248
 sim17.2 <- simulateResiduals(nbin)
 testResiduals(sim17.2) #passes
 testZeroInflation(sim17.2) # p=0.784
+
+sim <- simulateResiduals(pois2)
+testResiduals(sim) #passes
+testZeroInflation(sim) # Is the number of observed zeros significantly different from what the model predicts? p = 0.416
+
+sim <- simulateResiduals(nbin2)
+testResiduals(sim) #passes
+testZeroInflation(sim) #p=0.904
 ```
 
 Both models have outliers as significant.
 ```{r}
-model.sel(pois, nbin) #nbin behaves better
+model.sel(pois, nbin, pois2, nbin2) #nbin behaves better
 ```
 
 ### 2.1.5. Other
@@ -1016,8 +1074,10 @@ Benthic_envfit <- vec_scores |>
 ## 3.2. Family benthic cover
 ```{r}
 PIT_adult <- PIT |> 
-  select(Year, Shelf, Reef, Site, Transect,Acroporidae, Pocilloporidae, Poritidae, `Other Hard Coral`)
+  select(Year, Shelf, Reef, Site, Transect,Acroporidae, Pocilloporidae, Poritidae, `Other Hard coral`)
 ```
+
+### 3.2.1. Acroporidae
 
 ```{r}
 # Acroporidae adult Model

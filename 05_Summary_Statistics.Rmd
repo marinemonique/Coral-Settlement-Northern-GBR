@@ -279,6 +279,8 @@ Coral_settlement_nGBR |>
             total_side = sum(Side.Total),
             total_top = sum(Top.Total)) |> 
   knitr::kable()
+1839/21168*100
+
 ```
 Range of recruits to tiles
 
@@ -933,6 +935,14 @@ Belt_10m |>
 
 ```
 
+Mean no juveniles
+```{r}
+Belt_10m |> 
+  summarise(
+    mean_juv = mean(Total_juveniles),
+    se_juv = sd(Total_juveniles)/n()^0.5
+  )
+```
 
 
 
