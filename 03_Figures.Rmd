@@ -672,31 +672,33 @@ ggarrange(A, bottom, ncol = 1, labels = c("A", ""), heights = c(1, 1.5)) |>
 
 
 ```{r}
+# Aggregate
 Recruits <- Coral_settlement_nGBR %>%
-  #filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
-  group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
+  group_by(Reef, Year_Collected, Shelf) %>%
   summarise(across(Acroporidae:Other, mean), .groups = "drop")
 
-recruit_hellinger <- decostand(Recruits %>% dplyr::select(Acroporidae, Pocilloporidae, Poritid, Other),
-                                                         method = "hellinger")
+# Hellinger transform
+recruit_hellinger <- decostand(
+  Recruits %>% dplyr::select(Acroporidae, Pocilloporidae, Poritid, Other),
+  method = "hellinger"
+)
 
-# reef year?
-reef_year <- Recruits |> 
-  dplyr::select(Reef, Year_Collected, Shelf)
+# Distance matrix
+euc_hellinger <- vegdist(recruit_hellinger, method = "euclidean")
 
-permanova_result <- adonis2(recruit_hellinger ~ Shelf,
+# PERMANOVA
+permanova_result <- adonis2(
+  euc_hellinger ~ Shelf,
   data = Recruits,
-  method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
-  by = "margin",
-  permutations = 999)
+  permutations = 999
+)
 
 print(permanova_result)
 
-
-euc_hellinger <- vegdist(recruit_hellinger, method = "euclidean")
-# With respect to Shelf
-betadisper(euc_hellinger, Recruits$Shelf)
-anova(betadisper(euc_hellinger, Recruits$Shelf))
+# PERMDISP
+bd <- betadisper(euc_hellinger, Recruits$Shelf)
+anova(bd)
+permutest(bd)   # recommended
 ```
 
 ```{r}
@@ -709,7 +711,7 @@ nmds$stress #0.02386391
 
 # Extract NMDS for plot
 site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
-scores <- cbind(site_scores, reef_year[, c("Year_Collected", "Shelf", "Reef")])
+scores <- cbind(site_scores, Recruits[, c("Year_Collected", "Shelf", "Reef")])
 
 scores <- scores |> 
   mutate(

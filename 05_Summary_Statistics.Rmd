@@ -282,6 +282,24 @@ Coral_settlement_nGBR |>
 1839/21168*100
 
 ```
+
+Relative abundance of recruits
+
+```{r}
+Coral_settlement_nGBR |> 
+  group_by(Shelf, Year) |> 
+  summarise(
+            total_acro = sum(Acroporidae),
+            total_poci = sum(Pocilloporidae),
+            total_poritidae = sum(Poritid),
+            total_other = sum(Other),
+            total_recruits = sum(total),
+            total_tiles = n()
+            ) |> 
+  write.csv(file = "output/relative_prop_recruits.csv")
+```
+
+
 Range of recruits to tiles
 
 ```{r}
@@ -303,7 +321,6 @@ Coral_settlement_nGBR |>
 ```
 
 
-
 Relative proportion
 ```{r}
 Coral_settlement_nGBR |> 
@@ -314,7 +331,6 @@ Coral_settlement_nGBR |>
     por_prop =  sum(Poritid)/sum(total),
     Tiles = n()
   ) 
-
 ```
 
 ```{r}
@@ -988,6 +1004,33 @@ Belt_10m |>
     min_por = min(Poritidae),
     max_por = max(Poritidae)
   )
+```
+
+Relative abundance of coral juveniles across the shelf
+```{r}
+Belt_10m |>
+  group_by(Shelf, Year) |> 
+  summarise(
+    prop_acro = sum(Acroporidae)/sum(Total_juveniles),
+    prop_poci = sum(Pocilloporidae)/sum(Total_juveniles),
+    prop_pori = sum(Poritidae)/sum(Total_juveniles),
+    prop_oth = sum(Other_HC_R)/sum(Total_juveniles),
+    n = n()
+  ) 
+```
+
+```{r}
+Belt_10m |>
+  group_by(Shelf, Year) |> 
+  summarise(
+    sum_Acroporidae = sum(Acroporidae),
+    sum_Pocilloporidae = sum(Pocilloporidae),
+    sum_Poritidae = sum(Poritidae),
+    sum_other = sum(Other_HC_R),
+    sum_Total = sum(Total_juveniles),
+    n = n()
+  ) #|> 
+  #write.csv(file = "output/relative_prop_juveniles.csv")
 ```
 
 ###2.1.2. Other Hard corals

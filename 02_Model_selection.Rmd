@@ -95,33 +95,12 @@ Pocilloporidae <- Coral_settlement_nGBR %>%
          Pocilloporidae, Top_Pocil, 
          Under_Pocil, Side_Pocil, total)
 
-# Pocilloporidae_orientation <- Pocilloporidae %>% 
-#   rename(Top = Top_Pocil,
-#                    Bottom = Under_Pocil,
-#                    Side = Side_Pocil,
-#          Recruits_per_tile = total)
-
-# Pocilloporidae_orientation <- Pocilloporidae_orientation %>% 
-#   pivot_longer(cols = 7:9,
-#                names_to = "Tile_Surface",
-#                values_to = "Recruits")
-
 Acroporidae <- Coral_settlement_nGBR %>% 
   select(Year, Shelf, 
          Reef, Site, Tile, 
          Acroporidae, Top_Acr, 
          Under_Acr, Side_Acr, total)
 
-# Acroporidae_orientation <- Acroporidae %>% 
-#   rename(Top = Top_Acr,
-#                    Bottom = Under_Acr,
-#                    Side = Side_Acr,
-#          Recruits_per_tile = total)
-# 
-# Acroporidae_orientation <- Acroporidae_orientation %>% 
-#   pivot_longer(cols = 7:9,
-#                names_to = "Tile_Surface",
-#                values_to = "Recruits")
 
 Poritid <- Coral_settlement_nGBR %>% 
   select(Year, Shelf, 
@@ -129,16 +108,6 @@ Poritid <- Coral_settlement_nGBR %>%
          Poritid, Top_Por, Under_Por, 
          Side_Por, total)
 
-# Poritidae_orientation <- Poritid %>% 
-#   rename(Top = Top_Por,
-#                    Bottom = Under_Por,
-#                    Side = Side_Por,
-#          Recruits_per_tile = total) 
-
-# Poritidae_orientation <- Poritidae_orientation %>% 
-#   pivot_longer(cols = 7:9,
-#                names_to = "Tile_Surface",
-#                values_to = "Recruits")
 
 Other <- Coral_settlement_nGBR %>% 
   select(Year, Shelf, 
@@ -194,21 +163,17 @@ PIT<- PIT |>
 
 PIT <- PIT %>%
   mutate(
-    Acroporidae = rowSums(select(., `Acropora - branching`:`Montipora`), na.rm = TRUE),
-    
-    Pocilloporidae = rowSums(select(., Pocillopora:Stylophora), na.rm = TRUE),
-    
-    Poritidae = rowSums(select(., `Porites - branching`:Goniopora), na.rm = TRUE),
-    
-    `Other Hard coral` = rowSums(select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE),
-    
-    `Soft coral` = rowSums(select(., Lobophytum:`Soft-other`), na.rm = TRUE),
-    `Brown MA` = rowSums(select(., Sargassum:Lobophora), na.rm = TRUE),
-    `Red MA` = rowSums(select(., Asparagopsis:Jania), na.rm = TRUE),
-    `Green MA`= rowSums(select(., Halimeda:Valonia), na.rm = TRUE),
-    `Sand and Rubble` = rowSums(select(., Sand:Rubble), na.rm = TRUE),
-    Turf = rowSums(select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE),
-    Other = rowSums(select(., Sponge:Clam), na.rm = TRUE),
+    Acroporidae = rowSums(select(., `Acropora - branching`:`Montipora`), na.rm = TRUE), #grouping Acroporidae
+    Pocilloporidae = rowSums(select(., Pocillopora:Stylophora), na.rm = TRUE), #grouping Pocilloporidae genera
+    Poritidae = rowSums(select(., `Porites - branching`:Goniopora), na.rm = TRUE), #grouping Poritidae genera
+    `Other Hard coral` = rowSums(select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE), # Grouping other hard corals
+    `Soft coral` = rowSums(select(., Lobophytum:`Soft-other`), na.rm = TRUE), #soft coral categories
+    `Brown MA` = rowSums(select(., Sargassum:Lobophora), na.rm = TRUE), #brown macroalgae categories
+    `Red MA` = rowSums(select(., Asparagopsis:Jania), na.rm = TRUE), #red macroalgae
+    `Green MA`= rowSums(select(., Halimeda:Valonia), na.rm = TRUE), #green macroalgae
+    `Sand and Rubble` = rowSums(select(., Sand:Rubble), na.rm = TRUE), #sand, rubble, and combo
+    Turf = rowSums(select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE), #Turfing substrata (dead corals + EAM)
+    Other = rowSums(select(., Sponge:Clam), na.rm = TRUE), #other invertes
     Zoantharian = rowSums(select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
   )
 
@@ -217,16 +182,15 @@ PIT <- PIT |>
 
 PIT <- PIT |> 
   mutate(
-    sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE)
+    sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE) 
   )
 
-summary(PIT$sum)
+summary(PIT$sum) #check that the number of points = 50 per transect
 
 PIT <- PIT |> 
   mutate(
-    across(Acroporidae:Halophila, ~ .x * 2)
+    across(Acroporidae:Halophila, ~ .x * 2) #multiply by two to get out of 100%
   )
-
 
 
 join_pit <- PIT |> 
@@ -318,8 +282,17 @@ zbin_total_yr <- glmmTMB(total ~ Shelf + Year + (1 | Reef/Site),
                       ziformula = ~1,
         family = "nbinom2", data = Coral_settlement_nGBR)
 
+zi_pois_total_yr <- glmmTMB(total ~ Shelf + Year + (1 | Reef/Site), 
+                            ziformula = ~1,
+      family = "poisson", data = Coral_settlement_nGBR)
+
 pois_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site), 
       family = "poisson", data = Coral_settlement_nGBR)
+
+zi_pois_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site), 
+                             ziformula = ~1,
+      family = "poisson", data = Coral_settlement_nGBR)
+
 
 nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site), 
         family = "nbinom2", data = Coral_settlement_nGBR)
@@ -331,24 +304,28 @@ zbin_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site),
 
 ```{r eval=FALSE}
 sim1.1 <- simulateResiduals(pois_total_yr)
-testResiduals(sim1.1) #not good fit
-testZeroInflation(sim1.1)
+testResiduals(sim1.1) #not good fit Ks deviation and outliet
+testZeroInflation(sim1.1) # p =0
 
 sim1.2 <- simulateResiduals(pois_total_yr2)
-testResiduals(sim1.2) #not good fit
-testZeroInflation(sim1.2)
+testResiduals(sim1.2) #not good fit, KS deviation significant and outliers significant
+testZeroInflation(sim1.2) # p =0
+
+sim <- simulateResiduals(zi_pois_total_yr)
+testResiduals(sim) #outlier and KS significant
+
+sim <- simulateResiduals(zi_pois_total_yr2)
+testResiduals(sim) #KS significant
 ```
 
 ```{r}
 sim1.3 <- simulateResiduals(nbin_total_yr)
 testResiduals(sim1.3) #good
-testZeroInflation(sim1.3)
-plot(sim1.3)
+testZeroInflation(sim1.3) #p 0.752
 
 sim1.4 <- simulateResiduals(nbin_total_yr2)
 testResiduals(sim1.4) #good
-testZeroInflation(sim1.4)
-plot(sim1.4)
+testZeroInflation(sim1.4) # p = 0.52
 ```
 
 model.sel(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2)
@@ -358,17 +335,21 @@ model.sel(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2)
 
  Family Recruitment
 ```{r poisson of total Recruits, message=FALSE}
-pois_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + Year+(1 | Reef/Site) , 
+# Poritidae
+pois_Poritid_fixed <- glmmTMB(Poritid ~ Shelf + Year +(1 | Reef/Site) , 
       family = "poisson", data = Poritid) 
 
 pois_Poritid_interaction <- glmmTMB(Poritid ~ Shelf*Year + (1 | Reef/Site), 
       family = "poisson", data = Poritid)
 
+# Acroporidae 
 pois_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year+ (1 | Reef/Site), 
       family = "poisson", data = Acroporidae)
 
 pois_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
       family = "poisson", data = Acroporidae)
+
+#Pocillioporidae
 
 pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + Year  + (1 | Reef/Site), 
       family = "poisson", data = Pocilloporidae)
@@ -376,8 +357,8 @@ pois_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf + Year  + (1 | Reef/
 pois_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year + (1 | Reef/Site), 
       family = "poisson", data = Pocilloporidae)
 
-pois_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
-      family = "poisson", data = Other)
+# pois_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
+#       family = "poisson", data = Other)
 ```
 
 Negative Binomial of Total Recruits (for a family)
@@ -403,8 +384,8 @@ nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | 
 nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
         family = "nbinom2", data = Acroporidae)
 
-nbin_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
-        family = "nbinom2", data = Other)
+# nbin_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
+#         family = "nbinom2", data = Other)
 ```
 
 
@@ -449,13 +430,13 @@ Simulate residuals for models
 ```{r}
 sim2.1 <- simulateResiduals(nbin_Acroporidae_fixed) 
 testResiduals(sim2.1) #fine
-testZeroInflation(sim2.1) #P<0.05
-plot(sim2.1) #bad
+testZeroInflation(sim2.1) #P<0.06
+# plot(sim2.1) #bad
 
 sim2.2 <- simulateResiduals(nbin_Acroporidae_interaction)
 testResiduals(sim2.2) #fine
 testZeroInflation(sim2.2) # P = 0.768
-plot(sim2.2) #fine
+#plot(sim2.2) #fine
 
 # sim2.3 <- simulateResiduals(zbin_Acroporidae_fixed)
 # testResiduals(sim2.3) #fine
@@ -469,12 +450,12 @@ plot(sim2.2) #fine
 sim2.5 <- simulateResiduals(pois_Acroporidae_fixed) #not a good fit
 testResiduals(sim2.5) #bad
 testZeroInflation(sim2.5) #p <0.05, therefore i should fit a zi pois
-plot(sim2.5) #bad
+# plot(sim2.5) #bad
 
 sim2.6 <- simulateResiduals(pois_Acroporidae_interaction) #not a good fit
 testResiduals(sim2.6) #significant deviation
-testZeroInflation(sim2.6) # p = 0.64 which is pretty close
-plot(sim2.6) #bad
+testZeroInflation(sim2.6) # p = 0.064 which is pretty close
+#plot(sim2.6) #bad
 ```
 
 
@@ -490,8 +471,6 @@ testResiduals(sim2.7) #significant deviation
 Compare AIC of those models
 
 ```{r}
-AIC( nbin_Acroporidae_interaction, zbin_Acroporidae_interaction)
-
 model.sel(nbin_Acroporidae_interaction, nbin_Acroporidae_fixed)
 ```
 
@@ -559,11 +538,6 @@ sim4.4 <- simulateResiduals(nbin_Poritid_fixed)
 testResiduals(sim4.4) #passed
 testZeroInflation(sim4.4) #p=0.88
 
-# sim4.5 <- simulateResiduals(zbin_Poritid_fixed)
-# testResiduals(sim4.5)
-# 
-# sim4.6 <- simulateResiduals(zbin_Poritid_interaction)
-# testResiduals(sim4.6)
 ```
 
 Zero inflated models where required
@@ -589,8 +563,6 @@ Both nbin_interaction, and zbin_interaction for Portidae have significant disper
 Don't see much of a difference in Poritid across shelf position. Although slightly less in mid shore reefs (p<0.1)
 
 ```{r echo=FALSE}
-AIC(nbin_Poritid_fixed, zbin_Poritid_fixed, nbin_Poritid_interaction, zbin_Poritid_interaction)
-
 model.sel(nbin_Poritid_fixed, nbin_Poritid_interaction)
 ```
 
@@ -657,27 +629,35 @@ model.sel(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fi
 ##1.2. Composition
 
 ```{r}
+# Aggregate
 Recruits <- Coral_settlement_nGBR %>%
-  #filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
-  group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
+  group_by(Reef, Year_Collected, Shelf) %>%
   summarise(across(Acroporidae:Other, mean), .groups = "drop")
 
-recruit_hellinger <- decostand(Recruits %>% select(Acroporidae, Pocilloporidae, Poritid, Other),
-                                                         method = "hellinger")
+# Hellinger transform
+recruit_hellinger <- decostand(
+  Recruits %>% dplyr::select(Acroporidae, Pocilloporidae, Poritid, Other),
+  method = "hellinger"
+)
 
-# reef year?
-reef_year <- Recruits |> 
-  select(Reef, Year_Collected, Shelf)
+# Distance matrix
+euc_hellinger <- vegdist(recruit_hellinger, method = "euclidean")
 
-permanova_result <- adonis2(recruit_hellinger ~ Shelf,
+# PERMANOVA
+permanova_result <- adonis2(
+  euc_hellinger ~ Shelf,
   data = Recruits,
-  method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
-  by = "margin",
-  permutations = 999)
+  permutations = 999
+)
 
 print(permanova_result)
 
+# PERMDISP
+bd <- betadisper(euc_hellinger, Recruits$Shelf)
+anova(bd)
+permutest(bd)   # recommended
 ```
+
 
 ```{r}
 Recruits <- Coral_settlement_nGBR %>%
@@ -724,7 +704,7 @@ nbin2 <- glmmTMB(Total_juveniles ~ Year + Shelf+(1 | Reef/Site),
 
 ```{r eval = FALSE}
 sim14.1 <- simulateResiduals(pois)
-testResiduals(sim14.1)
+testResiduals(sim14.1) #passes
 testZeroInflation(sim14.1) # Is the number of observed zeros significantly different from what the model predicts? no
 
 sim14.2 <- simulateResiduals(nbin)
@@ -761,6 +741,10 @@ nbin <- glmmTMB(Acroporidae ~ Year*Shelf+(1 | Reef/Site),
 pois2 <- glmmTMB(Acroporidae ~ Year + Shelf+(1 | Reef/Site), 
       family = "poisson", data = Acro)
 
+zi_pois2 <-  glmmTMB(Acroporidae ~ Year + Shelf+(1 | Reef/Site), 
+                     ziformula =  ~ 1,
+      family = "poisson", data = Acro)
+
 nbin2 <- glmmTMB(Acroporidae ~ Year + Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Acro)
 ```
@@ -778,6 +762,10 @@ sim <- simulateResiduals(pois2)
 testResiduals(sim) #passes
 testZeroInflation(sim) # Is the number of observed zeros significantly different from what the model predicts? p = 0.008, therefore will require zero inflation
 
+sim <- simulateResiduals(zi_pois2)
+testResiduals(sim) #passes
+testZeroInflation(sim) #passes
+
 sim <- simulateResiduals(nbin2)
 testResiduals(sim) #passes
 testZeroInflation(sim) #p=0.32
@@ -785,7 +773,7 @@ testZeroInflation(sim) #p=0.32
 
 Both meet assumptions
 ```{r}
-model.sel(pois, nbin, pois2, nbin2) #nbin behaves better
+model.sel(pois, nbin, zi_pois2, nbin2) #nbin behaves better
 ```
 
 ### 2.1.3. Pocilloporidae
@@ -902,8 +890,6 @@ testZeroInflation(sim)
 model.sel(z_pois, nbin)
 ```
 
-
-
 ## 2.2. Composition
 ```{r}
 Belt_10m <- Belt_10m |> 
@@ -919,8 +905,6 @@ site_by_belt <- Belt_10m %>%
 site_by_belt <- site_by_belt |>                   
   group_by(Reef, Year, Shelf) %>%               # this was missing in your code
   summarise(across(Acroporidae:`Other Hard Coral`, mean), .groups = "drop")
-
-
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_belt <- site_by_belt %>%
@@ -939,7 +923,7 @@ belt_dist <- vegdist(belt_matrix_filtered, method = "bray")
 
 # With respect to Shelf
 betadisper(belt_dist, metadata_belt$Shelf)
-anova(betadisper(belt_dist, metadata_belt$Shelf)) # Significant was 0.03139 *
+anova(betadisper(belt_dist, metadata_belt$Shelf)) # Significant was0.05997
 ```
 
 ```{r}
@@ -1200,9 +1184,22 @@ summary(nbin_por_adult_int)
 ```{r}
 PIT <- PIT |> 
   mutate(
-    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard Coral`
+    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard coral`
   )
+
+PIT$Total_HC_Cover |> summary() #range of Total HC
+
+PIT |> summarise(mean_HC = mean(Total_HC_Cover),
+                 se_HC = sd(Total_HC_Cover)/n()^0.5)
 ```
+```{r}
+PIT$Acroporidae |> summary()
+
+PIT$Pocilloporidae |> summary()
+
+PIT$Poritidae |> summary()
+```
+
 
 ```{r}
 pois_HC_adult <- glmmTMB(Total_HC_Cover ~ Shelf + Year + (1 | Reef/Site), 
