@@ -900,7 +900,7 @@ Benthic_envfit <- vec_scores |>
 ## 3.2. Family benthic cover
 ```{r}
 PIT_adult <- PIT |> 
-  select(Year, Shelf, Reef, Site, Transect,Acroporidae, Pocilloporidae, Poritidae, `Other Hard coral`)
+  dplyr::select(Year, Shelf, Reef, Site, Transect,Acroporidae, Pocilloporidae, Poritidae, `Other Hard coral`)
 ```
 
 ### 3.2.1. Acroporidae
@@ -974,7 +974,7 @@ model.sel(pois_poci_adult, pois_poci_adult_int, nbin_poci_adult, nbin_poci_adult
 ```
 
 ```{r}
-summary(pois_poci_adult_int)
+summary(nbin_poci_adult_int)
 ```
 
 Sites and reef account  for very little of the variation seen in shelf and year.
@@ -1072,8 +1072,6 @@ model.sel(pois_HC_adult_int, pois_HC_adult, nbin_HC_adult, nbin_HC_adult_int)
 ```{r}
 summary(nbin_HC_adult_int)
 ```
-
-
 
 
 # 4. Brood stock (PIT) and Recruitment (Tiles)

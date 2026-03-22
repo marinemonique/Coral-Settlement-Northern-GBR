@@ -1797,8 +1797,8 @@ acro_adult_plot
 ###3.2.2. Pocilloporidae
 
 ```{r}
-pois_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
-      family = "poisson", data = PIT)
+nbin_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT_adult)
 
 poci_adult_site <- PIT |> 
   group_by(Shelf, Site, Year, Reef) |> 
@@ -1806,7 +1806,7 @@ poci_adult_site <- PIT |>
     mean_site = mean(Pocilloporidae),
     se_site = sd(Pocilloporidae)/(n()^0.5))
   
-poci_adult_emm <-  pois_poci_adult_int |> 
+poci_adult_emm <-  nbin_poci_adult_int |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame()
 
@@ -1821,7 +1821,7 @@ poci_adult_plot <-  ggplot()+
  #             y=response, 
  #             color=Shelf))+
   geom_pointrange(data = poci_adult_emm,aes(x=Year,
-             y=rate, 
+             y=response, 
              color=Shelf,ymin=asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.85))+
   theme_classic()+
