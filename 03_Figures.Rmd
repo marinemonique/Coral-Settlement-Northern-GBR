@@ -2045,8 +2045,9 @@ acro_benthic_st <- ggplot(pred, aes(x = x, y = predicted,
                   #fill = group
                   ),
               alpha = 0.2, colour = NA) +
-  labs(x= expression("Observed Acroporidae cover (%)"),
-       y = expression(atop("Predicted Acroporidae", "recruits per tile"))) +
+  labs(x= expression("Observed cover (%)"),
+       y = expression("Predicted recruits ( " * tile^{-1} * ")"),
+       title = "Acroporidae") +
   theme_classic()
 
 acro_benthic_st
@@ -2067,7 +2068,7 @@ pred <- ggpredict(
   terms = c("mean_poci")
 )
 
-#produces a pred with 9 values of acroporidae cover, and represents the population-level prediction (random effects set to zero) is usually what you want for interpretation and plotting the relationship.
+#produces a pred with 9 values of pocilloporidae cover, and represents the population-level prediction (random effects set to zero) is usually what you want for interpretation and plotting the relationship.
 
 poci_benthic_st <- ggplot(pred, aes(x = x, y = predicted, 
                                     #colour = group
@@ -2077,8 +2078,9 @@ poci_benthic_st <- ggplot(pred, aes(x = x, y = predicted,
                   #fill = group
                   ),
               alpha = 0.2, colour = NA) +
-  labs(x= expression("Observed Pocilloporidae cover (%)"),
-       y = expression(atop("Predicted Pocilloporidae", "recruits per tile"))) +
+  labs(x= expression("Observed cover (%)"),
+       y = expression("Predicted recruits ( " * tile^{-1} * ")"),
+       title = "Pocilloporidae") +
   theme_classic()
 
 poci_benthic_st
@@ -2108,8 +2110,9 @@ por_benthic_st <- ggplot(pred, aes(x = x, y = predicted,
                   ),
               alpha = 0.2, 
               colour = NA) +
-  labs(x= expression("Observed Poritidae cover (%)"),
-       y = expression(atop("Predicted Poritidae", "recruits per tile"))) +
+  labs(x= expression("Observed cover (%)"),
+       y = expression("Predicted recruits ( " * tile^{-1} * ")"),
+       title = "Poritidae") +
   theme_classic()
 
 por_benthic_st
