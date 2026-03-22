@@ -524,18 +524,18 @@ pairs(emm_year_response, reverse = TRUE)
 Poc <- Belt_10m |> 
   select(Year, Shelf, Reef, Site, Pocilloporidae)
 
-nbin_poci_juv <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site), 
+nbin_poci_juv <- glmmTMB(Pocilloporidae ~ Year+Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Poc)
 ```
 
 ```{r}
-emm_shelf <- emmeans(nbin_poci_juv, ~Shelf | Year, type = "response")
+emm_shelf <- emmeans(nbin_poci_juv, ~Shelf, type = "response")
 
 pairs(emm_shelf)
 ```
 
 ```{r}
-emm_year_response <- emmeans(nbin_poci_juv, ~Year|Shelf, type = "response")
+emm_year_response <- emmeans(nbin_poci_juv, ~Year, type = "response")
 pairs(emm_year_response)
 ```
 
@@ -741,10 +741,19 @@ pois_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site),
 nbin_por_adult_int <- glmmTMB(Poritidae ~ Shelf * Year +(1 | Reef/Site), 
         family = "nbinom2", data = PIT)
 
-pois_por_adult <- glmmTMB(Poritidae ~ Shelf + Year + (1 | Reef/Site), 
-      family = "poisson", data = PIT_adult)
+nbin_por_adult <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT)
+```
 
+```{r}
+emm_shelf <- emmeans(nbin_por_adult, ~Shelf, type = "response")
 
+pairs(emm_shelf)
+```
+
+```{r}
+emm_year_response <- emmeans(nbin_por_adult, ~Year, type = "response")
+pairs(emm_year_response)
 ```
 
 

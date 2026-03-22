@@ -690,13 +690,13 @@ nbin2 <- glmmTMB(Poritidae ~ Year + Shelf+(1 | Reef/Site),
 ```
 
 ```{r}
-sim17.1 <- simulateResiduals(pois)
-testResiduals(sim17.1) # passes
-testZeroInflation(sim17.1) #p=0.248
+sim <- simulateResiduals(pois)
+testResiduals(sim) # passes
+testZeroInflation(sim) #p=0.248
 
-sim17.2 <- simulateResiduals(nbin)
-testResiduals(sim17.2) #passes
-testZeroInflation(sim17.2) # p=0.784
+sim <- simulateResiduals(nbin)
+testResiduals(sim) #passes
+testZeroInflation(sim) # p=0.784
 
 sim <- simulateResiduals(pois2)
 testResiduals(sim) #passes
@@ -710,38 +710,6 @@ testZeroInflation(sim) #p=0.904
 Both models have outliers as significant.
 ```{r}
 model.sel(pois, nbin, pois2, nbin2) #nbin behaves better
-```
-
-### 2.1.5. Other
-
-```{r}
-Other_juv <- Belt_10m |> 
-  select(Year, Shelf, Reef, Site, Other_HC)
-
-pois <- glmmTMB(Other_HC ~ Year*Shelf+(1 | Reef/Site), 
-      family = "poisson", data = Other_juv)
-z_pois <- glmmTMB(Other_HC ~ Year*Shelf+(1 | Reef/Site),ziformula = ~1,
-      family = "poisson", data = Other_juv)
-
-nbin <- glmmTMB(Other_HC ~ Year*Shelf+(1 | Reef/Site), 
-        family = "nbinom2", data = Other_juv)
-```
-
-```{r}
-sim <- simulateResiduals(pois)
-testResiduals(sim) # KS deviation significant
-testZeroInflation(sim)
-
-sim <- simulateResiduals(z_pois)
-testResiduals(sim) # passes
-
-sim <- simulateResiduals(nbin)
-testResiduals(sim) #passes
-testZeroInflation(sim)
-```
-
-```{r}
-model.sel(z_pois, nbin)
 ```
 
 ## 2.2. Composition
@@ -769,6 +737,9 @@ belt_matrix_filtered <- site_by_belt %>%
   select(
     4:7
   )
+belt_hellinger <- decostand(belt_matrix_filtered,
+                            method = "hellinger")
+
 ```
 
 ```{r}
@@ -776,34 +747,35 @@ belt_matrix_filtered <- site_by_belt %>%
 belt_dist <- vegdist(belt_matrix_filtered, method = "bray")
 
 # With respect to Shelf
-betadisper(belt_dist, metadata_belt$Shelf)
-anova(betadisper(belt_dist, metadata_belt$Shelf)) # Significant was0.05997
+bd <- betadisper(belt_dist, metadata_belt$Shelf)
+anova(bd) # Significant was0.05997
+permutest(bd) #0.049 on Permutest, then 0.06
 ```
 
 ```{r}
-permanova_result <- adonis2(belt_matrix_filtered ~ Shelf,
+permanova_result_juv <- adonis2(belt_hellinger ~ Shelf,
   data = site_by_belt,
-  method = "bray",
+  method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
   by = "margin",
   permutations = 999)
 
-print(permanova_result)
+print(permanova_result) #p =0.001
 ```
 
 ### 2.1.2. NMDS
 
 ```{r}
-nmds <- metaMDS(belt_matrix_filtered, distance = "bray", k = 2, trymax = 100)
+nmds <- metaMDS(belt_hellinger, distance = "euclidean", k = 2, trymax = 100)
 
 #Check the Stress Value
-nmds$stress
+nmds$stress #0.027
 ```
 
 ```{r}
 # Creating Vectors for driving the patterns
 belt_envfit <- envfit(
   nmds,
-  belt_matrix_filtered,
+  belt_hellinger,
   permutations = 999
 ) 
 
@@ -1029,10 +1001,6 @@ Interaction term doesn't significantly improve model for Poritidae
 summary(nbin_por_adult)
 ```
 
-Despite that, I need to include the interaction term here to be asking the same ecological question.
-```{r}
-summary(nbin_por_adult_int)
-```
 
 ### 3.2.4. Total Hard coral
 ```{r}
@@ -1088,6 +1056,8 @@ model.sel(pois_HC_adult_int, pois_HC_adult, nbin_HC_adult, nbin_HC_adult_int)
 ```{r}
 summary(nbin_HC_adult_int)
 ```
+
+
 
 
 # 4. Brood stock (PIT) and Recruitment (Tiles)

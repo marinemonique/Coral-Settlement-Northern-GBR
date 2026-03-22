@@ -1270,7 +1270,8 @@ belt_matrix_filtered <- site_by_belt %>%
     4:7
   )
 
-belt_hellinger <- decostand(belt_matrix_filtered,                                                         method = "hellinger")
+belt_hellinger <- decostand(belt_matrix_filtered,
+                            method = "hellinger")
 
 ```
 
@@ -1859,8 +1860,8 @@ poci_adult_plot
 
 ###3.2.3. Poritidae
 ```{r}
-nbin_por_adult_int <- glmmTMB(Poritidae ~ Shelf * Year +(1 | Reef/Site), 
-        family = "nbinom2", data = PIT)
+# nbin_por_adult_int <- glmmTMB(Poritidae ~ Shelf * Year +(1 | Reef/Site), 
+#         family = "nbinom2", data = PIT)
 nbin_por_adult <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site), 
         family = "nbinom2", data = PIT)
 
