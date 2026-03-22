@@ -1005,8 +1005,9 @@ juv_acro_plot
 Poc <- Belt_10m |> 
   dplyr::select(Year, Shelf, Reef, Site, Pocilloporidae)
 
-nbin <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site), 
+nbin <- glmmTMB(Pocilloporidae ~ Year+Shelf+(1 | Reef/Site), #doing fixed model because that performs the best
         family = "nbinom2", data = Poc)
+
 
 poci_juv_site <- Belt_10m |> 
   group_by(Shelf, Site, Year, Reef) |> 
@@ -1860,6 +1861,8 @@ poci_adult_plot
 ```{r}
 nbin_por_adult_int <- glmmTMB(Poritidae ~ Shelf * Year +(1 | Reef/Site), 
         family = "nbinom2", data = PIT)
+nbin_por_adult <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT)
 
 por_adult_site <- PIT |> 
   group_by(Shelf, Site, Year, Reef) |> 
@@ -1867,7 +1870,11 @@ por_adult_site <- PIT |>
     mean_site = mean(Poritidae),
     se_site = sd(Poritidae)/(n()^0.5))
   
-por_adult_emm <-  nbin_por_adult_int |> 
+# por_adult_emm <-  nbin_por_adult_int |> 
+#   emmeans(~Shelf | Year, type = "response") |> 
+#   as.data.frame()
+
+por_adult_emm <-  nbin_por_adult |>  #using the fixed term model because AICc was lower
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame()
 
