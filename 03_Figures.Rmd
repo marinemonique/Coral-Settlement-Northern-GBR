@@ -670,48 +670,51 @@ ggarrange(A, bottom, ncol = 1, labels = c("A", ""), heights = c(1, 1.5)) |>
 #   rename("Other Hard Corals" = Other)
 ```
 
+```{r}
+# Vegetated tiles 
+Recruits <- Coral_settlement_nGBR %>%
+  filter(total >0) |> 
+  select(Acroporidae, Pocilloporidae, Poritid, Other)
+
+environment_data <- Coral_settlement_nGBR %>%
+  filter(total >0) |> 
+  select(Year_Collected, Site, Reef, Shelf)
+```
 
 ```{r}
-# Aggregate
-Recruits <- Coral_settlement_nGBR %>%
-  group_by(Reef, Year_Collected, Shelf) %>%
-  summarise(across(Acroporidae:Other, mean), .groups = "drop")
+# Filtered recruit data
+Recruits_sqrt <- sqrt(Recruits) #Squareroot transformed because Acroporidae is more abundant than the other taxa
 
-# Hellinger transform
-recruit_hellinger <- decostand(
-  Recruits %>% dplyr::select(Acroporidae, Pocilloporidae, Poritid, Other),
-  method = "hellinger"
-)
+# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
+h <- how(blocks = environment_data$Year_Collected)                                                   # restrict permutations within years
 
+#Bray curtis PERMANOVA
+adonis2(Recruits_sqrt ~ Shelf, 
+        data = environment_data, 
+        permutations = h,
+        method = "bray")   # PERMANOVA
+
+#PERMDISP
 # Distance matrix
-euc_hellinger <- vegdist(recruit_hellinger, method = "euclidean")
+bray_sqrt_recruits<- vegdist(Recruits_sqrt, method = "bray")
 
-# PERMANOVA
-permanova_result <- adonis2(
-  euc_hellinger ~ Shelf,
-  data = Recruits,
-  permutations = 999
-)
-
-print(permanova_result)
-
-# PERMDISP
-bd <- betadisper(euc_hellinger, Recruits$Shelf)
+bd <- betadisper(bray_sqrt_recruits, environment_data$Shelf)
 anova(bd)
-permutest(bd)   # recommended
+permutest(bd) 
 ```
+
 
 ```{r}
 set.seed(999)     # for reproducibility
 
-nmds <- metaMDS(recruit_hellinger, distance = "euclidean", k = 2, trymax = 100)
+nmds <- metaMDS(Recruits_sqrt, distance = "bray", k = 2, trymax = 100)
 
 #Check the Stress Value
-nmds$stress #0.02386391
+nmds$stress #0.15
 
 # Extract NMDS for plot
 site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
-scores <- cbind(site_scores, Recruits[, c("Year_Collected", "Shelf", "Reef")])
+scores <- cbind(site_scores, environment_data[, c("Year_Collected", "Shelf", "Reef")])
 
 scores <- scores |> 
   mutate(
@@ -725,7 +728,7 @@ scores <- scores |>
 # Creating Vectors for driving the patterns
 Recruits_envfit <- envfit(
   nmds,
-  recruit_hellinger,
+  Recruits_sqrt,
   permutations = 999
 ) 
 
@@ -765,7 +768,7 @@ ell_df <- ellipse_points(ell, npoints = 100)
 
 ```{r}
 p1 <- ggplot(data = scores, aes(x = NMDS1, y = NMDS2,colour = Shelf)) +
-     geom_point(size = 1.75, alpha = 0.8) +
+     geom_point(size = 1, alpha = 0.8) +
   geom_path(data = ell_df,
             aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
             linewidth = 0.6) +
@@ -805,7 +808,7 @@ p1.5 <- ggplot() +
                   min.segment.length = Inf,
                   nudge_x = -0.1,
                   nudge_y = 0.1)+
-  geom_point(data = scores, aes(x = NMDS1, y = NMDS2, colour = Shelf), size = 1.75, alpha = 0.8) +
+  geom_point(data = scores, aes(x = NMDS1, y = NMDS2, colour = Shelf), size = 1, alpha = 0.8) +
   geom_path(data = ell_df,
             aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
             linewidth = 0.6) +
@@ -866,7 +869,7 @@ p2 <- ggplot()+
   scale_x_continuous(limits = c(-1, 1))+
   scale_y_continuous(limits = c(-1, 1))
 
-ST_NMDS <- ggarrange(p1, p2, ncol = 1, heights = c(1, 1))
+ST_NMDS <- ggarrange(p1, p2, ncol = 1, heights = c(1, 1), legend = "none")
 ST_NMDS
 ```
 
@@ -876,15 +879,15 @@ ST_NMDS
 #        height = 220,
 #        unit = "mm")
 # 
-# ggsave(filename = "figures/Figure3.PDF",
-#        plot = ST_NMDS,
-#        height = 220,
-#        unit = "mm")
-# 
-ggsave(filename = "figures/recruit_vec_nmds.PDF",
-       plot = p1.5,
-       height = 125, width = 150,
+ggsave(filename = "figures/Figure3.PDF",
+       plot = ST_NMDS,
+       height = 220,
        unit = "mm")
+# 
+# ggsave(filename = "figures/recruit_vec_nmds.PDF",
+#        plot = p1.5,
+#        height = 125, width = 150,
+#        unit = "mm")
 ```
 
 
@@ -1250,14 +1253,11 @@ Belt_10m <- Belt_10m |>
   )
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_belt <- Belt_10m %>%
+  filter(Total_juveniles > 0) |> #filter to make sure that dissimilarities are non zero
   dplyr::select(
     Year, Reef, Shelf, Site, Transect, Acroporidae, Pocilloporidae, Poritidae, `Other Hard Coral`
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
-
-site_by_belt <- site_by_belt |>                                                         # ensure only vegetated tiles included 
-  group_by(Reef, Year, Shelf) %>%               # this was missing in your code
-  summarise(across(Acroporidae:`Other Hard Coral`, mean), .groups = "drop")
 
 
 # Step 2: Metadata (KEEP Site_ID)
@@ -1267,69 +1267,49 @@ metadata_belt <- site_by_belt %>%
 # Step 3: Species matrix
 belt_matrix_filtered <- site_by_belt %>%
   dplyr::select(
-    4:7
+    6:9
   )
 
-belt_hellinger <- decostand(belt_matrix_filtered,
-                            method = "hellinger")
+# Check whether any family has much higher abundances than other families
+summary(belt_matrix_filtered$Acroporidae)
+summary(belt_matrix_filtered$Pocilloporidae)
+summary(belt_matrix_filtered$Poritidae)
+summary(belt_matrix_filtered$`Other Hard Coral`)
+
+#Think Ill just do raw abundances then
 
 ```
 
-```{r}
-# # Step 1: Create site-by-species matrix with Site_ID
-# site_by_belt <- Belt_10m %>%
-#   select(
-#     Year, Reef, Shelf, Site, Transect, 26:29
-#   ) %>%
-#   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
-# 
-# site_by_belt <- site_by_belt |>                                                         # ensure only vegetated tiles included 
-#   group_by(Reef, Year, Shelf) %>%               # this was missing in your code
-#   summarise(across(Acroporidae:Other_HC, mean), .groups = "drop")
-# 
-# # Step 2: Metadata (KEEP Site_ID)
-# metadata_belt <- site_by_belt %>%
-#   select(Shelf, Year, Reef)
-# 
-# # Step 3: Species matrix
-# belt_matrix_filtered <- site_by_belt %>%
-#   select(
-#     4:7
-#   )
-```
-Test whether hellinger transformation has less dispersion
 ```{r}
 # create a distance matrix
-belt_dist <- vegdist(belt_matrix_filtered, method = "hellinger")
+belt_dist <- vegdist(belt_matrix_filtered, method = "bray")
 
 # With respect to Shelf
-betadisper(belt_dist, metadata_belt$Shelf)
-anova(betadisper(belt_dist, metadata_belt$Shelf)) # p =0.1596
+bd <- betadisper(belt_dist, metadata_belt$Shelf)
+anova(bd) # Significant was <0.001
+permutest(bd) #0.049 on Permutest, then 0.06
 ```
 
 ```{r}
-permanova_result_juv <- adonis2(belt_hellinger ~ Shelf,
-  data = site_by_belt,
-  method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
-  by = "margin",
-  permutations = 999)
+# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
+h <- how(blocks = metadata_belt$Year)                                                   # restrict permutations within years
 
-print(permanova_result)
+#Bray curtis PERMANOVA
+permanova_result <- adonis2(belt_matrix_filtered ~ Shelf, 
+        data = metadata_belt, 
+        permutations = h,
+        method = "bray")   # PERMANOVA
 
 
-# euc_hellinger <- vegdist(recruit_hellinger, method = "euclidean")
-# # With respect to Shelf
-# betadisper(euc_hellinger, Recruits$Shelf)
-# anova(betadisper(euc_hellinger, Recruits$Shelf))
+
+print(permanova_result) #p =0.001
 ```
 
 ```{r}
-# nmds <- metaMDS(belt_matrix_filtered, distance = "bray", k = 2, trymax = 100)
-
-nmds <- metaMDS(belt_hellinger, distance = "euclidean", k = 2, trymax = 100)
+nmds <- metaMDS(belt_matrix_filtered, distance = "bray", k = 2, trymax = 100)
 
 #Check the Stress Value
-nmds$stress
+nmds$stress #0.16
 
 # Extract NMDS for plot
 site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
@@ -1373,9 +1353,8 @@ ell_df <- ellipse_points(ell, npoints = 100)
 
 
 ```{r}
-
 belt_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
-     geom_point(size = 1.75, alpha = 0.8) +
+     geom_point(size = 1, alpha = 0.8) +
   geom_path(data = ell_df,
             aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
             linewidth = 0.6) +
@@ -1415,7 +1394,7 @@ belt_A
 # Creating Vectors for driving the patterns
 belt_envfit <- envfit(
   nmds,
-  belt_hellinger,
+  belt_matrix_filtered,
   permutations = 999
 ) 
 
@@ -1452,7 +1431,7 @@ belt_w_vectors <- ggplot() +
                   min.segment.length = Inf,
                   nudge_x = -0.05,
                   nudge_y = -0.1)+
-  geom_point(data = scores, aes(x = NMDS1, y = NMDS2, colour = Shelf), size = 1.75, alpha = 0.8) +
+  geom_point(data = scores, aes(x = NMDS1, y = NMDS2, colour = Shelf), size = 1, alpha = 0.8) +
   geom_path(data = ell_df,
             aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
             linewidth = 0.6) +
@@ -1524,7 +1503,7 @@ belt_B
 ```
 ```{r}
 belt_Figure <- ggarrange(
-  belt_A, belt_B, labels = c("A", "B"), heights = c(1, 1), ncol = 1
+  belt_A, belt_B, labels = c("A", "B"), heights = c(1, 1), ncol = 1, legend = "none"
 )
 
 belt_Figure
@@ -1539,7 +1518,7 @@ ggsave(belt_Figure,
 
 ggsave(belt_Figure,
   filename = "figures/belt_NMDS.PDF",
-  height = 200, 
+  height = 220, 
   units = "mm"
 )
 
@@ -1552,22 +1531,18 @@ ggsave(belt_Figure,
 ```{r}
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
-  select(
+  dplyr::select(
     Year, Reef, Shelf, Site, Transect, 6:20
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
-site_by_PIT <- site_by_PIT |>                                                         
-  group_by(Reef, Year, Shelf) %>%               
-  summarise(across(Acroporidae:Halophila, mean), .groups = "drop")
-
 # Step 2: Metadata (KEEP Site_ID)
 metadata_PIT <- site_by_PIT %>%
-  select(Shelf, Year, Reef)
+  dplyr::select(Shelf, Year, Reef)
 
 # Step 3: Species matrix
 PIT_matrix_filtered <- site_by_PIT %>%
-  select(
+  dplyr::select(
     Acroporidae:Halophila
   )
 ```
@@ -1578,7 +1553,19 @@ PIT_dist <- vegdist(PIT_matrix_filtered, method = "bray")
 
 # With respect to Shelf
 betadisper(PIT_dist, metadata_PIT$Shelf)
-anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01612 * ***
+anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01143 * ***
+```
+
+```{r}
+
+# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
+h <- how(blocks = metadata_PIT$Year)                                                   # restrict permutations within years
+permanova_result <- adonis2(PIT_matrix_filtered ~ Shelf,
+  data = site_by_PIT,
+  method = "bray",
+  permutations = h)
+
+print(permanova_result)
 ```
 
 ```{r}
@@ -1586,6 +1573,7 @@ nmds <- metaMDS(PIT_matrix_filtered, distance = "bray", k = 2, trymax = 100)
 
 #Check the Stress Value
 nmds$stress
+
 
 # Extract NMDS for plot
 site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
@@ -1627,7 +1615,7 @@ ell_df <- ellipse_points(ell, npoints = 100)
 
 ```{r}
 Benthic_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colour = Shelf)) +
-     geom_point(size = 1.75, alpha = 0.8) +
+     geom_point(size = 1, alpha = 0.8) +
   geom_path(data = ell_df,
             aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
             linewidth = 0.6) +
@@ -1656,8 +1644,8 @@ Benthic_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          c
          hjust = 1.05, # push slightly inward
          vjust = -0.5, # lift slightly above bottom
          size = 3)+
-  scale_x_continuous(limits = c(-0.9, 1.05))+
-  scale_y_continuous(limits = c(-1, 1))
+  scale_x_continuous(limits = c(-1.3, 1.05))+
+  scale_y_continuous(limits = c(-1, 0.9))
 ```
 
 
@@ -1666,7 +1654,7 @@ Benthic_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          c
 Benthic_envfit <- envfit(
   nmds,
   PIT_matrix_filtered,
-  permutations = 999
+  permutations = h
 ) 
 
 # Extract p-values
@@ -1725,8 +1713,8 @@ Benthic_B <- ggplot()+
          colour = "Shelf",
         shape = "Year"
     )+
-  scale_x_continuous(limits = c(-0.9, 1.05))+
-  scale_y_continuous(limits = c(-1, 1))
+  scale_x_continuous(limits = c(-1.3, 1.05))+
+  scale_y_continuous(limits = c(-1, 0.9))
 ```
 
 ```{r}

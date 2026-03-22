@@ -507,34 +507,43 @@ summary(nbin_Poritid_interaction)
 ##1.2. Composition
 
 ```{r}
-# Aggregate
+# Vegetated tiles 
 Recruits <- Coral_settlement_nGBR %>%
-  group_by(Reef, Year_Collected, Shelf) %>%
-  summarise(across(Acroporidae:Other, mean), .groups = "drop")
+  filter(total >0) |> 
+  select(Acroporidae, Pocilloporidae, Poritid, Other)
 
-# Hellinger transform
-recruit_hellinger <- decostand(
-  Recruits %>% dplyr::select(Acroporidae, Pocilloporidae, Poritid, Other),
-  method = "hellinger"
-)
-
-# Distance matrix
-euc_hellinger <- vegdist(recruit_hellinger, method = "euclidean")
-
-# PERMANOVA
-permanova_result <- adonis2(
-  euc_hellinger ~ Shelf,
-  data = Recruits,
-  permutations = 999
-)
-
-print(permanova_result)
-
-# PERMDISP
-bd <- betadisper(euc_hellinger, Recruits$Shelf)
-anova(bd)
-permutest(bd)   # recommended
+environment_data <- Coral_settlement_nGBR %>%
+  filter(total >0) |> 
+  select(Year_Collected, Site, Reef, Shelf)
 ```
+
+```{r}
+# Filtered recruit data
+Recruits_sqrt <- sqrt(Recruits) #Squareroot transformed because Acroporidae is more abundant than the other taxa
+
+# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
+h <- how(blocks = environment_data$Year_Collected)                                                   # restrict permutations within years
+
+#Bray curtis PERMANOVA
+adonis2(Recruits_sqrt ~ Shelf, 
+        data = environment_data, 
+        permutations = h,
+        method = "bray")   # PERMANOVA
+
+```
+
+```{r}
+#PERMDISP
+# Distance matrix
+bray_sqrt_recruits<- vegdist(Recruits_sqrt, method = "bray")
+
+bd <- betadisper(bray_sqrt_recruits, environment_data$Shelf)
+anova(bd)
+permutest(bd) 
+```
+
+
+
 
 # 2. Juveniles
 ## 2.1. Spatio-temporal variation
@@ -719,26 +728,30 @@ Belt_10m <- Belt_10m |>
   )
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_belt <- Belt_10m %>%
-  select(
+  filter(Total_juveniles > 0) |> #filter to make sure that dissimilarities are non zero
+  dplyr::select(
     Year, Reef, Shelf, Site, Transect, Acroporidae, Pocilloporidae, Poritidae, `Other Hard Coral`
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
-site_by_belt <- site_by_belt |>                   
-  group_by(Reef, Year, Shelf) %>%               # this was missing in your code
-  summarise(across(Acroporidae:`Other Hard Coral`, mean), .groups = "drop")
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_belt <- site_by_belt %>%
-  select(Shelf, Year, Reef)
+  dplyr::select(Shelf, Year, Reef)
 
 # Step 3: Species matrix
 belt_matrix_filtered <- site_by_belt %>%
-  select(
-    4:7
+  dplyr::select(
+    6:9
   )
-belt_hellinger <- decostand(belt_matrix_filtered,
-                            method = "hellinger")
+
+# Check whether any family has much higher abundances than other families
+summary(belt_matrix_filtered$Acroporidae)
+summary(belt_matrix_filtered$Pocilloporidae)
+summary(belt_matrix_filtered$Poritidae)
+summary(belt_matrix_filtered$`Other Hard Coral`)
+
+#Think Ill just do raw abundances then
 
 ```
 
@@ -748,16 +761,21 @@ belt_dist <- vegdist(belt_matrix_filtered, method = "bray")
 
 # With respect to Shelf
 bd <- betadisper(belt_dist, metadata_belt$Shelf)
-anova(bd) # Significant was0.05997
+anova(bd) # Significant was <0.001
 permutest(bd) #0.049 on Permutest, then 0.06
 ```
 
 ```{r}
-permanova_result_juv <- adonis2(belt_hellinger ~ Shelf,
-  data = site_by_belt,
-  method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
-  by = "margin",
-  permutations = 999)
+# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
+h <- how(blocks = metadata_belt$Year)                                                   # restrict permutations within years
+
+#Bray curtis PERMANOVA
+permanova_result <- adonis2(belt_matrix_filtered ~ Shelf, 
+        data = metadata_belt, 
+        permutations = h,
+        method = "bray")   # PERMANOVA
+
+
 
 print(permanova_result) #p =0.001
 ```
@@ -765,17 +783,17 @@ print(permanova_result) #p =0.001
 ### 2.1.2. NMDS
 
 ```{r}
-nmds <- metaMDS(belt_hellinger, distance = "euclidean", k = 2, trymax = 100)
+nmds <- metaMDS(belt_matrix_filtered, distance = "bray", k = 2, trymax = 100)
 
 #Check the Stress Value
-nmds$stress #0.027
+nmds$stress #0.16
 ```
 
 ```{r}
 # Creating Vectors for driving the patterns
 belt_envfit <- envfit(
   nmds,
-  belt_hellinger,
+  belt_matrix_filtered,
   permutations = 999
 ) 
 
@@ -806,22 +824,18 @@ belt_envfit <- vec_scores |>
 ```{r}
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
-  select(
+  dplyr::select(
     Year, Reef, Shelf, Site, Transect, 6:20
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
-site_by_PIT <- site_by_PIT |>                                                         
-  group_by(Reef, Year, Shelf) %>%               
-  summarise(across(Acroporidae:Halophila, mean), .groups = "drop")
-
 # Step 2: Metadata (KEEP Site_ID)
 metadata_PIT <- site_by_PIT %>%
-  select(Shelf, Year, Reef)
+  dplyr::select(Shelf, Year, Reef)
 
 # Step 3: Species matrix
 PIT_matrix_filtered <- site_by_PIT %>%
-  select(
+  dplyr::select(
     Acroporidae:Halophila
   )
 ```
@@ -836,11 +850,13 @@ anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01143 * ***
 ```
 
 ```{r}
+
+# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
+h <- how(blocks = metadata_PIT$Year)                                                   # restrict permutations within years
 permanova_result <- adonis2(PIT_matrix_filtered ~ Shelf,
   data = site_by_PIT,
   method = "bray",
-  by = "margin",
-  permutations = 999)
+  permutations = h)
 
 print(permanova_result)
 ```
@@ -859,7 +875,7 @@ nmds$stress
 Benthic_envfit <- envfit(
   nmds,
   PIT_matrix_filtered,
-  permutations = 999
+  permutations = h
 ) 
 
 # Extract p-values
