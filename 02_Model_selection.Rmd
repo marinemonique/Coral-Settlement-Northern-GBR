@@ -274,63 +274,46 @@ family_total_recruits <- Coral_settlement_nGBR %>%
 ```{r warning=FALSE, message=FALSE}
 pois_total_yr <- glmmTMB(total ~ Shelf + Year + (1 | Reef/Site), 
       family = "poisson", data = Coral_settlement_nGBR)
-
-nbin_total_yr <- glmmTMB(total ~ Shelf +  Year +(1 | Reef/Site), 
-        family = "nbinom2", data = Coral_settlement_nGBR)
-
-zbin_total_yr <- glmmTMB(total ~ Shelf + Year + (1 | Reef/Site),
-                      ziformula = ~1,
-        family = "nbinom2", data = Coral_settlement_nGBR)
+# sim <- simulateResiduals(pois_total_yr)
+# testResiduals(sim) #not good fit Ks deviation and outliet
+# testZeroInflation(sim) # p =0
 
 zi_pois_total_yr <- glmmTMB(total ~ Shelf + Year + (1 | Reef/Site), 
                             ziformula = ~1,
-      family = "poisson", data = Coral_settlement_nGBR)
+      family = "poisson", data = Coral_settlement_nGBR) #exclude from model.sel
+# sim <- simulateResiduals(zi_pois_total_yr)
+# testResiduals(sim) #not good fit Ks deviation and outlier
 
 pois_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site), 
       family = "poisson", data = Coral_settlement_nGBR)
+# sim <- simulateResiduals(pois_total_yr2)
+# testResiduals(sim) #not good fit, KS deviation significant and outliers significant
+# testZeroInflation(sim) # p =0
 
 zi_pois_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site), 
                              ziformula = ~1,
-      family = "poisson", data = Coral_settlement_nGBR)
+      family = "poisson", data = Coral_settlement_nGBR) #excluded from model.sel
+# sim <- simulateResiduals(zi_pois_total_yr)
+# testResiduals(sim) #outlier and KS significant
+
+nbin_total_yr <- glmmTMB(total ~ Shelf +  Year +(1 | Reef/Site), 
+        family = "nbinom2", data = Coral_settlement_nGBR)
+# sim <- simulateResiduals(nbin_total_yr)
+# testResiduals(sim) #good
+# testZeroInflation(sim) #p 0.752
 
 
 nbin_total_yr2 <- glmmTMB(total ~ Shelf * Year +(1 | Reef/Site), 
         family = "nbinom2", data = Coral_settlement_nGBR)
-
-zbin_total_yr2 <- glmmTMB(total ~ Shelf * Year + (1 | Reef/Site),
-                      ziformula = ~1,
-        family = "nbinom2", data = Coral_settlement_nGBR)
-```
-
-```{r eval=FALSE}
-sim1.1 <- simulateResiduals(pois_total_yr)
-testResiduals(sim1.1) #not good fit Ks deviation and outliet
-testZeroInflation(sim1.1) # p =0
-
-sim1.2 <- simulateResiduals(pois_total_yr2)
-testResiduals(sim1.2) #not good fit, KS deviation significant and outliers significant
-testZeroInflation(sim1.2) # p =0
-
-sim <- simulateResiduals(zi_pois_total_yr)
-testResiduals(sim) #outlier and KS significant
-
-sim <- simulateResiduals(zi_pois_total_yr2)
-testResiduals(sim) #KS significant
-```
-
-```{r}
-sim1.3 <- simulateResiduals(nbin_total_yr)
-testResiduals(sim1.3) #good
-testZeroInflation(sim1.3) #p 0.752
-
 sim1.4 <- simulateResiduals(nbin_total_yr2)
 testResiduals(sim1.4) #good
 testZeroInflation(sim1.4) # p = 0.52
 ```
 
-model.sel(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2)
+
+model.sel(nbin_total_yr, nbin_total_yr2)
 ```{r}
-model.sel(nbin_total_yr, zbin_total_yr, nbin_total_yr2, zbin_total_yr2)
+model.sel(nbin_total_yr, nbin_total_yr2)
 ```
 
  Family Recruitment
@@ -384,44 +367,10 @@ nbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | 
 nbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site), 
         family = "nbinom2", data = Acroporidae)
 
-# nbin_other_interaction <- glmmTMB(Other ~ Shelf*Year + (1 | Reef/Site), 
-#         family = "nbinom2", data = Other)
 ```
 
 
-Negative Binomial Zero Inflated of Total recruits (per family)
 
-```{r}
-#Fixed
-# Fit model with zero-inflated negative binomial distribution 
-zbin_Poritid_fixed <- glmmTMB(Poritid ~ Shelf+ Year + (1 | Reef/Site) ,
-                        ziformula = ~1,
-                        family = "nbinom2",
-                        data = Poritid)
-zbin_Poritid_interaction <- glmmTMB(Poritid ~ Shelf * Year + (1 | Reef/Site),
-                        ziformula = ~1,
-                        family = "nbinom2",
-                        data = Poritid)
-
-zbin_Pocilloporidae_fixed <- glmmTMB(Pocilloporidae ~ Shelf+ Year + (1 | Reef/Site),
-                               ziformula = ~1,
-                        family = "nbinom2",
-                        data = Pocilloporidae)
-
-zbin_Pocilloporidae_interaction <- glmmTMB(Pocilloporidae ~ Shelf*Year + (1 | Reef/Site),
-                               ziformula = ~1,
-                        family = "nbinom2",
-                        data = Pocilloporidae)
-
-zbin_Acroporidae_fixed <- glmmTMB(Acroporidae ~ Shelf + Year+ (1 | Reef/Site),
-                            ziformula = ~1,
-                        family = "nbinom2",
-                        data = Acroporidae)
-zbin_Acroporidae_interaction <- glmmTMB(Acroporidae ~ Shelf*Year + (1 | Reef/Site),
-                            ziformula = ~1,
-                        family = "nbinom2",
-                        data = Acroporidae)
-```
 
 ### 1.1.2. Acroporidae
 
@@ -437,15 +386,6 @@ sim2.2 <- simulateResiduals(nbin_Acroporidae_interaction)
 testResiduals(sim2.2) #fine
 testZeroInflation(sim2.2) # P = 0.768
 #plot(sim2.2) #fine
-
-# sim2.3 <- simulateResiduals(zbin_Acroporidae_fixed)
-# testResiduals(sim2.3) #fine
-# plot(sim2.3) #bad
-
-
-# sim2.4 <- simulateResiduals(zbin_Acroporidae_interaction)
-# testResiduals(sim2.4) #fine
-# plot(sim2.4) #fine
 
 sim2.5 <- simulateResiduals(pois_Acroporidae_fixed) #not a good fit
 testResiduals(sim2.5) #bad
@@ -491,12 +431,6 @@ testZeroInflation(sim3.3) #passes
 sim3.4 <- simulateResiduals(nbin_Pocilloporidae_fixed)
 testResiduals(sim3.4) #passes
 testZeroInflation(sim3.4) #p =0.72
-
-# sim3.5 <- simulateResiduals(zbin_Pocilloporidae_fixed)
-# testResiduals(sim3.5)
-# 
-# sim3.6 <- simulateResiduals(zbin_Pocilloporidae_interaction)
-# testResiduals(sim3.6)
 
 ```
 
@@ -566,64 +500,8 @@ Don't see much of a difference in Poritid across shelf position. Although slight
 model.sel(nbin_Poritid_fixed, nbin_Poritid_interaction)
 ```
 
-
-All family option
-Models of family total recruits
-
 ```{r}
-pois_total_family_fixed <- glmmTMB(Total ~ Family +Shelf + Year_Collected+ (1 | Reef/Site), 
-      family = "poisson",
-      data = family_total_recruits)
-
-pois_total_family_interaction <-  glmmTMB(Total ~ Family * Shelf * Year_Collected + (1 | Reef/Site), 
-      family = "poisson",
-      data = family_total_recruits)
-
-nb_total_family_fixed <- glmmTMB(Total ~ Family + Shelf + Year_Collected + (1 | Reef/Site) ,
-                        family = "nbinom2",
-                        data = family_total_recruits)
-
-nb_total_family_interaction <- glmmTMB(Total ~ Family * Shelf * Year_Collected + (1 | Reef/Site) ,
-                        family = "nbinom2",
-                        data = family_total_recruits)
-
-zi_total_family_fixed <- glmmTMB(Total ~ Family + Shelf + Year_Collected + (1 | Reef/Site) ,
-                        ziformula = ~1,
-                        family = "nbinom2",
-                        data = family_total_recruits)
-
-zi_total_family_interaction <-  glmmTMB(Total ~ Family * Shelf * Year_Collected + (1 | Reef/Site) ,
-                        ziformula = ~1,
-                        family = "nbinom2",
-                        data = family_total_recruits)
-```
-
-simulate and test residuals
-
-```{r}
-sim4.1 <- simulateResiduals(pois_total_family_fixed)
-testResiduals(sim4.1) 
-
-sim4.2 <- simulateResiduals(pois_total_family_interaction) 
-testResiduals(sim4.2)
-
-sim4.3 <- simulateResiduals(nb_total_family_fixed) #middle plot doesn't look great, but okay
-testResiduals(sim4.3)
-
-sim4.4 <- simulateResiduals(nb_total_family_interaction) #good
-testResiduals(sim4.4)
-
-sim4.5 <- simulateResiduals(zi_total_family_fixed) # middle plot doesn't look great but okay
-testResiduals(sim4.5)
-
-sim4.6 <- simulateResiduals(zi_total_family_interaction)  #good
-testResiduals(sim4.6)
-```
-
-```{r}
-AIC(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fixed, zi_total_family_interaction) #nb family interaction is best
-
-model.sel(nb_total_family_fixed, nb_total_family_interaction, zi_total_family_fixed, zi_total_family_interaction)
+summary(nbin_Poritid_interaction)
 ```
 
 ##1.2. Composition
@@ -657,30 +535,6 @@ bd <- betadisper(euc_hellinger, Recruits$Shelf)
 anova(bd)
 permutest(bd)   # recommended
 ```
-
-
-```{r}
-Recruits <- Coral_settlement_nGBR %>%
-  #filter(total > 0) %>%                                                          # ensure only vegetated tiles included 
-  group_by(Reef, Year_Collected, Shelf) %>%               # this was missing in your code
-  summarise(across(Acroporidae:Other, mean), .groups = "drop")
-
-recruit_hellinger <- decostand(Recruits %>% select(Acroporidae, Pocilloporidae, Poritid, Other),
-                                                         method = "hellinger")
-
-# reef year?
-reef_year <- Recruits |> 
-  select(Reef, Year_Collected, Shelf)
-
-permanova_result <- adonis2(recruit_hellinger ~ Year_Collected * Shelf,
-  data = Recruits,
-  method = "euclidean",    # the Hellinger transformation is designed for Euclidean distnaces. Bray-Curtis is not “wrong” but it’s redundant if you’ve already done a Hellinger transformation.
-  by = "margin",
-  permutations = 999)
-
-print(permanova_result)
-```
-
 
 # 2. Juveniles
 ## 2.1. Spatio-temporal variation
