@@ -645,6 +645,11 @@ recruits_wo_other <- ggarrange(A, B, C, D, ncol =1, nrow = 4, labels = c("A","B"
    #       width = 320,
    #       height = 220, units = "mm"
    #      )
+
+recruits_wo_other
+```
+
+```{r eval = FALSE}
    ggsave(recruits_wo_other, filename = "figures/Figure2.PDF",
          width = 180,
          height = 300,
@@ -674,11 +679,11 @@ ggarrange(A, bottom, ncol = 1, labels = c("A", ""), heights = c(1, 1.5)) |>
 # Vegetated tiles 
 Recruits <- Coral_settlement_nGBR %>%
   filter(total >0) |> 
-  select(Acroporidae, Pocilloporidae, Poritid, Other)
+  dplyr::select(Acroporidae, Pocilloporidae, Poritid, Other)
 
 environment_data <- Coral_settlement_nGBR %>%
   filter(total >0) |> 
-  select(Year_Collected, Site, Reef, Shelf)
+  dplyr::select(Year_Collected, Site, Reef, Shelf)
 ```
 
 ```{r}
@@ -729,7 +734,7 @@ scores <- scores |>
 Recruits_envfit <- envfit(
   nmds,
   Recruits_sqrt,
-  permutations = 999
+  permutations = h #restrict permutations to year
 ) 
 
 #Saving the vectors as a data frame
@@ -873,7 +878,7 @@ ST_NMDS <- ggarrange(p1, p2, ncol = 1, heights = c(1, 1), legend = "none")
 ST_NMDS
 ```
 
-```{r}
+```{r eval = FALSE}
 # ggsave(filename = "Figure3.PNG",
 #        plot = ST_NMDS,
 #        height = 220,
@@ -1148,6 +1153,11 @@ juv_por_plot
 #        unit = "mm")
 
 Juv_4 <- ggarrange(juv_total_plot, juv_acro_plot, juv_poci_plot, juv_por_plot, ncol = 1, nrow = 4, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D") )
+
+Juv_4
+```
+
+```{r eval = FALSE}
 # ggsave(Juv_4,
 #        filename = "Figure4.PNG",
 #        height = 200,
@@ -1237,7 +1247,7 @@ juv_complete <- ggarrange(juv_total_plot, juv_bottom,
           heights = c(0.9, 1.5))
 ```
 
-```{r}
+```{r eval = FALSE}
 ggsave(juv_complete,
        file = "Juvenile_emm.PNG",
        height = 250,
@@ -1391,12 +1401,17 @@ belt_A
 ```
 
 ```{r}
+# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
+h <- how(blocks = metadata_belt$Year)                                                   # restrict permutations within years
+
 # Creating Vectors for driving the patterns
 belt_envfit <- envfit(
   nmds,
   belt_matrix_filtered,
-  permutations = 999
+  permutations = h #restricts permuatations to a year
 ) 
+
+
 
 # Extract p-values
 pvals <- belt_envfit$vectors$pvals
@@ -1463,6 +1478,9 @@ belt_w_vectors <- ggplot() +
 
 belt_w_vectors
 
+```
+
+```{r eval = FALSE}
 ggsave(belt_w_vectors,
   filename = "figures/juv_vec_nms.PDF",
   height = 125, width = 150,
@@ -1509,7 +1527,7 @@ belt_Figure <- ggarrange(
 belt_Figure
 ```
 
-```{r}
+```{r eval = FALSE}
 ggsave(belt_Figure,
   filename = "belt_NMDS.png",
   height = 200, 
@@ -1727,7 +1745,7 @@ Benthic_Figure
 
 Need to move the stress to somewhere less weird, and change CCA name because it looks dumb currently.
 
-```{r}
+```{r eval = FALSE}
 ggsave(Benthic_Figure,
   filename = "Benthic_NMDS.png",
   height = 240, 
@@ -1798,7 +1816,7 @@ acro_adult_plot
 
 ```{r}
 nbin_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year +(1 | Reef/Site), 
-        family = "nbinom2", data = PIT_adult)
+        family = "nbinom2", data = PIT)
 
 poci_adult_site <- PIT |> 
   group_by(Shelf, Site, Year, Reef) |> 
@@ -1958,6 +1976,10 @@ HC_adult_plot
 ```
 
 ```{r}
+ggarrange(HC_adult_plot, acro_adult_plot, poci_adult_plot, por_adult_plot, labels = c("A", "B", "C", "D"), ncol = 1, nrow = 4)
+```
+
+```{r eval=FALSE}
 #ggarrange(HC_adult_plot, acro_adult_plot, poci_adult_plot, por_adult_plot, labels = c("A", "B", "C", "D"), ncol = 2, nrow = 2)
 # 
 # ggsave(filename = "Figure6.PNG",
@@ -1966,6 +1988,7 @@ HC_adult_plot
 #        unit = "mm")
 
 ggarrange(HC_adult_plot, acro_adult_plot, poci_adult_plot, por_adult_plot, labels = c("A", "B", "C", "D"), ncol = 1, nrow = 4)
+
 ggsave(filename = "figures/Figure6.PDF",
        width = 180,
       height = 275,
@@ -2255,7 +2278,7 @@ por_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
 por_juv_st
 ```
 
-```{r}
+```{r eval=FALSE}
 Juv_st_relationship <- ggarrange(acro_juv_st, poci_juv_st, por_juv_st, ncol =1, nrow =3, common.legend = TRUE,
           labels = c("A", "B", "C"))
 
@@ -2279,7 +2302,9 @@ Envfit_combined
 
 Complete_Composition <- ggarrange(NMDS_combined, Envfit_combined, ncol = 1, heights = c(1.1,0.9))
 Complete_Composition
+```
 
+```{r eval=FALSE}
 ggsave(filename = "Complete_composition.PDF",
        plot = Complete_Composition,
        width = 250,

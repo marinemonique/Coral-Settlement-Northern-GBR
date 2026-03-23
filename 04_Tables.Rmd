@@ -1274,9 +1274,9 @@ nbin_por_adult <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site),
 # extract_emm_results(nbin_poci_juv, "output/Pocilloporidae_juveniles.xlsx")
 # extract_emm_results(nbin_por_juv, "output/Poritidae_juveniles.xlsx")
 # 
-extract_emm_results(nbin_HC_adult_int, "output/Adult_HC.xlsx")
-extract_emm_results(nbin_acro_adult_int, "output/Adult_acro.xlsx")
-extract_emm_results(nbin_por_adult_int, "output/Adult_por.xlsx")
+# extract_emm_results(nbin_HC_adult_int, "output/Adult_HC.xlsx")
+# extract_emm_results(nbin_acro_adult_int, "output/Adult_acro.xlsx")
+extract_emm_results(nbin_poci_adult_int, "output/Adult_poci.xlsx")
 ```
 
 ```{r}
