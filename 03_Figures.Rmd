@@ -705,7 +705,8 @@ bray_sqrt_recruits<- vegdist(Recruits_sqrt, method = "bray")
 
 bd <- betadisper(bray_sqrt_recruits, environment_data$Shelf)
 anova(bd)
-permutest(bd) 
+permutest(bd,
+          permutations = h) 
 ```
 
 
@@ -1294,10 +1295,13 @@ summary(belt_matrix_filtered$`Other Hard Coral`)
 # create a distance matrix
 belt_dist <- vegdist(belt_matrix_filtered, method = "bray")
 
+# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
+h <- how(blocks = metadata_belt$Year)                                                   # restrict permutations within years
 # With respect to Shelf
-bd <- betadisper(belt_dist, metadata_belt$Shelf)
-anova(bd) # Significant was <0.001
-permutest(bd) #0.049 on Permutest, then 0.06
+bd <- betadisper(belt_dist, metadata_belt$Shelf) #calculates distance to centroids (dispersion)
+#anova(bd) # Significant was <0.001
+permutest(bd, 
+          permutations = h) #PERMDISP #0.05 
 ```
 
 ```{r}
