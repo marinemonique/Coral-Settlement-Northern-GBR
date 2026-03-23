@@ -1124,24 +1124,6 @@ gau_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + 
 # testResiduals(sim) #fails
 # testZeroInflation(sim) #passes
 
-gamma_avg_Acroporidae_nested <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Reef/Site), 
-         family = Gamma(link = "log"), data = Acro)
-# sim <- simulateResiduals(gamma_avg_Acroporidae_nested)
-# testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
-
-ln_avg_Acroporidae_nested <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Reef/Site), 
-        family = "lognormal", data = Acro)
-# sim <- simulateResiduals(ln_avg_Acroporidae_nested)
-# testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
-
-gaus_avg_Acroporidae_nested <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Shelf/Reef/Site), 
-        family = "gaussian", data = Acro)
-# sim <- simulateResiduals(gaus_avg_Acroporidae_nested)
-# testResiduals(sim) #fails miserably
-# testZeroInflation(sim)
-
 #interaction with Shelf
 gamma_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Site), 
          family = Gamma(link = "log"), data = Acro)
@@ -1183,7 +1165,8 @@ gau_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site),
 Log normal models worked best for all of these
 ```{r}
 model.sel(gamma_avg_Acroporidae_fixed, ln_avg_Acroporidae_fixed, 
-          #gamma_avg_Acroporidae_nested, ln_avg_Acroporidae_nested, gamma_avg_Acroporidae_int, ln_avg_Acroporidae_int,
+          #gamma_avg_Acroporidae_nested, ln_avg_Acroporidae_nested,
+          gamma_avg_Acroporidae_int, ln_avg_Acroporidae_int,
           gamma_avg_Acroporidae_fixed2, ln_avg_Acroporidae_fixed2)
 
 summary(gamma_avg_Acroporidae_fixed)
@@ -1202,8 +1185,8 @@ ln_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site) + (1 | Ye
 # sim <- simulateResiduals(ln_avg_poci_fixed)
 # testResiduals(sim) #passes
 
-# ln_avg_poci_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site), 
-#         family = "lognormal", data = Poci)
+ln_avg_poci_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site),
+        family = "lognormal", data = Poci)
 # # sim <- simulateResiduals(ln_avg_poci_fixed2)
 # # testResiduals(sim) #passes
 
@@ -1217,34 +1200,37 @@ gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/S
 # sim <- simulateResiduals(gamma_avg_Pocilloporidae_fixed)
 # testResiduals(sim) #passes
 
-# gamma_avg_Pocilloporidae_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site),
-#         family = Gamma(link = "log"), data = Poci)
+gamma_avg_Pocilloporidae_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site),
+        family = Gamma(link = "log"), data = Poci)
 # # sim <- simulateResiduals(gamma_avg_Pocilloporidae_fixed2)
 # # testResiduals(sim) #passes
 
-# ln_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci * Shelf +(1 | Reef/Site), 
-#          family = "lognormal", data = Poci)
-# # sim <- simulateResiduals(ln_avg_Pocilloporidae_int)
+ln_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci * Shelf +(1 | Reef/Site),
+         family = "lognormal", data = Poci)
+# sim <- simulateResiduals(ln_avg_Pocilloporidae_int)
 # # testResiduals(sim) #passes
 # 
-# gau_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci * Shelf +(1 | Reef/Site), 
-#          family = "gaussian", data = Poci)
+gau_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci * Shelf +(1 | Reef/Site),
+         family = "gaussian", data = Poci)
 # # sim <- simulateResiduals(gau_avg_Pocilloporidae_int)
 # # testResiduals(sim) #passes
 # 
-# gamma_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci * Shelf +(1 | Reef/Site), 
-#          family = Gamma(link = "log"), data = Poci)
+gamma_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci * Shelf +(1 | Reef/Site),
+         family = Gamma(link = "log"), data = Poci)
 # # sim <- simulateResiduals(gamma_avg_Pocilloporidae_int)
 # # testResiduals(sim) #passes
 ```
 
 ```{r}
-model.sel(gamma_avg_Pocilloporidae_fixed, ln_avg_poci_fixed)
+model.sel(gamma_avg_Pocilloporidae_fixed, ln_avg_poci_fixed,
+          ln_avg_poci_fixed2,
+          gamma_avg_Pocilloporidae_fixed2,
+          gamma_avg_Pocilloporidae_int, gau_avg_Pocilloporidae_int, ln_avg_Pocilloporidae_int)
 ```
 Without year performs slightly better
 ```{r}
 summary(gamma_avg_Pocilloporidae_fixed)
-# summary(gamma_avg_Pocilloporidae_fixed2)
+summary(gamma_avg_Pocilloporidae_fixed2)
 ```
 
 ## 4.3. Poritidae
@@ -1260,6 +1246,26 @@ ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site) + (1 | 
         family = "lognormal", data = Por)
 gaus_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site) + (1 | Year), 
         family = "gaussian", data = Por)
+
+gamma_avg_Poritid_fixed2 <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site),
+        family = Gamma(link = "log"), data = Por)
+# sim <- simulateResiduals(gamma_avg_Poritid_fixed2)
+# testResiduals(sim) #passes
+
+ln_avg_Poritid_fixed2 <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site), 
+        family = "lognormal", data = Por)
+# sim <- simulateResiduals(ln_avg_Poritid_fixed2)
+# testResiduals(sim) #passes
+
+gamma_avg_Poritid_int <- glmmTMB(por_mean_st ~ mean_por*Shelf + (1 | Reef/Site),
+        family = Gamma(link = "log"), data = Por)
+# sim <- simulateResiduals(gamma_avg_Poritid_int)
+# testResiduals(sim) #passes
+
+ln_avg_Poritid_int <- glmmTMB(por_mean_st ~ mean_por * Shelf + (1 | Reef/Site), 
+        family = "lognormal", data = Por)
+sim <- simulateResiduals(ln_avg_Poritid_int)
+testResiduals(sim) #passes
 ```
 
 ```{r}
@@ -1275,12 +1281,12 @@ testResiduals(sim15.3) # definitely not this one
 testZeroInflation(sim15.3)
 ```
 ```{r}
-model.sel(gamma_avg_Poritid_fixed, ln_avg_Poritid_fixed)
+model.sel(gamma_avg_Poritid_fixed, ln_avg_Poritid_fixed, ln_avg_Poritid_fixed2, gamma_avg_Poritid_fixed2, ln_avg_Poritid_int, gamma_avg_Poritid_int)
 ```
 
 
 ```{r}
-summary(ln_avg_Poritid_fixed)
+summary(ln_avg_Poritid_fixed2)
 ```
 
 All of the models had significant intercepts, but the estimate for mean_por was not significant in any of the models.
@@ -1522,7 +1528,6 @@ gamma_poci_juv_st_fixed, gamma_poci_juv_st_int,  ln_poci_juv_st_fixed, ln_poci_j
 ln_poci_juv_st, gau_poci_juv_st)
 ```
 
-
 ```{r}
 ln_poci_juv_st_fixed
 
@@ -1626,14 +1631,4 @@ gamma_por_juv_st_fixed
 summary(gamma_por_juv_st_fixed)
 ```
 
-```{r eval=FALSE, echo=FALSE}
-write.csv(Poci_juv_st_df, 
-          file = "Poci_juv_st_model_sel.csv")
-
-write.csv(Acro_juv_st_df, 
-          file = "Acro_juv_st_model_sel.csv")
-
-write.csv(Poritidae_juv_st_df, 
-          file = "Por_juv_st_model_sel.csv")
-```
 
