@@ -91,7 +91,7 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR |>
 
 
 Pocilloporidae <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Pocilloporidae, Top_Pocil, 
          Under_Pocil, Side_Pocil, total)
@@ -99,7 +99,7 @@ Pocilloporidae <- Coral_settlement_nGBR %>%
 
 
 Acroporidae <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Acroporidae, Top_Acr, 
          Under_Acr, Side_Acr, total)
@@ -110,14 +110,14 @@ Acroporidae <- Coral_settlement_nGBR %>%
 #                values_to = "Recruits")
 
 Poritid <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Poritid, Top_Por, Under_Por, 
          Side_Por, total)
 
 
 Other <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Other, Top_other, 
          Under_oth, Side_other, total)
@@ -174,26 +174,26 @@ PIT<- PIT |>
 
 PIT <- PIT %>%
   mutate(
-    Acroporidae = rowSums(select(., `Acropora - branching`:`Montipora`), na.rm = TRUE),
+    Acroporidae = rowSums(dplyr::select(., `Acropora - branching`:`Montipora`), na.rm = TRUE),
     
-    Pocilloporidae = rowSums(select(., Pocillopora:Stylophora), na.rm = TRUE),
+    Pocilloporidae = rowSums(dplyr::select(., Pocillopora:Stylophora), na.rm = TRUE),
     
-    Poritidae = rowSums(select(., `Porites - branching`:Goniopora), na.rm = TRUE),
+    Poritidae = rowSums(dplyr::select(., `Porites - branching`:Goniopora), na.rm = TRUE),
     
-    `Other Hard coral` = rowSums(select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE),
+    `Other Hard coral` = rowSums(dplyr::select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE),
     
-    `Soft coral` = rowSums(select(., Lobophytum:`Soft-other`), na.rm = TRUE),
-    `Brown MA` = rowSums(select(., Sargassum:Lobophora), na.rm = TRUE),
-    `Red MA` = rowSums(select(., Asparagopsis:Jania), na.rm = TRUE),
-    `Green MA`= rowSums(select(., Halimeda:Valonia), na.rm = TRUE),
-    `Sand and Rubble` = rowSums(select(., Sand:Rubble), na.rm = TRUE),
-    Turf = rowSums(select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE),
-    Other = rowSums(select(., Sponge:Clam), na.rm = TRUE),
-    Zoantharian = rowSums(select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
+    `Soft coral` = rowSums(dplyr::select(., Lobophytum:`Soft-other`), na.rm = TRUE),
+    `Brown MA` = rowSums(dplyr::select(., Sargassum:Lobophora), na.rm = TRUE),
+    `Red MA` = rowSums(dplyr::select(., Asparagopsis:Jania), na.rm = TRUE),
+    `Green MA`= rowSums(dplyr::select(., Halimeda:Valonia), na.rm = TRUE),
+    `Sand and Rubble` = rowSums(dplyr::select(., Sand:Rubble), na.rm = TRUE),
+    Turf = rowSums(dplyr::select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE),
+    Other = rowSums(dplyr::select(., Sponge:Clam), na.rm = TRUE),
+    Zoantharian = rowSums(dplyr::select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
   )
 
 PIT <- PIT |> 
-  select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
+  dplyr::select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
 
 PIT <- PIT |> 
   mutate(
@@ -261,12 +261,12 @@ join_belt <- Belt_10m |>
 
 ## Total recuits
 total_recruits <- Coral_settlement_nGBR %>%
-  select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  dplyr::select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
   pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total")
 
 #Order so that Other is last in Family
 total_recruits <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  dplyr::select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
   pivot_longer(cols = 6:9, names_to = "Family", values_to = "Total") %>%
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 
@@ -275,7 +275,7 @@ total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
 ## Position on tile
 
 position_total_recruits <- Coral_settlement_nGBR %>%
-  select(2:9, 15:29, 32) %>% 
+  dplyr::select(2:9, 15:29, 32) %>% 
   pivot_longer(cols = 21:23, names_to = "Pos", values_to = "Total")
 
 position_total_recruits <- position_total_recruits |> 
@@ -292,7 +292,7 @@ position_total_recruits <- left_join(position_total_recruits, join)
 
 ## Family recruitment data
 family_total_recruits <- Coral_settlement_nGBR %>%
-  select(2:13) %>% 
+  dplyr::select(2:13) %>% 
   pivot_longer(cols = 9:12, names_to = "Family", values_to = "Total") |> 
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 ```
@@ -1263,7 +1263,8 @@ extract_emm_results <- function(model, filename) {
   )
 }
 
-
+nbin_por_adult <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT_adult)
 # extract_emm_results(nbin_total_yr2, "output/Total_Recruits.xlsx")
 # extract_emm_results(nbin_Acroporidae_interaction, "output/Acroporidae_recruits.xlsx")
 # extract_emm_results(nbin_Pocilloporidae_interaction, "output/Pocilloporidae_recruits.xlsx")
@@ -1360,3 +1361,93 @@ extract_emm_results_pois <- function(model, filename) {
 Extracting with the 23/24 year as the main one
 
 Extracting juveniles with the outer shelf as the dominant 
+
+Extractions of models where there is no interaction term
+```{r}
+library(openxlsx)
+
+extract_emm_results <- function(model, filename) {
+  ## ==============================
+  ## Shelf within Year
+  ## ==============================
+
+  emm_shelf <- emmeans(model, ~ Shelf, type = "response")
+
+  emm_shelf_df <- as.data.frame(summary(emm_shelf)) %>%
+    dplyr::rename(
+      Mean = response,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL
+    )
+
+  contrast_shelf_df <- as.data.frame(
+    summary(pairs(emm_shelf), infer = TRUE)
+  ) %>%
+    dplyr::rename(
+      Ratio = ratio,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL,
+      p_Tukey = p.value
+    )
+
+  contrast_shelf_df$p_BH <- p.adjust(
+    contrast_shelf_df$p_Tukey,
+    method = "BH"
+  )
+
+
+  ## ==============================
+  ## Year within Shelf
+  ## ==============================
+
+  emm_year <- emmeans(model, ~ Year, type = "response")
+
+  emm_year_df <- as.data.frame(summary(emm_year)) %>%
+    dplyr::rename(
+      Mean = response,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL
+    )
+
+  contrast_year_df <- as.data.frame(
+    summary(pairs(emm_year), infer = TRUE)
+  ) %>%
+    dplyr::rename(
+      Ratio = ratio,
+      Lower_CI = asymp.LCL,
+      Upper_CI = asymp.UCL,
+      p_Tukey = p.value
+    )
+
+  contrast_year_df$p_BH <- p.adjust(
+    contrast_year_df$p_Tukey,
+    method = "BH"
+  )
+
+
+  ## ==============================
+  ## Export to Excel
+  ## ==============================
+
+  openxlsx::write.xlsx(
+    list(
+      "EMM_Shelf" = emm_shelf_df,
+      "Shelf_Contrasts" = contrast_shelf_df,
+      "EMM_Year" = emm_year_df,
+      "Year_Contrasts" = contrast_year_df
+    ),
+    file = filename
+  )
+}
+
+nbin_por_adult <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT)
+Poc <- Belt_10m |> 
+  dplyr::select(Year, Shelf, Reef, Site, Pocilloporidae)
+nbin_poci_juv <- glmmTMB(Pocilloporidae ~ Year + Shelf+(1 | Reef/Site), 
+        family = "nbinom2", data = Poc)
+
+extract_emm_results(nbin_por_adult, "output/Adult_Por_fixed.xlsx")
+extract_emm_results(nbin_poci_juv, "output/Juv_Poci_fixed.xlsx")
+```
+
