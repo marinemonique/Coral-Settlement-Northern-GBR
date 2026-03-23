@@ -491,7 +491,7 @@ pairs(emm_year_response)
 
 ```{r}
 Acro <- Belt_10m |> 
-  select(Year, Shelf, Reef, Site, Acroporidae)
+  dplyr::select(Year, Shelf, Reef, Site, Acroporidae)
 
 
 nbin_acro_juv <- glmmTMB(Acroporidae ~ Year*Shelf+(1 | Reef/Site), 
@@ -522,7 +522,7 @@ pairs(emm_year_response, reverse = TRUE)
 
 ```{r}
 Poc <- Belt_10m |> 
-  select(Year, Shelf, Reef, Site, Pocilloporidae)
+  dplyr::select(Year, Shelf, Reef, Site, Pocilloporidae)
 
 nbin_poci_juv <- glmmTMB(Pocilloporidae ~ Year+Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Poc)
@@ -542,7 +542,7 @@ pairs(emm_year_response)
 ### 3.1.4. Poritidae
 ```{r}
 Por <- Belt_10m |> 
-  select(Year, Shelf, Reef, Site, Poritidae)
+  dplyr::select(Year, Shelf, Reef, Site, Poritidae)
 
 nbin_por_juv <- glmmTMB(Poritidae ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Por)
@@ -562,7 +562,7 @@ pairs(emm_year_response)
 ### 3.1.5. Other Hard  corals
 ```{r}
 Other_juv <- Belt_10m |> 
-  select(Year, Shelf, Reef, Site, Other_HC)
+  dplyr::select(Year, Shelf, Reef, Site, Other_HC)
 
 nbin_oth_juv <- glmmTMB(Other_HC ~ Year*Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Other_juv)
@@ -583,7 +583,7 @@ pairs(emm_year_response)
 ```{r}
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_belt <- Belt_10m %>%
-  select(
+  dplyr::select(
     Year, Reef, Shelf, Site, Transect, Acroporidae, Pocilloporidae, Poritidae, Other_HC
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
@@ -594,11 +594,11 @@ site_by_belt <- site_by_belt |>                                                 
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_belt <- site_by_belt %>%
-  select(Shelf, Year, Reef)
+  dplyr::select(Shelf, Year, Reef)
 
 # Step 3: Species matrix
 belt_matrix_filtered <- site_by_belt %>%
-  select(
+  dplyr::select(
     4:7
   )
 ```
@@ -658,7 +658,7 @@ Indicates strong separation among Shelf groups relative to within-group variatio
 ```{r}
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_PIT <- PIT %>%
-  select(
+  dplyr::select(
     Year, Reef, Shelf, Site, Transect, 6:20
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
@@ -669,11 +669,11 @@ site_by_PIT <- site_by_PIT |>
 
 # Step 2: Metadata (KEEP Site_ID)
 metadata_PIT <- site_by_PIT %>%
-  select(Shelf, Year, Reef)
+  dplyr::select(Shelf, Year, Reef)
 
 # Step 3: Species matrix
 PIT_matrix_filtered <- site_by_PIT %>%
-  select(
+  dplyr::select(
     Acroporidae:Halophila
   )
 ```
@@ -1274,9 +1274,9 @@ nbin_por_adult <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site),
 # extract_emm_results(nbin_poci_juv, "output/Pocilloporidae_juveniles.xlsx")
 # extract_emm_results(nbin_por_juv, "output/Poritidae_juveniles.xlsx")
 # 
-# extract_emm_results(nbin_HC_adult_int, "output/Adult_HC.xlsx")
-# extract_emm_results(nbin_acro_adult_int, "output/Adult_acro.xlsx")
-# extract_emm_results(nbin_por_adult_int, "output/Adult_por.xlsx")
+extract_emm_results(nbin_HC_adult_int, "output/Adult_HC.xlsx")
+extract_emm_results(nbin_acro_adult_int, "output/Adult_acro.xlsx")
+extract_emm_results(nbin_por_adult_int, "output/Adult_por.xlsx")
 ```
 
 ```{r}
@@ -1447,7 +1447,7 @@ Poc <- Belt_10m |>
 nbin_poci_juv <- glmmTMB(Pocilloporidae ~ Year + Shelf+(1 | Reef/Site), 
         family = "nbinom2", data = Poc)
 
-extract_emm_results(nbin_por_adult, "output/Adult_Por_fixed.xlsx")
-extract_emm_results(nbin_poci_juv, "output/Juv_Poci_fixed.xlsx")
+# extract_emm_results(nbin_por_adult, "output/Adult_Por_fixed.xlsx")
+# extract_emm_results(nbin_poci_juv, "output/Juv_Poci_fixed.xlsx")
 ```
 

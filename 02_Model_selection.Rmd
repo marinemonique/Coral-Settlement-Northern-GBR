@@ -643,7 +643,7 @@ model.sel(pois, nbin, zi_pois2, nbin2) #nbin behaves better
 
 ```{r}
 Poc <- Belt_10m |> 
-  select(Year, Shelf, Reef, Site, Pocilloporidae)
+  dplyr::select(Year, Shelf, Reef, Site, Pocilloporidae)
 
 pois <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site), 
       family = "poisson", data = Poc)
