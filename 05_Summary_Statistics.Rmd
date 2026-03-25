@@ -316,8 +316,26 @@ Coral_settlement_nGBR |>
   filter(Reef == "Lizard") |> 
   summarise(
     min_recruits = min(total),
-    max_recruits = max(total)
+    max_recruits = max(total),
+    n_replicates = n()
   )
+
+Coral_settlement_nGBR |> 
+  filter(Reef == "MacGillivray") |> 
+  summarise(
+    min_recruits = min(total),
+    max_recruits = max(total),
+    n_replicates = n()
+  )
+Coral_settlement_nGBR |> 
+  filter(Reef == "MacGillivray") |> 
+  group_by(Year) |> 
+  summarise(
+    mean_recruits = mean(total),
+    se_recruits = sd(total)/n()^0.5,
+    n_panels = n()
+  )
+
 ```
 
 
@@ -960,6 +978,26 @@ Belt_10m |>
   )
 ```
 
+```{r}
+Belt_10m |> 
+  mutate(juveniles_metre = Total_juveniles/10) |> 
+  summarise(
+    mean_juv = mean(juveniles_metre),
+    se_juv = sd(juveniles_metre)/n()^0.5
+  )
+ 
+```
+
+Cross shelf averages
+```{r}
+Belt_10m |> 
+  mutate(juveniles_metre = Total_juveniles/10) |>
+  group_by(Shelf) |> 
+  summarise(
+    mean_juv = mean(juveniles_metre),
+    se_juv = sd(juveniles_metre)/n()^0.5
+  )
+```
 
 
 ## 2.1. Families
