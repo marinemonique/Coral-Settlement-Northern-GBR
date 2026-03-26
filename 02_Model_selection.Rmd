@@ -1611,4 +1611,29 @@ gamma_por_juv_st_fixed
 summary(gamma_por_juv_st_fixed)
 ```
 
+```{r}
+library(broom.mixed)
+library(openxlsx)
+library(dplyr)
+tidy_acro <- tidy(ln_acro_juv_st_int, effects = "fixed", conf.int = TRUE)
+tidy_poci <- tidy(ln_poci_juv_st_fixed, effects = "fixed", conf.int = TRUE)
+tidy_por <- tidy(gamma_por_juv_st_fixed, effects = "fixed", conf.int = TRUE)
+glance_acro <- glance(ln_acro_juv_st_int)
+glance_poci <- glance(ln_poci_juv_st_fixed)
+glance_por  <- glance(gamma_por_juv_st_fixed)
+wb <- createWorkbook()
 
+addWorksheet(wb, "Acropora")
+writeData(wb, "Acropora", tidy_acro)
+writeData(wb, "Acropora", glance_acro, startRow = nrow(tidy_acro) + 3)
+
+addWorksheet(wb, "Pocillopora")
+writeData(wb, "Pocillopora", tidy_poci)
+writeData(wb, "Pocillopora", glance_poci, startRow = nrow(tidy_poci) + 3)
+
+addWorksheet(wb, "Porites")
+writeData(wb, "Porites", tidy_por)
+writeData(wb, "Porites", glance_por, startRow = nrow(tidy_por) + 3)
+
+saveWorkbook(wb, "output/coral_model_summaries.xlsx", overwrite = TRUE)
+```
