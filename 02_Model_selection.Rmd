@@ -841,12 +841,14 @@ PIT_matrix_filtered <- site_by_PIT %>%
 ```
 
 ```{r}
+h <- how(blocks = metadata_PIT$Year)   
 # create a distance matrix
 PIT_dist <- vegdist(PIT_matrix_filtered, method = "bray")
 
 # With respect to Shelf
 betadisper(PIT_dist, metadata_PIT$Shelf)
 anova(betadisper(PIT_dist, metadata_PIT$Shelf)) # Significant was 0.01143 * ***
+permutest(betadisper(PIT_dist, metadata_PIT$Shelf), permutations = h) #0.049 on Permutest, then 0.06
 ```
 
 ```{r}
