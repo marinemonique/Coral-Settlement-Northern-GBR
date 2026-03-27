@@ -208,7 +208,7 @@ join_pit <- PIT |>
 Combined <- left_join(Join_Coral, join_pit)
 
 # Juvenile data
-Belt_10m <- read_csv("Belt_10m.csv") |> 
+Belt_10m <- read_csv("Belt_10m_final.csv") |> 
   mutate(across(8:28, ~replace_na(.x, 0)))
 
 Belt_10m <- Belt_10m |> 

@@ -198,7 +198,10 @@ PIT <- PIT |>
   mutate(
     across(Acroporidae:Halophila, ~ .x * 2)
   )
-
+PIT <- PIT |> 
+  mutate(
+    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard coral`
+  )
 # Combined <- left_join(Coral_settlement_nGBR, join)
 
 ## Total recuits
@@ -231,7 +234,7 @@ position_total_recruits <- position_total_recruits |>
 mutate(Pos = factor(Pos, levels = c("Bottom", "Side", "Top")))
 
 # Juvenile data
-Belt_10m <- read_csv("Belt_10m.csv") |> 
+Belt_10m <- read_csv("Belt_10m_final.csv") |> 
   mutate(across(8:28, ~replace_na(.x, 0)))
 
 Belt_10m <- Belt_10m |> 
@@ -1071,6 +1074,38 @@ Belt_10m |>
   #write.csv(file = "output/relative_prop_juveniles.csv")
 ```
 
+Favia + Favites + Goniastrea + Astrea +
+                 Echinopora + Galaxea + Turbinaria +
+                 Psammacora + Pavona
+```{r}
+Belt_10m |> 
+  group_by(Shelf, Reef) |> 
+  summarise(
+    sum = sum(Total_juveniles),
+    sum_acro = sum(Acroporidae),
+    sum_acropora = sum(Acropora),
+    sum_isopora = sum(Isopora),
+    sum_montipora = sum(Montipora),
+    sum_poci = sum(Pocilloporidae),
+    sum_pocillopora = sum(Pocillopora),
+    sum_seriatopora = sum(Seriatopora),
+    sum_stylophora = sum(Stylophora),
+    sum_pori = sum(Poritidae),
+    sum_porites = sum(Porites),
+    sum_oth = sum(Other_HC_R),
+    sum_Favites = sum(Favites),
+    sum_favia = sum(Favia),
+    sum_goniastrea = sum(Goniastrea),
+    sum_tub = sum(Turbinaria),
+    sum_echinopora = sum(Echinopora),
+    sum_Galaxea = sum(Galaxea),
+    sum_Pavona = sum(Pavona),
+    sum_psammacora = sum(Psammacora),
+    n = n()
+  ) |> write.csv(file = "output/juvenile_reef_taxa.csv")
+```
+
+
 ###2.1.2. Other Hard corals
 
 ```{r}
@@ -1156,12 +1191,16 @@ PIT |>
   summarise(
     n_PIT = n()
   )
+# PIT <- PIT |> 
+#   mutate(
+#     Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard coral`
+#   )
 ```
 
 
 ```{r}
 PIT_long <- PIT |> 
-  pivot_longer(cols = 6:20, names_to = "Benthos", values_to = "Points")
+  pivot_longer(cols = c(6:20, Total_HC_Cover), names_to = "Benthos", values_to = "Points")
 
 ```
 
@@ -1189,7 +1228,7 @@ PIT_long |>
     max = max(Points),
     PITs = n()
   ) |> 
-write.csv(file = "PIT_long_reef.csv")
+write.csv(file = "output/PIT_long_reef_total_HC.csv")
 ```
 ```{r}
 #brown macroalgae
