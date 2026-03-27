@@ -1243,20 +1243,83 @@ Summary_table_PIT <- PIT_long |>
 Summary_table_PIT
 
 PIT_long |> 
-  group_by(Shelf, Reef, Benthos) |> 
+  group_by(Shelf, Reef, Year, Benthos) |> 
   filter(Benthos == "Total_HC_Cover") |> 
   summarise(
     mean = mean(Points),
-    sd = sd(Points),
+    # sd = sd(Points),
     se = sd(Points)/(n()^0.5),
     min = min(Points),
     max = max(Points),
     PITs = n()
-  )
+  ) |> write.csv(file = "coral_cover_reef_year_mean.csv")
 ```
 
 ```{r}
+PIT_long |> 
+  group_by(Shelf, Reef, Year, Benthos) |> 
+  filter(Benthos == "Acroporidae", Shelf == "Mid") |> 
+  summarise(
+    mean = mean(Points),
+    # sd = sd(Points),
+    se = sd(Points)/(n()^0.5),
+    # min = min(Points),
+    # max = max(Points),
+    PITs = n()
+  ) #|> write.csv(file = "Acroporidae_mean_se_reef_year.csv")
+```
 
+```{r}
+PIT_long |> 
+  group_by(Shelf, Reef, Year, Benthos) |> 
+  filter(Benthos %in% c("Acroporidae", "Pocilloporidae", "Poritidae", "Total_HC_Cover")) |> 
+  summarise(
+    mean = mean(Points),
+    # sd = sd(Points),
+    se = sd(Points)/(n()^0.5),
+    # min = min(Points),
+    # max = max(Points),
+    PITs = n()
+  ) |> 
+  ggplot(aes(y=mean, x=Reef, fill = Shelf))+
+  geom_point()+
+  geom_errorbar(aes(y=se, x=Reef, fill = Shelf))
+
+PIT_long |> 
+  group_by(Shelf, Reef, Year, Benthos) |> 
+  filter(Benthos %in% c("Acroporidae", "Pocilloporidae", "Poritidae", "Total_HC_Cover")) |> 
+  summarise(
+    mean = mean(Points),
+    se = sd(Points)/(n()^0.5),
+    PITs = n(),
+    .groups = "drop"
+  ) |> 
+  ggplot(aes(x = Year, y = mean, fill = Shelf, colour = Shelf)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(
+    aes(ymin = mean - se, ymax = mean + se),
+    width = 0.2,
+    position = position_dodge(width = 0.5)
+  )+
+  facet_grid(Benthos~Reef, scale = "free_y")+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  theme(panel.grid = element_blank(),
+        text = element_text(size =12)
+        )+
+  theme_bw()+
+  labs(x = "Year", y = "Percent cover (mean ± SE)")+
+  scale_x_discrete(
+    "Year",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )
+```
+
+
+```{r}
 PIT_long |> 
   group_by(Benthos, Shelf, Reef) |> 
   summarise(
