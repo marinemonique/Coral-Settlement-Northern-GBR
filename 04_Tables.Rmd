@@ -162,7 +162,18 @@ PIT <- PIT |>
       Site == "Turtle South - Coral" ~ "TS_Back",
       Site == "Turtle North - front" ~ "TN_Crest",
       TRUE ~ Site
-    ))
+    ),
+    Reef = case_when(
+      Site %in% c("Day 1", "Day 2", "Day 3") ~ "Day",
+      Site %in% c("Hicks 1", "Hicks 2", "Hicks 3") ~ "Hicks",
+      Site %in% c("Mac 1", "Mac 2", "Mac 3") ~ "MacGillivray",
+      Site %in% c("TN_Back", "TN_coral", "TN_Crest") ~ "Turtle N",
+      Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
+      Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
+      TRUE ~ NA_character_
+    ),
+    Site = factor(Site, levels = levels(PIT$Site))
+  )
 
 
 PIT<- PIT |> 
@@ -235,7 +246,18 @@ Belt_10m <- Belt_10m |>
       Site == "Turtle South - Coral" ~ "TS_Back",
       Site == "Turtle North - front" ~ "TN_Crest",
       TRUE ~ Site
-    ))
+    ),
+    Reef = case_when(
+      Site %in% c("Day 1", "Day 2", "Day 3") ~ "Day",
+      Site %in% c("Hicks 1", "Hicks 2", "Hicks 3") ~ "Hicks",
+      Site %in% c("Mac 1", "Mac 2", "Mac 3") ~ "MacGillivray",
+      Site %in% c("TN_Back", "TN_coral", "TN_Crest") ~ "Turtle N",
+      Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
+      Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
+      TRUE ~ NA_character_
+    ),
+    Site = factor(Site, levels = levels(PIT$Site))
+  )
 
 Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
 Belt_10m <- Belt_10m |>

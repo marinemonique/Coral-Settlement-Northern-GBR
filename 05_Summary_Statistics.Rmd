@@ -138,8 +138,7 @@ Poritid <- Coral_settlement_nGBR %>%
 
 # Benthic Data
 PIT <- PIT <- read_csv("PIT_final.csv") %>%
-  mutate(across(8:94, ~replace_na(.x, 0))) %>%
-  mutate(across(8:94, as.numeric))
+  mutate(across(8:94, ~replace_na(.x, 0)))
 
 PIT <- PIT %>% 
   filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
@@ -154,7 +153,19 @@ PIT <- PIT |>
       Site == "Turtle South - Coral" ~ "TS_Back",
       Site == "Turtle North - front" ~ "TN_Crest",
       TRUE ~ Site
-    ))
+    ),
+    Reef = case_when(
+      Site %in% c("Day 1", "Day 2", "Day 3") ~ "Day",
+      Site %in% c("Hicks 1", "Hicks 2", "Hicks 3") ~ "Hicks",
+      Site %in% c("Mac 1", "Mac 2", "Mac 3") ~ "MacGillivray",
+      Site %in% c("TN_Back", "TN_coral", "TN_Crest") ~ "Turtle N",
+      Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
+      Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
+      TRUE ~ NA_character_
+    ),
+    Site = factor(Site, levels = levels(PIT$Site))
+  )
+
 
 
 PIT<- PIT |> 
@@ -247,7 +258,18 @@ Belt_10m <- Belt_10m |>
       Site == "Turtle South - Coral" ~ "TS_Back",
       Site == "Turtle North - front" ~ "TN_Crest",
       TRUE ~ Site
-    ))
+    ),
+    Reef = case_when(
+      Site %in% c("Day 1", "Day 2", "Day 3") ~ "Day",
+      Site %in% c("Hicks 1", "Hicks 2", "Hicks 3") ~ "Hicks",
+      Site %in% c("Mac 1", "Mac 2", "Mac 3") ~ "MacGillivray",
+      Site %in% c("TN_Back", "TN_coral", "TN_Crest") ~ "Turtle N",
+      Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
+      Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
+      TRUE ~ NA_character_
+    ),
+    Site = factor(Site, levels = levels(PIT$Site))
+  )
 
 Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
 
@@ -1218,6 +1240,22 @@ Summary_table_PIT <- PIT_long |>
     PITs = n()
   )
 
+Summary_table_PIT
+
+PIT_long |> 
+  group_by(Shelf, Reef, Benthos) |> 
+  filter(Benthos == "Total_HC_Cover") |> 
+  summarise(
+    mean = mean(Points),
+    sd = sd(Points),
+    se = sd(Points)/(n()^0.5),
+    min = min(Points),
+    max = max(Points),
+    PITs = n()
+  )
+```
+
+```{r}
 
 PIT_long |> 
   group_by(Benthos, Shelf, Reef) |> 
