@@ -32,6 +32,9 @@ library(ggeffects)
 Clean data
 
 ```{r message=FALSE, echo=FALSE}
+Coral_settlement_nGBR_CS <- read.csv("~/Larval recruitment resources/Data Analysis/Coral-Settlement-Northern-GBR/Coral settlement_nGBR_CS.csv") %>%
+  mutate(across(15:29, ~replace_na(.x, 0))) # Read in data
+
 Coral_settlement_nGBR <- Coral_settlement_nGBR_CS %>% 
   filter(Shelf.posn != "Coral Sea", #remove coral sea data
         !Obs %in% c(1499, 1621, 1622)) #Remove loose tiles with heavy biofouling
@@ -149,17 +152,21 @@ plot(ggpredict(dettached_mod, terms = "notes"))+
         title = element_blank())
 
 AIC(dettached_mod, dettached_mod2)
+# model.sel(dettached_mod, dettached_mod2)
 #detached model behaved better
 
-d_tukey <- emmeans(dettached_mod, ~notes) |> 
-  regrid() |> #back transforms 
-  pairs(reverse = FALSE) |> 
-  as.data.frame() |> 
-  mutate(
-    lower  = estimate - 1.96*SE,
-    upper  = estimate + 1.96*SE,
-    CI = 1.96*SE
-  )
+d_tukey <- emmeans(dettached_mod, ~notes,  type = "response")
+
+pairs(d_tukey)
+# |> 
+  # regrid() |> #back transforms 
+  # pairs(reverse = FALSE) |> 
+  # as.data.frame() |> 
+  # mutate(
+  #   lower  = estimate - 1.96*SE,
+  #   upper  = estimate + 1.96*SE,
+  #   CI = 1.96*SE
+  # )
 d_tukey
 ```
 
