@@ -162,9 +162,7 @@ PIT <- PIT |>
       Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
       Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
       TRUE ~ NA_character_
-    ),
-    Site = factor(Site, levels = levels(PIT$Site))
-  )
+    )  )
 
 
 
@@ -320,8 +318,21 @@ Coral_settlement_nGBR |>
             total_other = sum(Other),
             total_recruits = sum(total),
             total_tiles = n()
+            )
+
+Coral_settlement_nGBR |> 
+  group_by(Shelf, Reef, Year) |> 
+  summarise(
+            total_acro = sum(Acroporidae),
+            total_poci = sum(Pocilloporidae),
+            total_poritidae = sum(Poritid),
+            total_other = sum(Other),
+            total_recruits = sum(total),
+            total_tiles = n()
             ) |> 
-  write.csv(file = "output/relative_prop_recruits.csv")
+  write.csv(file = "output/relative_prop_recruits_reef.csv")
+
+
 ```
 
 
@@ -1084,7 +1095,7 @@ Belt_10m |>
 
 ```{r}
 Belt_10m |>
-  group_by(Shelf, Year) |> 
+  group_by(Shelf, Reef, Year) |> 
   summarise(
     sum_Acroporidae = sum(Acroporidae),
     sum_Pocilloporidae = sum(Pocilloporidae),
@@ -1092,8 +1103,8 @@ Belt_10m |>
     sum_other = sum(Other_HC_R),
     sum_Total = sum(Total_juveniles),
     n = n()
-  ) #|> 
-  #write.csv(file = "output/relative_prop_juveniles.csv")
+  ) |> 
+  write.csv(file = "output/relative_prop_juveniles.csv")
 ```
 
 Favia + Favites + Goniastrea + Astrea +
