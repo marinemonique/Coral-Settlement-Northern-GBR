@@ -80,7 +80,7 @@ mutate(
 Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
 mutate(
   notes = case_when(
-    !notes %in% c("Dislodged", "Lots of tube worms")~"No notes",
+    !notes %in% c("Dislodged")~"Attached to baseplate",
     TRUE ~ notes
   ))
 
@@ -145,7 +145,7 @@ sim_mod2 <- simulateResiduals(dettached_mod2)
 testResiduals(sim_mod2)
 
 plot(ggpredict(dettached_mod, terms = "notes"))+
-  labs(y= expression("Predicted no. recruits (" * tile^{-1}*")" ), x= "Notes")+
+  labs(y= expression("Predicted no. recruits (" * tile^{-1}*")" ), x= "Status of tile at collection")+
   theme(panel.grid.minor = element_blank(),
         panel.grid.major.x = element_blank(),
         text = element_text(size=8),

@@ -1255,13 +1255,13 @@ Summary_table_PIT
 
 PIT_long |> 
   group_by(Shelf, Reef, Year, Benthos) |> 
-  filter(Benthos == "Total_HC_Cover") |> 
+  # filter(Benthos == "Total_HC_Cover") |> 
   summarise(
     mean = mean(Points),
     # sd = sd(Points),
     se = sd(Points)/(n()^0.5),
-    min = min(Points),
-    max = max(Points),
+    # min = min(Points),
+    # max = max(Points),
     PITs = n()
   ) |> write.csv(file = "coral_cover_reef_year_mean.csv")
 ```

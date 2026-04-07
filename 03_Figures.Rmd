@@ -706,6 +706,8 @@ Recruits <- Coral_settlement_nGBR %>%
 environment_data <- Coral_settlement_nGBR %>%
   filter(total >0) |> 
   dplyr::select(Year_Collected, Site, Reef, Shelf)
+
+environment_data |> count(Shelf, Year_Collected)
 ```
 
 ```{r}
@@ -716,15 +718,21 @@ recruits_sqrt_enviro <- bind_cols(environment_data, Recruits_sqrt)
 #write.csv(Recruits, file = "Matrices_for_PRIMER/Recruits_raw.csv")
 # write.csv(Recruits_sqrt, file = "Matrices_for_PRIMER/Recruits_sqrt.csv")
 # write.csv(environment_data, file = "Matrices_for_PRIMER/recruit_enviro.csv")
-write.csv(recruits_sqrt_enviro, file = "Matrices_for_PRIMER/recruit_sqrt_enviro.csv")
+#write.csv(recruits_sqrt_enviro, file = "Matrices_for_PRIMER/recruit_sqrt_enviro.csv")
 # To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
-h <- how(blocks = environment_data$Year_Collected)                                                   # restrict permutations within years
+h <- how(blocks = environment_data$Reef)                                                   # restrict permutations within years
 
 #Bray curtis PERMANOVA
-adonis2(Recruits_sqrt ~ Shelf, 
+adonis2(Recruits_sqrt ~ Shelf*Year_Collected, 
         data = environment_data, 
         permutations = h,
-        method = "bray")   # PERMANOVA
+        method = "bray", by = "margin")   # PERMANOVA
+
+adonis2(Recruits_sqrt ~ Shelf*Year_Collected, 
+        data = environment_data, 
+        permutations = h,
+        method = "bray", by = "terms")
+
 
 #PERMDISP
 # Distance matrix
@@ -734,6 +742,32 @@ bd <- betadisper(bray_sqrt_recruits, environment_data$Shelf)
 anova(bd)
 permutest(bd,
           permutations = h) 
+```
+
+```{r}
+mod_unrestricted <- adonis2(Recruits_sqrt ~ Shelf * Year_Collected, 
+                           data = environment_data, 
+                           permutations = 999,
+                           method = "bray",
+                           by = "margin")
+mod_restricted <- adonis2(Recruits_sqrt ~ Shelf * Year_Collected, 
+                         data = environment_data, 
+                         permutations = h,
+                         method = "bray",
+                         by = "margin")
+
+mod_restricted
+mod_unrestricted
+adonis2(Recruits_sqrt ~ Shelf + Year_Collected, 
+        data = environment_data, 
+        permutations = h,
+        method = "bray",
+        by = "margin")
+adonis2(Recruits_sqrt ~ Shelf * Year_Collected, 
+        data = environment_data, 
+        permutations = h,
+        method = "bray",
+        by = "terms")
 ```
 
 
@@ -762,7 +796,7 @@ scores <- scores |>
 Recruits_envfit <- envfit(
   nmds,
   Recruits_sqrt,
-  permutations = h #restrict permutations to year
+  permutations = h #restrict permutations to year, change if using PERMANOVA from PRIMER
 ) 
 
 #Saving the vectors as a data frame
