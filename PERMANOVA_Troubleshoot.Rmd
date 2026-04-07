@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 library(tidyverse)
 library(readr)
 library(dplyr)
@@ -269,16 +269,18 @@ environment_data <- Coral_settlement_nGBR %>%
 ```
 
 ```{r}
+# environment_data |> group_by(Shelf, Reef, Site, Year_Collected) |> 
+# summarise(reps = n()) |> 
+#   pivot_wider(id_cols = c("Shelf", "Site"), names_from = Year_Collected, values_from = reps) |> write.csv("output/vegetated_tiles.csv")
+```
+
+```{r echo=TRUE}
 # Filtered recruit data
 Recruits_sqrt <- sqrt(Recruits) #Squareroot transformed because Acroporidae is more abundant than the other taxa
 
 recruits_sqrt_enviro <- bind_cols(environment_data, Recruits_sqrt)
-#write.csv(Recruits, file = "Matrices_for_PRIMER/Recruits_raw.csv")
-# write.csv(Recruits_sqrt, file = "Matrices_for_PRIMER/Recruits_sqrt.csv")
-# write.csv(environment_data, file = "Matrices_for_PRIMER/recruit_enviro.csv")
-#write.csv(recruits_sqrt_enviro, file = "Matrices_for_PRIMER/recruit_sqrt_enviro.csv")
-# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
-h <- how(blocks = environment_data$Reef)                                                   # restrict permutations within years
+
+h <- how(blocks = environment_data$Site)                                                   # restrict permutations within years
 
 #Bray curtis PERMANOVA
 adonis2(Recruits_sqrt ~ Shelf*Year_Collected, 
@@ -290,10 +292,20 @@ adonis2(Recruits_sqrt ~ Shelf*Year_Collected,
         data = environment_data, 
         permutations = h,
         method = "bray", by = "terms") #
-
-
-
 ```
+
+Shelf × Year:  
+R² = 0.0487, F = 7.56, p = 0.005
+There is a significant interaction between Shelf and Year, explaining ~4.9% of variation in recruit community structure.
+
+Supporting structure (by = "terms")
+Shelf   R² = 0.222  
+Year    R² = 0.045  
+Interaction R² = 0.049  
+
+Shelf explains a large proportion of variation (~22%)
+Year and interaction are similar in magnitude (~4–5%)
+(when sequential order dependent), so shelf looks strong because it is fitted first
 
 ```{r}
 mod_unrestricted <- adonis2(Recruits_sqrt ~ Shelf * Year_Collected, 
@@ -309,33 +321,37 @@ mod_restricted <- adonis2(Recruits_sqrt ~ Shelf * Year_Collected,
 
 mod_restricted #permutations restricted to reef, which there are 2 levels
 mod_unrestricted #permutations were not restricted to reef
+```
 
+```{r echo=TRUE}
 adonis2(Recruits_sqrt ~ Shelf + Year_Collected, 
         data = environment_data, 
         permutations = h,
         method = "bray",
         by = "margin")
-adonis2(Recruits_sqrt ~ Shelf * Year_Collected, 
-        data = environment_data, 
-        permutations = h,
-        method = "bray",
-        by = "terms")
 ```
-1. What your PERMANOVA is telling you
-From the correct model (restricted, by = "margin"):
-Shelf × Year:
-R² approximately equal to 0.049 (~5%)
-p = 0.005
 
-So:
-There is a significant interaction
-But from the additive model:
-Shelf: R² ≈ 0.224 (strong)
-Year: R² ≈ 0.045 (moderate)
+Unrestricted permutations inflate significance slightly, but do not change the conclusion
+restricted p = 0.005  
+unrestricted p = 0.001
+Results were consistent between restricted and unrestricted permutations, although unrestricted permutations produced slightly lower p-values.
 
-👉 This is crucial:
+#### Additive model
+Shelf: p = 0.005  
+Year:  p = 0.005
+BOTH Shelf and Year remain significant when the interaction is removed
+Recruitment is structured by both space and time, but the strength or nature of spatial patterns varies among years
 
-Unlike your belt data, Shelf remains strong even without the interaction.
+#### ROle of by = terms
+Shelf   R² approx 0.22  
+Year    R² approx equal 0.045  
+Interaction approx equal 0.049  
+
+PERMANOVA revealed a significant interaction between Shelf and Year (R² = 0.049, F = 7.56, p = 0.005), indicating that cross-shelf patterns in recruit assemblages varied among years.
+
+Despite this interaction, both Shelf (R² = 0.224, p = 0.005) and Year (R² = 0.045, p = 0.005) remained significant in the additive model, demonstrating that spatial and temporal effects independently contributed to variation in recruitment.
+
+Shelf explained a substantial proportion of variation when fitted sequentially (R² = 0.223), indicating a strong cross-shelf gradient in recruit assemblages. However, the significant interaction suggests that the magnitude and composition of this gradient varied through time.
 
 
 ##1.2. PERMDISP for Recruits
@@ -363,20 +379,19 @@ permutest(bd_int, permutations = h)
 
 bd_year <- betadisper(bray_sqrt_recruits, environment_data$Year_Collected)
 permutest(bd_year, permutations = h)
-
 ```
 Shelf
 F = 4.96, p = 0.005
 
-👉 Dispersion differs among shelf positions
+Dispersion differs among shelf positions
 Year
 F = 7.13, p = 0.005
 
-👉 Dispersion differs among years
+Dispersion differs among years
 Shelf × Year
 F = 3.44, p = 0.005
 
-👉 Dispersion differs among specific combinations
+Dispersion differs among specific combinations
 
 *Big takeaway*
 
@@ -390,17 +405,15 @@ Heterogeneity is a fundamental feature of your recruits data.
 The PERMANOVA results are not purely centroid-driven
 
 Instead:
-
 Differences among groups reflect a combination of:
 
-Changes in community composition (centroids)
-Changes in variability/heterogeneity (dispersion)
+Changes in community composition (centroids) and changes in variability/heterogeneity (dispersion)
 
 Shelf:
 Differences in both composition and variability
 Likely environmental gradients + patchiness
 Year:
-Strong dispersion signal →
+Strong dispersion signal ->
 Some years are highly variable recruitment years
 Interaction:
 Certain Shelf–Year combos are:
@@ -502,7 +515,7 @@ p1 <- ggplot(data = scores, aes(x = NMDS1, y = NMDS2,colour = Shelf)) +
          size = 3)+
   scale_x_continuous(limits = c(-1, 1))+
   scale_y_continuous(limits = c(-1, 1))+
-  facet_wrap(~Year, ncol = 1)
+  facet_wrap(~Year, ncol = 2)
 
 
 
@@ -534,9 +547,18 @@ p2 <- ggplot()+
   scale_x_continuous(limits = c(-1, 1))+
   scale_y_continuous(limits = c(-1, 1))
 
-ST_NMDS <- ggarrange(p1, p2, ncol = 1, heights = c(4, 1), legend = "none")
+ST_NMDS <- ggarrange(p1, p2, ncol = 1, heights = c(2, 1), legend = "none")
 ST_NMDS
 ```
+
+```{r eval=FALSE}
+ggsave(ST_NMDS,
+  filename = "figures/facet_Recruits_NMDS.PDF",
+  height = 280, 
+  units = "mm"
+)
+```
+
 
 #2. Juveniles
 
@@ -545,6 +567,37 @@ ST_NMDS
 Belt_10m <- Belt_10m |> 
   rename("Other Hard Coral" = Other_HC
   )
+```
+
+```{r}
+ #detailed juvenile
+site_by_belt <- Belt_10m %>%
+  filter(Total_juveniles > 0) |> #filter to make sure that dissimilarities are non zero
+  dplyr::select(
+    Year, Reef, Shelf, Site, Transect, Acropora:Pavona
+  ) %>%
+  mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
+
+# Step 2: Metadata (KEEP Site_ID)
+metadata_belt <- site_by_belt %>%
+  dplyr::select(Shelf, Year, Reef, Site)
+
+# metadata_belt|> group_by(Shelf, Reef, Site, Year) |> 
+# summarise(reps = n()) |>
+#   pivot_wider(id_cols = c("Shelf", "Site"), names_from = Year, values_from = reps) |> write.csv("output/belt_transects_with_juveniles.csv")
+
+# Step 3: Species matrix
+belt_matrix_filtered <- site_by_belt %>%
+  dplyr::select(
+    6:21
+  )
+
+#write.csv(belt_matrix_filtered, file = "output/detailed_juvenile_community_matrix.csv")
+#write.csv(metadata_belt, file = "Matrices_for_PRIMER/belt_meta.csv")
+```
+
+
+```{r}
 # Step 1: Create site-by-species matrix with Site_ID
 site_by_belt <- Belt_10m %>%
   filter(Total_juveniles > 0) |> #filter to make sure that dissimilarities are non zero
@@ -553,10 +606,13 @@ site_by_belt <- Belt_10m %>%
   ) %>%
   mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"))
 
-
 # Step 2: Metadata (KEEP Site_ID)
 metadata_belt <- site_by_belt %>%
-  dplyr::select(Shelf, Year, Reef)
+  dplyr::select(Shelf, Year, Reef, Site)
+
+# metadata_belt|> group_by(Shelf, Reef, Site, Year) |> 
+# summarise(reps = n()) |>
+#   pivot_wider(id_cols = c("Shelf", "Site"), names_from = Year, values_from = reps) |> write.csv("output/belt_transects_with_juveniles.csv")
 
 # Step 3: Species matrix
 belt_matrix_filtered <- site_by_belt %>%
@@ -566,53 +622,46 @@ belt_matrix_filtered <- site_by_belt %>%
 
 belt_matrix_filtered <- sqrt(belt_matrix_filtered)
 
-# Check whether any family has much higher abundances than other families
-# summary(belt_matrix_filtered$Acroporidae)
-# summary(belt_matrix_filtered$Pocilloporidae)
-# summary(belt_matrix_filtered$Poritidae)
-# summary(belt_matrix_filtered$`Other Hard Coral`)
-
 #Think Ill just do raw abundances then. Ended up sqrt transforming to be consistent with recruits and benthic composition.
 ```
 
 ```{r}
 # create a distance matrix
 belt_dist <- vegdist(belt_matrix_filtered, method = "bray")
-
-# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
-h <- how(blocks = metadata_belt$Year)                                                   # restrict permutations within years
-# With respect to Shelf
-bd <- betadisper(belt_dist, metadata_belt$Shelf) #calculates distance to centroids (dispersion)
-#anova(bd) # Significant was <0.001
-permutest(bd, 
-          permutations = h) #PERMDISP #0.05 
+# To stratify by year (this asks "do shelf differences exist after accounting for year structure?")
 ```
 
-```{r}
-# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
-h <- how(blocks = metadata_belt$Year)                                                   # restrict permutations within years
-
-#Bray curtis PERMANOVA
-permanova_result <- adonis2(belt_matrix_filtered ~ Shelf, 
-        data = metadata_belt, 
-        permutations = h,
-        method = "bray")   # PERMANOVA
-```
-
-```{r}
-h <- how(blocks = metadata_belt$Reef)                                                   # restrict permutations within years
+```{r echo=TRUE}
+h <- how(blocks = metadata_belt$Site)                                                   # restrict permutations within years
 
 #Bray curtis PERMANOVA
 adonis2(belt_matrix_filtered ~ Shelf*Year, 
         data = metadata_belt, 
         permutations = h,
         method = "bray", by = "margin")   # PERMANOVA, where main effects are not estimable independently of the interaction, 
+```
 
+Shelf:Year   R² = 0.066, F = 3.61, p = 0.005
+There is a significant interaction between Shelf and Year, explaining ~6.6% of variation in community structure.
+
+```{r echo=TRUE}
 adonis2(belt_matrix_filtered ~ Shelf*Year, 
         data = metadata_belt, 
         permutations = h,
         method = "bray", by = "terms")
+```
 
+Supporting structure, by = terms
+Shelf        R² = 0.203
+Year         R² = 0.040
+Interaction  R² = 0.066
+
+Shelf explains the most variation overall
+But this is sequential (order-dependent)
+
+“Shelf contributes strongly, but its effect varies through time”
+
+```{r}
 mod_unrestricted <- adonis2(belt_matrix_filtered ~ Shelf*Year, 
         data = metadata_belt,
                            permutations = 999,
@@ -626,63 +675,35 @@ mod_restricted <- adonis2(belt_matrix_filtered ~ Shelf*Year,
 
 mod_restricted #permutations restricted to reef, which there are 2 levels
 mod_unrestricted #permutations were not restricted to reef
+```
 
+```{r echo=TRUE}
 adonis2(belt_matrix_filtered ~ Shelf + Year, 
         data = metadata_belt, 
         permutations = h,
         method = "bray", by = "margin")
 ```
+Additive model
+Shelf: p = 0.075 (ns)
+Year:  p = 0.005 (**)
+When the interaction is removed, Shelf is no longer significant
+Cross-shelf differences are not consistent across years
 
-Key model is permutations = h, by "margin, with interaction term
-Result:
+Key result
+Shelf:Year   R² = 0.066, F = 3.61, p = 0.005
+There is a significant interaction between Shelf and Year, explaining ~6.6% of variation in community structure.
+Main effects are not independently estimable due to the interaction
 
-Shelf × Year
-R2=0.066 (~6.6%)
-p = 0.005 -> significant
+Permutational multivariate analysis of variance (PERMANOVA) revealed a significant interaction between Shelf and Year (R² = 0.066, F = 3.61, p = 0.005), indicating that cross-shelf patterns in community structure varied through time.
 
-Same story as before (and now confirmed with transformation):
+Although Shelf explained a substantial proportion of variation when fitted sequentially (R² = 0.203), this effect was not significant in the additive model (p = 0.075), suggesting that spatial differences among shelf positions were not consistent across years.
 
-There is a significant interaction between Shelf and Year
+In contrast, Year remained significant in the additive model (R² = 0.040, p = 0.005), indicating temporal variation in community structure independent of spatial effects.
 
-Result:
+Your result is robust, not an artefact of permutation design, because there is the same pattern, just slightly stronger when unrestricted.
+restricted:   p = 0.005  
+unrestricted: p = 0.001
 
-Shelf: p = 0.090 (ns / marginal)
-Year: p = 0.005
-
-This is the key ecological signal:
-
-Shelf differences are not consistent through time
-
-If they were:
-
-Shelf would stay strongly significant without the interaction
-
-But instead:
-
-It weakens -> becomes marginal
-
-Sequential test (by = "terms")
-Shows:
-
-Shelf: R² = 0.20
-Year: R² = 0.04
-Interaction: R² = 0.066
-
-But remember:
-- Shelf is tested first, so this is inflated
-
-Still, one useful takeaway:
-
-Interaction explains more than Year
-And a meaningful chunk overall (~6.6%)
-
-Restricted (p = 0.005) vs unrestricted (p = 0.001) permutations:
-Same conclusion:
-
-Ignoring reef structure inflates significance
-Your valid result = p = 0.005
-
-Juvenile community structure varied significantly across the continental shelf, but these spatial patterns were not consistent through time, as indicated by a significant Shelf × Year interaction (R² = 0.066, p = 0.005). When the interaction was removed, Shelf was no longer significant (p = 0.090), suggesting that cross-shelf differences occurred only in certain years rather than representing a stable spatial pattern. The persistence of the interaction following square-root transformation indicates that this pattern is not driven solely by dominant taxa.
 
 ##2.2. Beta dispersion
 Since the main result is shelf x year interaction
@@ -698,17 +719,14 @@ h <- how(blocks = metadata_belt$Reef)
 permutest(bd, permutations = h)
 plot(bd)
 ```
-Groups differ in variability → PERMANOVA may reflect dispersion differences
+Groups differ in variability -> PERMANOVA may reflect dispersion differences
 
 BUT (important nuance):
 
 If interaction is significant AND dispersion is weak/moderate
-→ you can still interpret, but cautiously
+-> you can still interpret, but cautiously
 “Communities differ among Shelf × Year, but this may reflect differences in variability as well as composition”
 
-```{r}
-# TukeyHSD(bd)
-```
 
 ## 2.3. NMDS juveniles
 
@@ -794,9 +812,85 @@ belt_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          colo
          size = 3)+
   scale_x_continuous(limits = c(-0.85, 1))+
   scale_y_continuous(limits = c(-1.05, 0.95))+
-  facet_wrap(~Year)
+  facet_wrap(~Year, ncol =1)
 
 belt_A
+```
+
+```{r}
+h <- how(blocks = metadata_belt$Reef)
+
+# Creating Vectors for driving the patterns
+belt_envfit <- envfit(
+  nmds,
+  belt_matrix_filtered,
+  permutations = h #restricts permuatations to a year
+) 
+
+# Extract p-values
+pvals <- belt_envfit$vectors$pvals
+
+# Extract r-squared values
+r2 <- belt_envfit$vectors$r
+# Arrow coordinates
+vec_scores <- as.data.frame(scores(belt_envfit, display = "vectors"))
+
+# Add r2 and p-values
+vec_scores$r2 <- belt_envfit$vectors$r
+vec_scores$pval <- belt_envfit$vectors$pvals
+
+vec_scores
+#Saving the vectors as a data frame
+
+belt_envfit <- vec_scores |> 
+  rownames_to_column(var = "label_category")
+```
+
+```{r}
+belt_B <- ggplot()+
+  geom_segment(data = belt_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = belt_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_category),
+                  inherit.aes = FALSE,
+                  size = 2.5,
+                  box.padding = 0.1, 
+                  min.segment.length = Inf,
+                  nudge_x = -0.05,
+                  nudge_y = -0.1)+
+  theme_bw() +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         text = element_text(size = 9)
+     ) +
+     labs(
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf",
+        shape = "Year"
+    )+
+  scale_x_continuous(limits = c(-0.85, 1))+
+  scale_y_continuous(limits = c(-1.05, 0.95))
+belt_B
+```
+
+```{r}
+belt_Figure <- ggarrange(
+  belt_A, belt_B, labels = c("A", "B"), heights = c(4, 1), ncol = 1, legend = "none"
+)
+
+belt_Figure
+```
+
+```{r eval=FALSE}
+ggsave(belt_Figure,
+  filename = "figures/facet_belt_NMDS.PDF",
+  height = 280, 
+  units = "mm"
+)
 ```
 
 # 3. Benthic
@@ -892,39 +986,75 @@ PIT_matrix_filtered <- sqrt(PIT_matrix_filtered)
 ```
 
 ```{r}
-h <- how(blocks = metadata_PIT$Reef)                                                   # restrict permutations within years
-
+h <- how(blocks = metadata_PIT$Site) # restrict permutations within years
 #Bray curtis PERMANOVA
+```
+
+```{r echo=TRUE}
 mod_restricted <- adonis2(PIT_matrix_filtered ~ Shelf*Year, 
         data = metadata_PIT, 
         permutations = h,
         method = "bray", by = "margin")   # PERMANOVA, where main effects are not estimable independently of the interaction, 
 
+
+
+mod_unrestricted <- adonis2(PIT_matrix_filtered ~ Shelf*Year, 
+        data = metadata_PIT,
+        permutations = 999,
+        method = "bray",
+        by = "margin")
+
+mod_restricted #permutations restricted to reef, which there are 2 levels
+mod_unrestricted #permutations were not restricted to reef
+```
+#### Main result
+Shelf × Year:  
+R² = 0.0282, F = 2.48, p = 0.005
+There is a significant interaction between Shelf and Year, but it explains a small proportion of variation (~2.8%).
+
+Effect is robust, as indicated by significant p values when unrestricted
+restricted:   p = 0.005  
+unrestricted: p = 0.001
+
+
+```{r echo=TRUE}
 adonis2(PIT_matrix_filtered ~ Shelf*Year, 
         data = metadata_PIT, 
         permutations = h,
         method = "bray", by = "terms")
-
-mod_unrestricted <- adonis2(PIT_matrix_filtered ~ Shelf*Year, 
-        data = metadata_PIT,
-                           permutations = 999,
-                           method = "bray",
-                           by = "margin")
-
-
-mod_restricted #permutations restricted to reef, which there are 2 levels
-mod_unrestricted #permutations were not restricted to reef
 
 adonis2(PIT_matrix_filtered ~ Shelf + Year, 
         data = metadata_PIT, 
         permutations = h,
         method = "bray", by = "margin")
 ```
+#### Additive model
+Shelf: R² = 0.503, F = 127.65, p = 0.005  
+Year:  R² = 0.029, F = 4.88,  p = 0.005  
+Adult community structure is overwhelmingly structured by Shelf, with a smaller but significant temporal effect.
+Shelf explains 50% of the variation - huge in ecological community
 
-Benthic community structure differed strongly across the continental shelf, with Shelf explaining approximately 50% of the variation. Temporal variation was also significant but comparatively small (~3%). Although a statistically significant Shelf × Year interaction was detected, its effect size was low (~2.8%), indicating that spatial patterns were largely consistent through time, with only minor temporal shifts.
+Shelf × Year: R² = 0.028, p = 0.005
+Shelf = dominant driver
+Year = secondary
+Interaction = small but significant
 
+#### Use of by terms, to understand structure
+Shelf        R² = 0.509  
+Year         R² = 0.029  
+Interaction  R² = 0.028  
+Shelf explains the vast majority of explained variation
+Year and interaction contribute small but detectable effects
+They align perfectly with the additive model
+So interpretation is very robust.
 
-##3.2. Beta dispersion
+Community structure is strongly and consistently differentiated across the shelf, with minor temporal fluctuations that do not fundamentally alter spatial patterns.
+
+PERMANOVA revealed strong spatial structuring of adult assemblages, with Shelf explaining a substantial proportion of variation (R² = 0.503, F = 127.65, p = 0.005). Year also contributed significantly, but accounted for a much smaller proportion of variation (R² = 0.029, p = 0.005).
+
+A significant Shelf × Year interaction was detected (R² = 0.028, p = 0.005), although its effect size was small relative to the main effects. This indicates that while temporal variability influences community structure, cross-shelf differences remain consistent through time.
+
+## 3.2. Beta dispersion
 For PIT, your key PERMANOVA result was:
 
 Strong Shelf effect (R² ~ 0.50)
@@ -938,7 +1068,7 @@ PIT_dist <- vegdist(PIT_matrix_filtered, method = "bray")
 
 bd_shelf <- betadisper(PIT_dist, metadata_PIT$Shelf)
 
-h <- how(blocks = metadata_PIT$Reef)
+h <- how(blocks = metadata_PIT$Site)
 
 permutest(bd_shelf, permutations = h)
 
@@ -949,7 +1079,7 @@ Shelf (main effect)
 F = 40.23
 p = 0.005
 
- Very strong signal:
+Very strong signal:
 Dispersion differs substantially among shelf positions
 
 ```{r}
@@ -966,16 +1096,13 @@ F = 6.31
 p = 0.005
 
 Also significant:
-
 Variability differs among specific Shelf–Year combination
 
 Because:
-
 Shelf R² = 50% (very large)
 Dispersion is also very strong
 
 Interpretation becomes:
-
 Cross-shelf differences are partly due to differences in community variability, not just shifts in mean composition
 
 From plot(bd_shelf), you’ll probably see:
@@ -985,9 +1112,8 @@ Another = very spread out (high variance)
 
 Ecologically, this often means:
 
-Outer shelf → more stable, consistent assemblages
-Inner shelf → more variable / patchy / disturbed
-
+Outer shelf -> more stable, consistent assemblages
+Inner shelf -> more variable / patchy / disturbed
 
 Adult communities show strong cross-shelf structuring, but this is accompanied by substantial differences in variability among shelf positions. In contrast, juvenile assemblages are more temporally dynamic, with spatial patterns that shift among years and are also associated with changes in dispersion.
 A test for homogeneity of multivariate dispersion revealed significant differences among shelf positions (F = 40.23, p = 0.005), indicating substantial variation in within-group dispersion. As PERMANOVA is sensitive to dispersion effects, the strong Shelf effect (R² = 0.50) likely reflects both differences in community composition and variability among shelf positions.
@@ -1002,7 +1128,7 @@ nmds$stress
 
 # Extract NMDS for plot
 site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
-scores <- cbind(site_scores, metadata_PIT[, c("Year", "Shelf", "Reef")])
+scores <- cbind(site_scores, metadata_PIT[, c("Year", "Shelf", "Reef", "Site")])
 
 scores <- scores |> 
   mutate(
@@ -1040,7 +1166,6 @@ ell_df <- ellipse_points(ell, npoints = 100)
 ell_df <- ell_df |>
   tidyr::separate(Shelf, into = c("Shelf", "Year"), sep = "\\.")
 ```
-
 
 ```{r}
 # # Extract NMDS for plot
@@ -1114,6 +1239,92 @@ Benthic_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,                          c
          size = 3)+
   scale_x_continuous(limits = c(-1.2, 1.05))+
   scale_y_continuous(limits = c(-1, 0.9))+
-  facet_wrap(~Year)
+  facet_wrap(~Year, ncol =2)
 Benthic_A
+```
+
+```{r}
+h <- how(blocks = metadata_PIT$Reef)
+# Creating Vectors for driving the patterns
+Benthic_envfit <- envfit(
+  nmds,
+  PIT_matrix_filtered,
+  permutations = h
+) 
+
+# Extract p-values
+pvals <- Benthic_envfit$vectors$pvals
+
+# Extract r-squared values
+r2 <- Benthic_envfit$vectors$r
+# Arrow coordinates
+vec_scores <- as.data.frame(scores(Benthic_envfit, display = "vectors"))
+
+# Add r2 and p-values
+vec_scores$r2 <- Benthic_envfit$vectors$r
+vec_scores$pval <- Benthic_envfit$vectors$pvals
+
+vec_scores
+#Saving the vectors as a data frame
+
+vec_scores <- vec_scores |> 
+  filter(pval < 0.05, r2 > 0.15) # filter to only show vectors that are significant drivers.
+
+Benthic_envfit <- vec_scores |> 
+  rownames_to_column(var = "label_category")
+
+#Other, Zoantharian, Poritidae...
+```
+
+
+```{r}
+Benthic_envfit$NMDS1_lab <- Benthic_envfit$NMDS1 * 1.1
+
+Benthic_envfit$NMDS2_lab <- Benthic_envfit$NMDS2 * 1.1
+
+Benthic_B <- ggplot()+
+  geom_segment(data = Benthic_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = Benthic_envfit,
+                  aes(x = NMDS1_lab, y= NMDS2_lab, label = label_category),
+                  inherit.aes = FALSE,
+                   size = 2.5,
+    max.overlaps = Inf,
+    force = 2,
+    max.iter = 20000,
+    box.padding = 0.3,
+    point.padding = 0.2)+
+  theme_bw() +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         text = element_text(size = 9)
+     ) +
+     labs(
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf",
+        shape = "Year"
+    )+
+  scale_x_continuous(limits = c(-1.3, 1.05))+
+  scale_y_continuous(limits = c(-1, 0.9))
+```
+
+```{r}
+Benthic_Figure <- ggarrange(
+  Benthic_A, Benthic_B, labels = c("A", "B"), heights = c(2, 1), ncol = 1
+)
+
+Benthic_Figure
+```
+
+```{r eval=FALSE}
+ggsave(Benthic_Figure,
+  filename = "figures/facet_benthic_NMDS.PDF",
+  height = 280,
+  width = 240,
+  units = "mm"
+)
 ```

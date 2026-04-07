@@ -80,7 +80,7 @@ mutate(
 Coral_settlement_nGBR <- Coral_settlement_nGBR |> 
 mutate(
   notes = case_when(
-    !notes %in% c("Dislodged")~"Attached to baseplate",
+    !notes == "Dislodged" ~ "Attached to baseplate",
     TRUE ~ notes
   ))
 
@@ -143,7 +143,9 @@ dettached_mod2 <- glmmTMB(total ~ notes + (1 | Reef/Site) + (1| Year_Collected),
 ```{r}
 sim_mod2 <- simulateResiduals(dettached_mod2)
 testResiduals(sim_mod2)
+```
 
+```{r}
 plot(ggpredict(dettached_mod, terms = "notes"))+
   labs(y= expression("Predicted no. recruits (" * tile^{-1}*")" ), x= "Status of tile at collection")+
   theme(panel.grid.minor = element_blank(),
@@ -154,8 +156,27 @@ plot(ggpredict(dettached_mod, terms = "notes"))+
 AIC(dettached_mod, dettached_mod2)
 # model.sel(dettached_mod, dettached_mod2)
 #detached model behaved better
+```
+
+```{r}
+dislodged_emm <- dettached_mod|> 
+  emmeans(~notes, type = "response") |> 
+  as.data.frame()
+
+ggplot()+
+  geom_pointrange(data = dislodged_emm,aes(x=notes,
+             y=response,ymin = asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.85))+
+  theme_classic()+
+  labs(y = expression("Predicted recruits ( " * tile^{-1} * ")"))+
+  scale_x_discrete(
+    "Tile at collection",
+    labels = c("No notes" = "Attached",
+               "Dislodged" = "Dislodged")
+    )
 
 d_tukey <- emmeans(dettached_mod, ~notes,  type = "response")
+d_tukey
 
 pairs(d_tukey)
 # |> 
