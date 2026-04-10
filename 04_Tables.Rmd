@@ -171,9 +171,7 @@ PIT <- PIT |>
       Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
       Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
       TRUE ~ NA_character_
-    ),
-    Site = factor(Site, levels = levels(PIT$Site))
-  )
+    ) )
 
 
 PIT<- PIT |> 
@@ -206,12 +204,12 @@ PIT <- PIT %>%
 PIT <- PIT |> 
   dplyr::select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
 
-PIT <- PIT |> 
-  mutate(
-    sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE)
-  )
-
-summary(PIT$sum)
+# PIT <- PIT |> 
+#   mutate(
+#     sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE)
+#   )
+# 
+# summary(PIT$sum)
 
 PIT <- PIT |> 
   mutate(
@@ -255,8 +253,7 @@ Belt_10m <- Belt_10m |>
       Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
       Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
       TRUE ~ NA_character_
-    ),
-    Site = factor(Site, levels = levels(PIT$Site))
+    )
   )
 
 Belt_10m <- Belt_10m |> filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25"))
@@ -756,6 +753,8 @@ nbin_acro_adult_int <- glmmTMB(Acroporidae ~ Shelf * Year +(1 | Reef/Site),
 ```{r}
 pois_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year + (1 | Reef/Site), 
       family = "poisson", data = PIT)
+nbin_poci_adult_int <- glmmTMB(Pocilloporidae ~ Shelf * Year +(1 | Reef/Site), 
+        family = "nbinom2", data = PIT)
 ```
 
 ### 4.2.4 Poritidae Hard coral cover %
@@ -1208,7 +1207,7 @@ pairs(emm_shelf)
 
 Note that in my emmeans the Tukey-adjusted p-values are within each year (the 3 comparisons), whereas Benjamin Hochberg would adjust across all comparisons you include in the p.adjust call.
 
-```{r eval = FALSE}
+```{r}
 library(openxlsx)
 
 extract_emm_results <- function(model, filename) {
@@ -1285,8 +1284,8 @@ extract_emm_results <- function(model, filename) {
   )
 }
 
-nbin_por_adult <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site), 
-        family = "nbinom2", data = PIT_adult)
+# nbin_por_adult <- glmmTMB(Poritidae ~ Shelf +  Year +(1 | Reef/Site), 
+#         family = "nbinom2", data = PIT_adult)
 # extract_emm_results(nbin_total_yr2, "output/Total_Recruits.xlsx")
 # extract_emm_results(nbin_Acroporidae_interaction, "output/Acroporidae_recruits.xlsx")
 # extract_emm_results(nbin_Pocilloporidae_interaction, "output/Pocilloporidae_recruits.xlsx")
@@ -1376,7 +1375,7 @@ extract_emm_results_pois <- function(model, filename) {
   )
 }
 
-# extract_emm_results_pois(pois_poci_adult_int, "output/Adult_poci.xlsx")
+extract_emm_results_pois(pois_poci_adult_int, "output/Adult_poci.xlsx")
 ```
 
 

@@ -90,27 +90,27 @@ Coral_settlement_nGBR <- Coral_settlement_nGBR |>
   filter(notes != "Dislodged")
 
 Pocilloporidae <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Pocilloporidae, Top_Pocil, 
          Under_Pocil, Side_Pocil, total)
 
 Acroporidae <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Acroporidae, Top_Acr, 
          Under_Acr, Side_Acr, total)
 
 
 Poritid <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Poritid, Top_Por, Under_Por, 
          Side_Por, total)
 
 
 Other <- Coral_settlement_nGBR %>% 
-  select(Year, Shelf, 
+  dplyr::select(Year, Shelf, 
          Reef, Site, Tile, 
          Other, Top_other, 
          Under_oth, Side_other, total)
@@ -160,9 +160,7 @@ PIT <- PIT |>
       Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
       Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
       TRUE ~ NA_character_
-    ),
-    Site = factor(Site, levels = levels(PIT$Site))
-  )
+    )  )
 
 
 PIT<- PIT |> 
@@ -174,29 +172,29 @@ PIT<- PIT |>
 
 PIT <- PIT %>%
   mutate(
-    Acroporidae = rowSums(select(., `Acropora - branching`:`Montipora`), na.rm = TRUE), #grouping Acroporidae
-    Pocilloporidae = rowSums(select(., Pocillopora:Stylophora), na.rm = TRUE), #grouping Pocilloporidae genera
-    Poritidae = rowSums(select(., `Porites - branching`:Goniopora), na.rm = TRUE), #grouping Poritidae genera
-    `Other Hard coral` = rowSums(select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE), # Grouping other hard corals
-    `Soft coral` = rowSums(select(., Lobophytum:`Soft-other`), na.rm = TRUE), #soft coral categories
-    `Brown MA` = rowSums(select(., Sargassum:Lobophora), na.rm = TRUE), #brown macroalgae categories
-    `Red MA` = rowSums(select(., Asparagopsis:Jania), na.rm = TRUE), #red macroalgae
-    `Green MA`= rowSums(select(., Halimeda:Valonia), na.rm = TRUE), #green macroalgae
-    `Sand and Rubble` = rowSums(select(., Sand:Rubble), na.rm = TRUE), #sand, rubble, and combo
-    Turf = rowSums(select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE), #Turfing substrata (dead corals + EAM)
-    Other = rowSums(select(., Sponge:Clam), na.rm = TRUE), #other invertes
-    Zoantharian = rowSums(select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
+    Acroporidae = rowSums(dplyr::select(., `Acropora - branching`:`Montipora`), na.rm = TRUE), #grouping Acroporidae
+    Pocilloporidae = rowSums(dplyr::select(., Pocillopora:Stylophora), na.rm = TRUE), #grouping Pocilloporidae genera
+    Poritidae = rowSums(dplyr::select(., `Porites - branching`:Goniopora), na.rm = TRUE), #grouping Poritidae genera
+    `Other Hard coral` = rowSums(dplyr::select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE), # Grouping other hard corals
+    `Soft coral` = rowSums(dplyr::select(., Lobophytum:`Soft-other`), na.rm = TRUE), #soft coral categories
+    `Brown MA` = rowSums(dplyr::select(., Sargassum:Lobophora), na.rm = TRUE), #brown macroalgae categories
+    `Red MA` = rowSums(dplyr::select(., Asparagopsis:Jania), na.rm = TRUE), #red macroalgae
+    `Green MA`= rowSums(dplyr::select(., Halimeda:Valonia), na.rm = TRUE), #green macroalgae
+    `Sand and Rubble` = rowSums(dplyr::select(., Sand:Rubble), na.rm = TRUE), #sand, rubble, and combo
+    Turf = rowSums(dplyr::select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE), #Turfing substrata (dead corals + EAM)
+    Other = rowSums(dplyr::select(., Sponge:Clam), na.rm = TRUE), #other invertes
+    Zoantharian = rowSums(dplyr::select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
   )
 
 PIT <- PIT |> 
-  select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
+  dplyr::select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
 
 PIT <- PIT |> 
   mutate(
     sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE) 
   )
 
-summary(PIT$sum) #check that the number of points = 50 per transect
+#summary(PIT$sum) #check that the number of points = 50 per transect
 
 PIT <- PIT |> 
   mutate(
@@ -269,12 +267,12 @@ join_belt <- Belt_10m |>
 
 ## Total recuits
 total_recruits <- Coral_settlement_nGBR %>%
-  select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  dplyr::select(Year_Collected, Shelf, Reef, Site, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
   pivot_longer(cols = 5:8, names_to = "Family", values_to = "Total")
 
 #Order so that Other is last in Family
 total_recruits <- Coral_settlement_nGBR %>% 
-  select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
+  dplyr::select(Year_Collected, Shelf, Reef, Site, Obs, Acroporidae, Pocilloporidae, Poritid, Other) %>% 
   pivot_longer(cols = 6:9, names_to = "Family", values_to = "Total") %>%
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 
@@ -282,7 +280,7 @@ total_recruits$Year_Collected <- as.factor(total_recruits$Year_Collected)
 
 ## Family recruitment data
 family_total_recruits <- Coral_settlement_nGBR %>%
-  select(2:13) %>% 
+  dplyr::select(2:13) %>% 
   pivot_longer(cols = 9:12, names_to = "Family", values_to = "Total") |> 
   mutate(Family = factor(Family, levels = c("Acroporidae", "Poritid","Pocilloporidae", "Other")))
 ```
@@ -957,7 +955,7 @@ model.sel(pois_acro_adult, pois_acro_adult_int, nbin_acro_adult, nbin_acro_adult
 ```{r}
 summary(nbin_acro_adult_int)
 ```
-High variability among sites (54% of variance), whereas reef only accounts for 2% on top of what site within reef.
+High variability among sites (56.7% of variance), whereas reef only accounts for 0.5% on top of what site within reef.
 
 ### 3.2.2. Pocilloporidae
 
@@ -1116,8 +1114,7 @@ Now these are both averages, it can't follow an integar and would need to follow
 
 ## 4.1. Acroporidae
 
-Despite not being insteresting in across the shelf differences, as shelf has only three levels there are two few levels for a stable randm effect
-Despite not being interested in across the shelf differences, as shelf has only three levels there are two few levels for a stable randm effect
+Despite not being interested in across the shelf differences, as shelf has only three levels there are two few levels for a stable random effect
 ```{r}
 Acro <- combined_averages |> 
   filter(acro_mean_st > 0)
@@ -1653,3 +1650,306 @@ writeData(wb, "Porites", glance_por, startRow = nrow(tidy_por) + 3)
 
 saveWorkbook(wb, "output/coral_model_summaries.xlsx", overwrite = TRUE)
 ```
+
+
+# 6. Brood stock and juveniles
+
+```{r}
+# Benthic Data
+PIT <- read_csv("PIT_final.csv") %>%
+  mutate(across(8:94, ~replace_na(.x, 0))) %>%
+  mutate(across(8:94, as.numeric))
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ),
+    Reef = case_when(
+      Site %in% c("Day 1", "Day 2", "Day 3") ~ "Day",
+      Site %in% c("Hicks 1", "Hicks 2", "Hicks 3") ~ "Hicks",
+      Site %in% c("Mac 1", "Mac 2", "Mac 3") ~ "MacGillivray",
+      Site %in% c("TN_Back", "TN_coral", "TN_Crest") ~ "Turtle N",
+      Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
+      Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
+      TRUE ~ NA_character_
+    )  )
+
+
+PIT<- PIT |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site))
+
+PIT_detailed <- PIT %>%
+  mutate(
+    Acropora = rowSums(pick(`Acropora - branching`:`Acropora - tables`), na.rm = TRUE),
+    Porites  = rowSums(pick(`Porites - branching`:`Porites - massive`), na.rm = TRUE)
+  ) %>%
+  dplyr::select(Year, Shelf, Reef, Site, Transect, Acropora, Isopora, Montipora, Pocillopora, 
+                Seriatopora, Stylophora, Porites, Goniopora) %>%
+  mutate(across(Acropora:Goniopora, ~ .x * 2))
+
+join_PIT_detailed <- PIT_detailed |> pivot_longer(cols = Acropora:Goniopora, names_to = "genus", values_to = "Percent_cover")
+join_PIT_detailed <- join_PIT_detailed |> 
+  group_by(Year, Shelf, Reef, Site, genus) |> 
+  summarise(
+    mean_cover = mean(Percent_cover),
+    sd_cover = sd(Percent_cover)
+  )
+
+```
+
+```{r}
+Belt_detailed <- Belt_10m |> 
+  dplyr::select(Year, Shelf, Reef, Site, Transect, Acropora, Isopora, Montipora, Pocillopora, 
+                Seriatopora, Stylophora, Porites)
+
+belt_detailed_long <- Belt_detailed |>  pivot_longer(cols = Acropora:Porites, names_to = "genus", values_to = "juvenile_density")
+
+belt_detailed_long <- belt_detailed_long |> 
+  group_by(Year, Shelf, Reef, Site, genus) |> 
+  summarise(
+    mean_juv = mean(juvenile_density),
+    sd_juv = sd(juvenile_density)
+  )
+```
+
+```{r}
+combined_juv_cover <- left_join(join_PIT_detailed, belt_detailed_long)
+```
+
+Despite not being interested in across the shelf differences, as shelf has only three levels there are two few levels for a stable random effect
+```{r}
+combined_juv_cover |> group_by(genus) |> 
+  summarise(
+    min_cover = min(mean_cover),
+    max_cover = max(mean_cover),
+    median_cover = median(mean_cover),
+    min_juv = min(mean_juv),
+    max_juv = max(mean_juv),
+    median_juv = median(mean_juv)
+  )
+```
+
+
+From this I would say we can only really do Acropora, Porites, and Pocillopora analysis because they have medians not equal to 0
+
+## 6.1. Acropora
+
+```{r}
+Acro_j_bs <- combined_juv_cover |>  filter(genus == "Acropora")
+
+gamma_avg_Acropora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
+         family = Gamma(link = "log"), data = Acro_j_bs)
+# sim <- simulateResiduals(gamma_avg_Acropora_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+ln_avg_Acropora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
+        family = "lognormal", data = Acro_j_bs)
+# sim <- simulateResiduals(ln_avg_Acropora_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
+
+gau_avg_Acropora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
+        family = "gaussian", data = Acro_j_bs)
+# sim <- simulateResiduals(gau_avg_Acropora_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+#interaction with Shelf
+gamma_avg_Acropora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
+         family = Gamma(link = "log"), data = Acro_j_bs)
+# sim <- simulateResiduals(gamma_avg_Acropora_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+ln_avg_Acropora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
+        family = "lognormal", data = Acro_j_bs)
+# sim <- simulateResiduals(ln_avg_Acropora_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+gaus_avg_Acropora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
+        family = "gaussian", data = Acro_j_bs)
+# sim <- simulateResiduals(gaus_avg_Acropora_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+gamma_avg_Acropora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
+         family = Gamma(link = "log"), data = Acro_j_bs)
+# sim <- simulateResiduals(gamma_avg_Acropora_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+ln_avg_Acropora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
+        family = "lognormal", data = Acro_j_bs)
+# sim <- simulateResiduals(ln_avg_Acropora_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+gau_avg_Acropora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
+        family = "gaussian", data = Acro_j_bs)
+sim <- simulateResiduals(gau_avg_Acropora_fixed2)
+testResiduals(sim) #passes
+testZeroInflation(sim) #passes
+```
+
+```{r}
+model.sel(gamma_avg_Acropora_fixed, gamma_avg_Acropora_fixed2, gamma_avg_Acropora_int,
+          ln_avg_Acropora_fixed, ln_avg_Acropora_fixed2, ln_avg_Acropora_int,
+          gau_avg_Acropora_fixed, gau_avg_Acropora_fixed2, gaus_avg_Acropora_int)
+```
+
+```{r}
+summary(ln_avg_Acropora_fixed2)
+```
+
+
+## 6.2. Pocillopora
+
+Issue is that we have zeros for the averages here in both cover and juveniles. cover has one site/year where there was no Pocillopora, whereas there are two site/year that have 0 pocillopora juveniles.
+Will likely need to filter the 0 ones out to be able to run models but will just try
+```{r}
+Poci_j_bs <- combined_juv_cover |>  filter(genus == "Pocillopora")
+
+gamma_avg_Pocillopora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
+         family = Gamma(link = "log"), data = Poci_j_bs)
+# sim <- simulateResiduals(gamma_avg_Pocillopora_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+ln_avg_Pocillopora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
+        family = "lognormal", data = Poci_j_bs)
+# sim <- simulateResiduals(ln_avg_Pocillopora_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
+
+gau_avg_Pocillopora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
+        family = "gaussian", data = Poci_j_bs)
+sim <- simulateResiduals(gau_avg_Pocillopora_fixed)
+testResiduals(sim) #significant deviation
+testZeroInflation(sim) #signficant zero inflation
+
+zi_gau_avg_Pocillopora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year),
+                                        ziformula = ~1,
+        family = "gaussian", data = Poci_j_bs)
+# sim <- simulateResiduals(zi_gau_avg_Pocillopora_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #still significant..
+
+#interaction with Shelf
+gamma_avg_Pocillopora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
+         family = Gamma(link = "log"), data = Poci_j_bs)
+# sim <- simulateResiduals(gamma_avg_Pocillopora_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+ln_avg_Pocillopora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
+        family = "lognormal", data = Poci_j_bs)
+# sim <- simulateResiduals(ln_avg_Pocillopora_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+gaus_avg_Pocillopora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
+        family = "gaussian", data = Poci_j_bs)
+# sim <- simulateResiduals(gaus_avg_Pocillopora_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+gamma_avg_Pocillopora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
+         family = Gamma(link = "log"), data = Poci_j_bs)
+# sim <- simulateResiduals(gamma_avg_Pocillopora_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+ln_avg_Pocillopora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
+        family = "lognormal", data = Poci_j_bs)
+# sim <- simulateResiduals(ln_avg_Pocillopora_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+gau_avg_Pocillopora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
+        family = "gaussian", data = Poci_j_bs)
+sim <- simulateResiduals(gau_avg_Pocillopora_fixed2)
+testResiduals(sim) #passes
+testZeroInflation(sim) #passes
+```
+
+
+## 6.3. Porites
+Lots of site/year without Porites cover, but only 2 without por juveniles
+```{r}
+Por_j_bs <- combined_juv_cover |>  filter(genus == "Porites")
+```
+
+```{r}
+gamma_avg_Porites_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
+         family = Gamma(link = "log"), data = Por_j_bs)
+# sim <- simulateResiduals(gamma_avg_Porites_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+ln_avg_Porites_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
+        family = "lognormal", data = Por_j_bs)
+# sim <- simulateResiduals(ln_avg_Porites_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim)
+
+gau_avg_Porites_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
+        family = "gaussian", data = Por_j_bs)
+sim <- simulateResiduals(gau_avg_Porites_fixed)
+testResiduals(sim) #passes
+testZeroInflation(sim) #significant zero inflation
+
+#interaction with Shelf
+gamma_avg_Porites_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
+         family = Gamma(link = "log"), data = Por_j_bs)
+# sim <- simulateResiduals(gamma_avg_Porites_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+ln_avg_Porites_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
+        family = "lognormal", data = Por_j_bs)
+# sim <- simulateResiduals(ln_avg_Porites_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+gaus_avg_Porites_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
+        family = "gaussian", data = Por_j_bs)
+# sim <- simulateResiduals(gaus_avg_Porites_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+gamma_avg_Porites_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
+         family = Gamma(link = "log"), data = Por_j_bs)
+# sim <- simulateResiduals(gamma_avg_Porites_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+ln_avg_Porites_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
+        family = "lognormal", data = Por_j_bs)
+# sim <- simulateResiduals(ln_avg_Porites_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+gau_avg_Porites_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
+        family = "gaussian", data = Por_j_bs)
+sim <- simulateResiduals(gau_avg_Porites_fixed2)
+testResiduals(sim) #passes
+testZeroInflation(sim) #passes
+```
+
+
+
