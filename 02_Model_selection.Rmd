@@ -1823,24 +1823,23 @@ Issue is that we have zeros for the averages here in both cover and juveniles. c
 Will likely need to filter the 0 ones out to be able to run models but will just try
 ```{r}
 Poci_j_bs <- combined_juv_cover |>  filter(genus == "Pocillopora")
+Poci_j_bs <- combined_juv_cover |> filter(mean_juv > 0)
 
 gamma_avg_Pocillopora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
          family = Gamma(link = "log"), data = Poci_j_bs)
 # sim <- simulateResiduals(gamma_avg_Pocillopora_fixed)
 # testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
 
 ln_avg_Pocillopora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
         family = "lognormal", data = Poci_j_bs)
 # sim <- simulateResiduals(ln_avg_Pocillopora_fixed)
 # testResiduals(sim) #passes
-# testZeroInflation(sim)
 
 gau_avg_Pocillopora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
         family = "gaussian", data = Poci_j_bs)
-sim <- simulateResiduals(gau_avg_Pocillopora_fixed)
-testResiduals(sim) #significant deviation
-testZeroInflation(sim) #signficant zero inflation
+# sim <- simulateResiduals(gau_avg_Pocillopora_fixed)
+# testResiduals(sim) #significant deviation
+# testZeroInflation(sim) #signficant zero inflation
 
 zi_gau_avg_Pocillopora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year),
                                         ziformula = ~1,
@@ -1860,58 +1859,70 @@ ln_avg_Pocillopora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site),
         family = "lognormal", data = Poci_j_bs)
 # sim <- simulateResiduals(ln_avg_Pocillopora_int)
 # testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
 
 gaus_avg_Pocillopora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
         family = "gaussian", data = Poci_j_bs)
 # sim <- simulateResiduals(gaus_avg_Pocillopora_int)
-# testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
+# testResiduals(sim) #outlier significant, significant KS deviation
+
 
 gamma_avg_Pocillopora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
          family = Gamma(link = "log"), data = Poci_j_bs)
 # sim <- simulateResiduals(gamma_avg_Pocillopora_fixed2)
 # testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
 
 ln_avg_Pocillopora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
         family = "lognormal", data = Poci_j_bs)
 # sim <- simulateResiduals(ln_avg_Pocillopora_fixed2)
 # testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
+
 
 gau_avg_Pocillopora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
         family = "gaussian", data = Poci_j_bs)
-sim <- simulateResiduals(gau_avg_Pocillopora_fixed2)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(gau_avg_Pocillopora_fixed2)
+# testResiduals(sim) #KS and outlier significant
+
 ```
+
+```{r}
+model.sel(gamma_avg_Pocillopora_fixed, gamma_avg_Pocillopora_fixed2, gamma_avg_Pocillopora_int,
+          ln_avg_Pocillopora_fixed, ln_avg_Pocillopora_fixed2, ln_avg_Pocillopora_int #,
+          #gau_avg_Porites_fixed, gau_avg_Porites_fixed2, gaus_avg_Porites_int
+          )
+```
+
+```{r}
+summary(gamma_avg_Pocillopora_fixed2)
+```
+
+I don't love the amount of varaince in the conditional model
 
 
 ## 6.3. Porites
-Lots of site/year without Porites cover, but only 2 without por juveniles
+Lots of site/year without Porites cover, but only 2 without porites juveniles. One of the ones without coral cover also did not have juveniles (21/22 TS crest). The other did have some coral cover...
 ```{r}
 Por_j_bs <- combined_juv_cover |>  filter(genus == "Porites")
+Por_j_bs <- Por_j_bs |> filter(mean_juv > 0)
 ```
 
 ```{r}
 gamma_avg_Porites_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
          family = Gamma(link = "log"), data = Por_j_bs)
-# sim <- simulateResiduals(gamma_avg_Porites_fixed)
+sim <- simulateResiduals(gamma_avg_Porites_fixed)
 # testResiduals(sim) #passes
 # testZeroInflation(sim) #passes
 
 ln_avg_Porites_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
         family = "lognormal", data = Por_j_bs)
-# sim <- simulateResiduals(ln_avg_Porites_fixed)
-# testResiduals(sim) #passes
+sim <- simulateResiduals(ln_avg_Porites_fixed)
+testResiduals(sim) #passes
 # testZeroInflation(sim)
 
 gau_avg_Porites_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
         family = "gaussian", data = Por_j_bs)
-sim <- simulateResiduals(gau_avg_Porites_fixed)
-testResiduals(sim) #passes
-testZeroInflation(sim) #significant zero inflation
+# sim <- simulateResiduals(gau_avg_Porites_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #significant zero inflation
 
 #interaction with Shelf
 gamma_avg_Porites_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
@@ -1929,8 +1940,8 @@ ln_avg_Porites_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site),
 gaus_avg_Porites_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
         family = "gaussian", data = Por_j_bs)
 # sim <- simulateResiduals(gaus_avg_Porites_int)
-# testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
+# testResiduals(sim) #significant outlier
+# # testZeroInflation(sim) #passes
 
 gamma_avg_Porites_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
          family = Gamma(link = "log"), data = Por_j_bs)
@@ -1946,10 +1957,22 @@ ln_avg_Porites_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site),
 
 gau_avg_Porites_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
         family = "gaussian", data = Por_j_bs)
-sim <- simulateResiduals(gau_avg_Porites_fixed2)
-testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+# sim <- simulateResiduals(gau_avg_Porites_fixed2)
+# testResiduals(sim) #outliers
+# testZeroInflation(sim) #passes
 ```
 
+```{r}
+model.sel(gamma_avg_Porites_fixed, gamma_avg_Porites_fixed2, gamma_avg_Porites_int,
+          ln_avg_Porites_fixed, ln_avg_Porites_fixed2, ln_avg_Porites_int #,
+          #gau_avg_Porites_fixed, gau_avg_Porites_fixed2, gaus_avg_Porites_int
+          )
+```
 
+```{r}
+summary(gamma_avg_Porites_fixed)
+```
+```{r}
+summary(gamma_avg_Porites_int)
+```
 
