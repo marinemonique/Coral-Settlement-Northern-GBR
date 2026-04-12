@@ -1047,6 +1047,7 @@ PIT |> summarise(mean_HC = mean(Total_HC_Cover),
                  se_HC = sd(Total_HC_Cover)/n()^0.5)
 ```
 ```{r}
+PIT$Total_HC_Cover |> summary()
 PIT$Acroporidae |> summary()
 
 PIT$Pocilloporidae |> summary()

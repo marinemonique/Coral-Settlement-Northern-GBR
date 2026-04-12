@@ -193,8 +193,7 @@ PIT <- PIT |>
       Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
       Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
       TRUE ~ NA_character_
-    ),
-    Site = factor(Site, levels = levels(PIT$Site))
+    )
   )
 
 
@@ -377,6 +376,8 @@ A <- ggplot()+
              y=response, 
              color=Shelf,ymin = asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.85))+
+  #scale_y_log10()+ #TBD whether to include
+  scale_y_continuous(trans = "log1p")+
   theme_classic()+
   labs(y = expression("Predicted recruits (" * tile^{-1} * ")"),
        title = "Total")+
@@ -403,6 +404,7 @@ A.2 <- ggplot()+
              y=response, 
              color=Shelf,ymin = asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.85))+
+  scale_y_log10()+ #TBD whether to include
   theme_classic()+
   labs(y = expression("Predicted recruits (" * tile^{-1} * ")"),
        title = "Total")+
@@ -456,6 +458,7 @@ B <- ggplot()+
              y=response, 
              color=Shelf),
                   position = position_dodge(width = 0.85))+
+  scale_y_continuous(trans = "log1p")+ #TBD whether to include
   theme_classic()+
   labs(y=expression("Predicted recruits (" * tile^{-1} * ")"),
        title = "Acroporidae")+
@@ -1193,7 +1196,7 @@ juv_total_plot <-  ggplot()+
                   position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
-   y = expression("Predicted juveniles (10"~m^{-2}*")"),
+   y = expression("Predicted juvenile colonies (10"~m^{-2}*")"),
    title = "Total",
     colour = "Shelf"
   ) +
@@ -3639,7 +3642,7 @@ HC_adult_plot <-  ggplot()+
   theme_classic()+
   labs(
    y = expression("Predicted cover (%)"),
-   title = "Total",
+   title = "Total Coral Cover",
     colour = "Shelf"
   ) +
   scale_x_discrete(
@@ -3684,7 +3687,7 @@ Brood stock is estimated from PITs, and Recruits estimated from settlement tiles
 
 ```{r}
 st_join <- Coral_settlement_nGBR |> 
-  group_by(Site, Year) |> 
+  group_by(Year, Shelf, Reef, Site) |> 
   summarise(
     acro_mean_st = mean(Acroporidae),
     poci_mean_st = mean(Pocilloporidae),
@@ -3872,10 +3875,10 @@ acro_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
               alpha = 0.2, colour = NA) +
-  labs(x= expression(atop("Acroporidae larval supply",
-                    "(t)")),
-       y = expression(atop("Predicted Acroporidae juveniles",  "(t + 1)")),
+  labs(x= expression("Recruits (" * tile^{-1} * ") (t)"),
+       y = expression(atop("Predicted juvenile colonies ",  "(10"~m^{-2}*") (t + 1)")),
        colour = "Shelf",
+       title = expression(atop("Acroporidae", "Log-normal average Acroporidae recruits x Shelf")),
        fill = "Shelf") +
   facet_wrap(~group, scale = "free_y")+
   theme_classic()+scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
@@ -3903,10 +3906,10 @@ poci_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
               alpha = 0.2, colour = NA) +
-  labs(x= expression(atop("Pocilloporidae larval supply",
-                    "(t)")),
-       y = expression(atop("Predicted Pocilloporidae", "juveniles (t + 1)")),
+  labs(x= expression("Recruits (" * tile^{-1} * ") (t)"),
+       y = expression(atop("Predicted juvenile colonies", "(10"~m^{-2}*") (t + 1)")),
        colour = "Shelf",
+       title = expression(atop("Pocilloporidae", "Log-normal average Pocilloporidae recruits + Shelf")),
        fill = "Shelf") +
   facet_wrap(~group)+
   theme_classic()+
@@ -3938,10 +3941,10 @@ por_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
               alpha = 0.2, colour = NA) +
-  labs(x= expression(atop("Poritidae larval supply",
-                    "(t)")),
-       y = expression(atop("Predicted Poritidae juveniles", "(t + 1)")),
+  labs(x= expression("Recruits (" * tile^{-1} * ") (t)"),
+       y = expression(atop("Predicted juvenile colonies", " (10"~m^{-2}*") (t + 1)")),
        colour = "Shelf",
+       title = expression(atop("Poritidae", "Gamma (log-link) average Poritidae recruits + Shelf")),,
        fill = "Shelf") +
   facet_wrap(~group)+
   theme_classic()+
@@ -3961,8 +3964,6 @@ ggsave(Juv_st_relationship,
        width = 189,
        unit = "mm")
 ```
-
-
 
 
 # 5. Composition Plot Combined
