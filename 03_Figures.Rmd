@@ -3960,7 +3960,7 @@ Juv_st_relationship <- ggarrange(acro_juv_st, poci_juv_st, por_juv_st, ncol =1, 
 
 ggsave(Juv_st_relationship,
        file = "figures/juv_st_relationship_fig.PDF",
-       height = 220,
+       height = 240,
        width = 189,
        unit = "mm")
 ```
