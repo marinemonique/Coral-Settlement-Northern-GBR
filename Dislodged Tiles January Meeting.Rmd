@@ -12,8 +12,6 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(lme4)
-library(lmerTest)
 library(car)
 library(emmeans)
 library("FactoMineR")
@@ -178,16 +176,9 @@ ggplot()+
 d_tukey <- emmeans(dettached_mod, ~notes,  type = "response")
 d_tukey
 
-pairs(d_tukey)
-# |> 
-  # regrid() |> #back transforms 
-  # pairs(reverse = FALSE) |> 
-  # as.data.frame() |> 
-  # mutate(
-  #   lower  = estimate - 1.96*SE,
-  #   upper  = estimate + 1.96*SE,
-  #   CI = 1.96*SE
-  # )
+as.data.frame(summary(d_tukey))
+summary(pairs(d_tukey, infer = TRUE))
+
 d_tukey
 ```
 
