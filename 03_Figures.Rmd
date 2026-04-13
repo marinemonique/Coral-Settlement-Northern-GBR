@@ -992,6 +992,189 @@ ggsave(filename = "figures/Figure3.PDF",
 #        unit = "mm")
 ```
 
+### 1.2.2. Sqrt
+```{r}
+Recruits <- Coral_settlement_nGBR %>%
+  filter(total >0) |> 
+  dplyr::select(Acroporidae, Pocilloporidae, Poritid, Other)
+
+environment_data <- Coral_settlement_nGBR %>%
+  filter(total >0) |> 
+  dplyr::select(Year_Collected, Site, Reef, Shelf)
+
+recruits_sqrt <- sqrt(Recruits)
+set.seed(999)     # for reproducibility
+
+nmds <- metaMDS(recruits_sqrt, distance = "bray", k = 2, trymax = 100)
+
+#Check the Stress Value
+nmds$stress #0.15
+
+# Extract NMDS for plot
+site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
+scores <- cbind(site_scores, environment_data[, c("Year_Collected", "Shelf", "Reef")])
+
+scores <- scores |> 
+  mutate(
+    Year =
+    case_when(
+      Year_Collected == "2025" ~ "24/25",
+      Year_Collected == "2024" ~ "23/24",
+      Year_Collected == "2023" ~ "22/23",
+      Year_Collected == "2022" ~ "21/22")
+  )
+# Creating Vectors for driving the patterns
+Recruits_envfit <- envfit(
+  nmds,
+  recruits_sqrt #,
+  # permutations = h #restrict permutations to year, change if using PERMANOVA from PRIMER
+) 
+
+#Saving the vectors as a data frame
+Recruits_envfit <- as.data.frame(scores(Recruits_envfit, display = "vectors"))
+
+Recruits_envfit <- Recruits_envfit |> 
+  rownames_to_column(var = "label_family")
+
+```
+```{r}
+library(MASS)  # for mvrnorm
+library(vegan)
+
+grp <- interaction(scores$Shelf, scores$Year, drop = TRUE)
+# Function to generate ellipse points for ggplot
+ellipse_points <- function(ell_obj, npoints = 100) {
+  do.call(rbind,
+    lapply(names(ell_obj), function(g) {
+      center <- ell_obj[[g]]$center      # centroid
+      cov_mat <- ell_obj[[g]]$cov        # covariance matrix
+      angles <- seq(0, 2*pi, length.out = npoints)
+      circle <- cbind(cos(angles), sin(angles))
+      # scale unit circle by sqrt of covariance (1 SD)
+      ellipse <- t(center + t(circle %*% chol(cov_mat)))
+      data.frame(NMDS1 = ellipse[,1],
+                 NMDS2 = ellipse[,2],
+                 Shelf = g)
+    })
+  )
+}
+
+ell <- ordiellipse(nmds, groups = grp, kind = "sd", draw = "none")
+ell_df <- ellipse_points(ell, npoints = 100)
+
+ell_df <- ell_df |>
+  tidyr::separate(Shelf, into = c("Shelf", "Year"), sep = "\\.")
+```
+
+
+```{r}
+p1 <- ggplot(data = scores, aes(x = NMDS1, y = NMDS2,colour = Shelf)) +
+     geom_point(size = 1, alpha = 0.8) +
+  geom_path(data = ell_df,
+            aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
+            linewidth = 0.6) +
+    # stat_ellipse(aes(group = Shelf, colour = Shelf),
+    #              level = 0.75, linewidth = 0.5) +
+     theme_bw(base_size = 14) +
+     theme(
+  panel.grid = element_blank(),
+  legend.position = c(0.5, 0.05),   # x = centre, y = near bottom
+  legend.justification = c(0.5, 0), # anchor legend by bottom-centre
+  legend.background = element_rect(fill = "white", colour = NA),
+  legend.direction = "horizontal",
+  text = element_text(size = 9),
+  title = element_text(size = 9)
+)  +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+    annotate("text",
+         x = 0.95,
+         y = -0.95,
+         label = paste0("Stress = ", round(nmds$stress, 3)),
+         hjust = 1,
+         vjust = 0,
+         size = 3)+
+  scale_x_continuous(limits = c(-1, 1))+
+  scale_y_continuous(limits = c(-1, 1))+
+  facet_wrap(~Year)
+
+p1.5 <- ggplot() +
+  geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = Recruits_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_family),
+                  inherit.aes = FALSE,
+                  size = 2.5,
+                  box.padding = 0.5, 
+                  min.segment.length = Inf,
+                  nudge_x = -0.1,
+                  nudge_y = 0.1)+
+  geom_point(data = scores, aes(x = NMDS1, y = NMDS2, colour = Shelf), size = 1, alpha = 0.8) +
+  geom_path(data = ell_df,
+            aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
+            linewidth = 0.6) +
+     theme_bw(base_size = 14) +
+     theme(
+  panel.grid = element_blank(),
+  legend.position = c(0.75, 0.85),   # x = centre, y = near bottom
+  legend.justification = c(0.5, 0), # anchor legend by bottom-centre
+  legend.background = element_rect(fill = "white", colour = NA),
+  legend.direction = "horizontal",
+  text = element_text(size = 9),
+  title = element_text(size = 9)
+)  +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+    annotate("text",
+         x = 0.95,
+         y = -0.95,
+         label = paste0("Stress = ", round(nmds$stress, 3)),
+         hjust = 1,
+         vjust = 0,
+         size = 3)+
+  scale_x_continuous(limits = c(-1, 1))+
+  scale_y_continuous(limits = c(-1, 1))+
+     labs(
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf",
+        shape = "Year Collected"
+    )
+
+p1.5
+
+p2 <- ggplot()+
+  geom_segment(data = Recruits_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = Recruits_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_family),
+                  inherit.aes = FALSE,
+                  size = 2.5,
+                  box.padding = 0.5, 
+                  min.segment.length = Inf,
+                  nudge_x = -0.1,
+                  nudge_y = 0.1)+
+  theme_bw() +
+     theme(
+        panel.grid = element_blank(),
+         legend.position = "right",
+         text = element_text(size = 9)
+     ) +
+     labs(
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf",
+        shape = "Year Collected"
+    )+
+  scale_x_continuous(limits = c(-1, 1))+
+  scale_y_continuous(limits = c(-1, 1))
+
+ST_NMDS <- ggarrange(p1, p2, ncol = 1, heights = c(1, 1), legend = "none")
+ST_NMDS
+```
+
 ###1.2.2 Log(x+1)
 
 ```{r}
@@ -2058,8 +2241,219 @@ belt_w_vectors_log
 
 ```
 
+###2.2.3.1 sqrt broad
+```{r}
+ #detailed juvenile
+site_by_belt <- Belt_10m %>%
+  filter(Total_juveniles > 0) |> #filter to make sure that dissimilarities are non zero
+  dplyr::select(
+    Year, Reef, Shelf, Site, Transect, Acroporidae, Pocilloporidae, Poritidae, Other_HC
+  ) %>%
+  mutate(Site_ID = paste(Year, Reef, Site, Transect, sep = "_"),
+         Shelf_Year = paste(Year, Shelf, sep = "_"))
 
-###2.2.3 sqrt detailed
+# Step 2: Metadata (KEEP Site_ID)
+metadata_belt <- site_by_belt %>%
+  dplyr::select(Shelf, Year, Reef, Site, Shelf_Year)
+
+# metadata_belt|> group_by(Shelf, Reef, Site, Year) |> 
+# summarise(reps = n()) |>
+#   pivot_wider(id_cols = c("Shelf", "Site"), names_from = Year, values_from = reps) |> write.csv("output/belt_transects_with_juveniles.csv")
+
+# Step 3: Species matrix
+belt_matrix_filtered <- site_by_belt %>%
+  dplyr::select(
+    Acroporidae:Other_HC
+  )
+belt_matrix_filtered_detailed_sqrt <- sqrt(belt_matrix_filtered)
+belt_detailed_sqrt_dist <- vegdist(belt_matrix_filtered_detailed_sqrt, method = "bray")
+```
+
+```{r}
+nmds <- metaMDS(belt_matrix_filtered_detailed_sqrt, distance = "bray", k = 2, trymax = 100)
+
+#Check the Stress Value
+nmds$stress #0.195
+
+# Extract NMDS for plot
+site_scores <- as.data.frame(vegan::scores(nmds, display = "sites"))
+scores <- cbind(site_scores, metadata_belt[, c("Year", "Shelf", "Reef")])
+
+scores <- scores |> 
+  mutate(
+    Deployment =
+    case_when(
+      Year == "2024-25" ~ "24/25",
+      Year == "2023-24" ~ "23/24",
+      Year == "2022-23" ~ "22/23",
+      Year == "2021-22" ~ "21/22")
+  )
+```
+
+```{r}
+library(MASS)  # for mvrnorm
+library(vegan)
+grp <- interaction(scores$Shelf, scores$Year, drop = TRUE)
+# Function to generate ellipse points for ggplot
+ellipse_points <- function(ell_obj, npoints = 100) {
+  do.call(rbind,
+    lapply(names(ell_obj), function(g) {
+      center <- ell_obj[[g]]$center      # centroid
+      cov_mat <- ell_obj[[g]]$cov        # covariance matrix
+      angles <- seq(0, 2*pi, length.out = npoints)
+      circle <- cbind(cos(angles), sin(angles))
+      # scale unit circle by sqrt of covariance (1 SD)
+      ellipse <- t(center + t(circle %*% chol(cov_mat)))
+      data.frame(NMDS1 = ellipse[,1],
+                 NMDS2 = ellipse[,2],
+                 Shelf = g)
+    })
+  )
+}
+
+ell <- ordiellipse(nmds, groups = grp, kind = "sd", draw = "none")
+ell_df <- ellipse_points(ell, npoints = 100)
+
+ell_df <- ell_df |>
+  tidyr::separate(Shelf, into = c("Shelf", "Year"), sep = "\\.")
+# # Function to generate ellipse points for ggplot
+# ellipse_points <- function(ell_obj, npoints = 100) {
+#   do.call(rbind,
+#     lapply(names(ell_obj), function(g) {
+#       center <- ell_obj[[g]]$center      # centroid
+#       cov_mat <- ell_obj[[g]]$cov        # covariance matrix
+#       angles <- seq(0, 2*pi, length.out = npoints)
+#       circle <- cbind(cos(angles), sin(angles))
+#       # scale unit circle by sqrt of covariance (1 SD)
+#       ellipse <- t(center + t(circle %*% chol(cov_mat)))
+#       data.frame(NMDS1 = ellipse[,1],
+#                  NMDS2 = ellipse[,2],
+#                  Shelf = g)
+#     })
+#   )
+# }
+# 
+# ell <- ordiellipse(nmds, groups = scores$Shelf, kind = "sd", draw = "none")
+# ell_df <- ellipse_points(ell, npoints = 100)
+```
+
+```{r}
+belt_A_detailed_sqrt <- ggplot(scores, aes(x = NMDS1, y = NMDS2,
+                                           colour = Shelf)) +
+     geom_point(size = 1, alpha = 0.8) +
+  geom_path(data = ell_df,
+            aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
+            linewidth = 0.6) +
+  
+    # stat_ellipse(aes(group = Shelf, colour = Shelf),
+    #              level = 0.75, linewidth = 0.5) +
+     theme_bw(base_size = 14) +
+     theme(
+  panel.grid = element_blank(),
+  legend.position = c(0.5, 0.05),   # x = centre, y = near bottom
+  legend.justification = c(0.5, 0), # anchor legend by bottom-centre
+  legend.background = element_rect(fill = "white", colour = NA),
+  legend.direction = "horizontal",
+  text = element_text(size = 9),
+  title = element_text(size = 9)
+) +
+     labs(
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf"
+    ) +
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+    annotate("text",
+         x = 0.95,     # right limit
+         y = -0.75,       # bottom limit
+         label = paste0("Stress = ", round(nmds$stress, 3)),
+         hjust = 1.05, # push slightly inward
+         vjust = -0.5, # lift slightly above bottom
+         size = 3)+
+  facet_wrap(~Year)
+  # scale_x_continuous(limits = c(-0.85, 1))+
+  # scale_y_continuous(limits = c(-1.05, 0.95))
+
+belt_A_detailed_sqrt
+
+```
+
+```{r}
+# To stratify by year (this asks "do shelf differences exist after accounting for year structure?") 
+#h <- how(blocks = metadata_belt$Year)                                                   # restrict permutations within years
+
+# Creating Vectors for driving the patterns
+belt_envfit <- envfit(
+  nmds,
+  belt_matrix_filtered_detailed_sqrt #,
+  #permutations = h #restricts permuatations to a year
+) 
+
+# Extract p-values
+pvals <- belt_envfit$vectors$pvals
+
+# Extract r-squared values
+r2 <- belt_envfit$vectors$r
+# Arrow coordinates
+vec_scores <- as.data.frame(scores(belt_envfit, display = "vectors"))
+
+# Add r2 and p-values
+vec_scores$r2 <- belt_envfit$vectors$r
+vec_scores$pval <- belt_envfit$vectors$pvals
+
+vec_scores
+#Saving the vectors as a data frame
+
+belt_envfit <- vec_scores |> 
+  rownames_to_column(var = "label_category")
+```
+```{r}
+belt_vectors_sqrt <- ggplot() +
+  geom_segment(data = belt_envfit, aes(x = 0, y = 0, xend=NMDS1, yend = NMDS2),
+             arrow = arrow(length = unit(1/3, "picas")),
+             linetype = "solid",
+             linewidth = 0.5)+
+  geom_text_repel(data = belt_envfit,
+                  aes(x = NMDS1, y= NMDS2, label = label_category),
+                  inherit.aes = FALSE,
+                  size = 2.5,
+                  box.padding = 0.1, 
+                  min.segment.length = Inf,
+                  nudge_x = -0.05,
+                  nudge_y = -0.1)+
+  # geom_point(data = scores, aes(x = NMDS1, y = NMDS2, colour = Shelf), size = 1, alpha = 0.8) +
+  # geom_path(data = ell_df,
+  #           aes(x = NMDS1, y = NMDS2, colour = Shelf, group = Shelf),
+  #           linewidth = 0.6) +
+     theme_bw(base_size = 14) +
+     theme(
+  panel.grid = element_blank(),
+  legend.position = c(0.75, 0.85),   # x = centre, y = near bottom
+  legend.justification = c(0.5, 0), # anchor legend by bottom-centre
+  legend.background = element_rect(fill = "white", colour = NA),
+  legend.direction = "horizontal",
+  text = element_text(size = 9),
+  title = element_text(size = 9)
+) +
+     labs(
+         x = "NMDS1",
+        y = "NMDS2",
+         colour = "Shelf"
+    ) #+
+  # scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  #   annotate("text",
+  #        x = 0.95,     # right limit
+  #        y = -0.75,       # bottom limit
+  #        label = paste0("Stress = ", round(nmds$stress, 3)),
+  #        hjust = 1.05, # push slightly inward
+  #        vjust = -0.5, # lift slightly above bottom
+  #        size = 3)
+
+belt_vectors_sqrt
+
+```
+
+###2.2.3.2 sqrt detailed
 
 
 ```{r}
