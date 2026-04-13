@@ -366,6 +366,7 @@ total_mean_site <- Coral_settlement_nGBR |>
 ```
 
 ```{r}
+library(scales)
 A <- ggplot()+
     geom_jitter(data = total_mean_site, aes(x=Year, y = mean_site, group = Shelf), 
                 position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
@@ -377,7 +378,11 @@ A <- ggplot()+
              color=Shelf,ymin = asymp.LCL, ymax = asymp.UCL),
                   position = position_dodge(width = 0.85))+
   #scale_y_log10()+ #TBD whether to include
-  scale_y_continuous(trans = "log1p")+
+  #scale_y_continuous(trans = "log1p")+
+  scale_y_continuous(
+    trans = log1p_trans(),
+    breaks = c(0, 10, 50, 100, 200, 300)
+  )+
   theme_classic()+
   labs(y = expression("Predicted recruits (" * tile^{-1} * ")"),
        title = "Total")+
@@ -458,7 +463,10 @@ B <- ggplot()+
              y=response, 
              color=Shelf),
                   position = position_dodge(width = 0.85))+
-  scale_y_continuous(trans = "log1p")+ #TBD whether to include
+  scale_y_continuous(
+    trans = log1p_trans(),
+    breaks = c(0, 10, 50, 100, 200, 300)
+  )+
   theme_classic()+
   labs(y=expression("Predicted recruits (" * tile^{-1} * ")"),
        title = "Acroporidae")+
@@ -666,7 +674,7 @@ Combined figure
 #         )
   
 recruits_wo_other <- ggarrange(A, B, C, D, ncol =1, nrow = 4, labels = c("A","B", "C", "D"), common.legend = TRUE, legend = "bottom")
-   # ggsave(recruits_wo_other, filename = "Figure2.PNG", 
+   # ggsave(recruits_wo_other, filename = "Figure2.PNG",
    #       width = 320,
    #       height = 220, units = "mm"
    #      )
@@ -1196,7 +1204,7 @@ juv_total_plot <-  ggplot()+
                   position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
-   y = expression("Predicted juvenile colonies (10"~m^{-2}*")"),
+   y = expression(atop("Predicted juvenile",  "colonies (10"~m^{-2}*")")),
    title = "Total",
     colour = "Shelf"
   ) +
@@ -1250,7 +1258,7 @@ juv_acro_plot <-  ggplot()+
                   position = position_dodge(width = 0.85))+
   theme_classic()+
  labs(
-   y = expression("Predicted juveniles (10"~m^{-2}*")"),
+   y = expression(atop("Predicted juvenile",  "colonies (10"~m^{-2}*")")),
    title = "Acroporidae",
     colour = "Shelf"
   ) +
@@ -1307,7 +1315,7 @@ juv_poci_plot <-  ggplot()+
                   position = position_dodge(width = 0.85))+
   theme_classic()+
   labs(
-   y = expression("Predicted juveniles (10"~m^{-2}*")"),
+   y = expression(atop("Predicted juvenile",  "colonies (10"~m^{-2}*")")),
    title = "Pocilloporidae",
     colour = "Shelf"
   ) +
@@ -1362,7 +1370,7 @@ juv_por_plot <-  ggplot()+
                   position = position_dodge(width = 0.85))+
   theme_classic()+
  labs(
-   y = expression("Predicted juveniles (10"~m^{-2}*")"),
+   y = expression(atop("Predicted juvenile",  "colonies (10"~m^{-2}*")")),
    title = "Poritidae",
     colour = "Shelf"
   ) +
@@ -1383,7 +1391,7 @@ juv_por_plot
 
 ```{r}
 # ggarrange(A, juv_total_plot, B, juv_acro_plot, C,juv_poci_plot, D, juv_por_plot, ncol = 2, nrow = 4, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D", "E", "F", "G", "H") )
-# 
+
 # Total_st_juv <- ggarrange(A.2, juv_total_plot, ncol = 1, labels = c("A", "B"), common.legend = TRUE)
 # Total_st_juv
 # 
