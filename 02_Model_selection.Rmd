@@ -1115,26 +1115,27 @@ Now these are both averages, it can't follow an integar and would need to follow
 
 ## 4.1. Acroporidae
 
-Despite not being interested in across the shelf differences, as shelf has only three levels there are two few levels for a stable random effect
+Despite not being interested in across the shelf differences, as shelf has only three levels there are two few levels for a stable random effect.
+We are now interested in shelf effect, so add as a fixed and interaction term and then compare the AICC.
 ```{r}
 Acro <- combined_averages |> 
   filter(acro_mean_st > 0)
 ```
 
 ```{r}
-gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
+gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
          family = Gamma(link = "log"), data = Acro)
 # sim <- simulateResiduals(gamma_avg_Acroporidae_fixed)
 # testResiduals(sim) #passes
 # testZeroInflation(sim) #passes
 
-ln_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
+ln_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
         family = "lognormal", data = Acro)
 # sim <- simulateResiduals(ln_avg_Acroporidae_fixed)
 # testResiduals(sim) #passes
 # testZeroInflation(sim)
 
-gau_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
+gau_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
         family = "gaussian", data = Acro)
 # sim <- simulateResiduals(gau_avg_Acroporidae_fixed)
 # testResiduals(sim) #fails
@@ -1196,7 +1197,7 @@ summary(gamma_avg_Acroporidae_fixed)
 Poci <- combined_averages |> 
   filter(poci_mean_st > 0)
 
-ln_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site) + (1 | Year), 
+ln_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site), 
         family = "lognormal", data = Poci)
 # sim <- simulateResiduals(ln_avg_poci_fixed)
 # testResiduals(sim) #passes
@@ -1206,12 +1207,12 @@ ln_avg_poci_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site),
 # # sim <- simulateResiduals(ln_avg_poci_fixed2)
 # # testResiduals(sim) #passes
 
-gaus_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site) + (1 | Year), 
+gaus_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site), 
         family = "gaussian", data = Poci)
 # sim <- simulateResiduals(gaus_avg_poci_fixed)
 # testResiduals(sim) #outlier test significant
 
-gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site) + (1 | Year),
+gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site),
         family = Gamma(link = "log"), data = Poci)
 # sim <- simulateResiduals(gamma_avg_Pocilloporidae_fixed)
 # testResiduals(sim) #passes
@@ -1256,19 +1257,19 @@ summary(gamma_avg_Pocilloporidae_fixed2)
 Por <- combined_averages |> 
   filter(por_mean_st > 0)
 
-gamma_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site) + (1 | Year),
+gamma_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site),
         family = Gamma(link = "log"), data = Por)
 # sim15.1 <- simulateResiduals(gamma_avg_Poritid_fixed) #passed
 # testResiduals(sim15.1)
 #testZeroInflation(sim15.1)
 
-ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site) + (1 | Year), 
+ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site), 
         family = "lognormal", data = Por)
 # sim15.2 <- simulateResiduals(ln_avg_Poritid_fixed) # very good
 # testResiduals(sim15.2)
 # testZeroInflation(sim15.2)
 
-gaus_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site) + (1 | Year), 
+gaus_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site), 
         family = "gaussian", data = Por)
 # sim15.3 <- simulateResiduals(gaus_avg_Poritid_fixed)
 # testResiduals(sim15.3) # definitely not this one
@@ -1315,6 +1316,7 @@ These models will need to be lagged.
 
 ```{r}
 combine_belt_st <- left_join(join_belt, Join_Coral)
+
 
 # Only including years in which both data is included (once lagging has happened)
 combine_belt_st <- combine_belt_st |> 
