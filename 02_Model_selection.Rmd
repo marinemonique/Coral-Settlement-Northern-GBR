@@ -1566,89 +1566,85 @@ model_df_por <- gropd_df2 %>%
 model_df_por <- model_df_por |> 
   filter(mean_por > 0)
 
-ln_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + (1|Reef/Site),
+ln_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1 + (1|Reef/Site),
               family = "lognormal",
            data = model_df_por)
 
-sim <- simulateResiduals(ln_por_juv_st_fixed)
-testResiduals(sim) # passsed
-testZeroInflation(sim)
+# sim <- simulateResiduals(ln_por_juv_st_fixed)
+# testResiduals(sim) # passsed
 
-gau_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + (1|Reef/Site),
+
+gau_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1 + (1|Reef/Site),
               family = "gaussian",
            data = model_df_por)
 
-sim <- simulateResiduals(gau_por_juv_st_fixed)
-testResiduals(sim) # passed but not great
-testZeroInflation(sim)
+# sim <- simulateResiduals(gau_por_juv_st_fixed)
+# testResiduals(sim) # passed but not great
 
-gamma_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + (1|Reef/Site),
+
+gamma_por_juv_st_fixed <- glmmTMB(mean_por ~ st_mean_por_lag1  + (1|Reef/Site),
               family = Gamma(link = "log"),
            data = model_df_por)
 
-sim <- simulateResiduals(gamma_por_juv_st_fixed)
-testResiduals(sim) # passsed
-testZeroInflation(sim)
+# sim <- simulateResiduals(gamma_por_juv_st_fixed)
+# testResiduals(sim) # passsed
+
+
+ln_por_juv_st_fixed2 <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + (1|Reef/Site),
+              family = "lognormal",
+           data = model_df_por)
+
+# sim <- simulateResiduals(ln_por_juv_st_fixed2)
+# testResiduals(sim) # passsed
+
+
+gau_por_juv_st_fixed2 <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + (1|Reef/Site),
+              family = "gaussian",
+           data = model_df_por)
+
+# sim <- simulateResiduals(gau_por_juv_st_fixed2)
+# testResiduals(sim) # passed but not great
+
+
+gamma_por_juv_st_fixed2 <- glmmTMB(mean_por ~ st_mean_por_lag1 + Shelf + (1|Reef/Site),
+              family = Gamma(link = "log"),
+           data = model_df_por)
+
+# sim <- simulateResiduals(gamma_por_juv_st_fixed2)
+# testResiduals(sim) # passsed
+
 
 #Interaction
 ln_por_juv_st_int <- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef/Site),
               family = "lognormal",
            data = model_df_por)
-sim <- simulateResiduals(ln_por_juv_st_int)
-testResiduals(sim) # passed
-testZeroInflation(sim)
+# sim <- simulateResiduals(ln_por_juv_st_int)
+# testResiduals(sim) # passed
 
 gau_por_juv_st_int<- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef/Site),
               family = "gaussian",
            data = model_df_por)
 
-sim <- simulateResiduals(gau_por_juv_st_int)
-testResiduals(sim) # passed but outlier test very close to being significant
-testZeroInflation(sim)
+# sim <- simulateResiduals(gau_por_juv_st_int)
+# testResiduals(sim) # passed but outlier test very close to being significant
 
 gamma_por_juv_st_int <- glmmTMB(mean_por ~ st_mean_por_lag1 * Shelf + (1|Reef/Site),
               family = Gamma(link = "log"),
            data = model_df_por)
-sim <- simulateResiduals(gamma_por_juv_st_int)
-testResiduals(sim) # passed
-testZeroInflation(sim)
-
-# Shelf/Reef/Site
-ln_por_juv_st_nested <- glmmTMB(mean_por ~ st_mean_por_lag1+ (1|Shelf/Reef/Site),
-              family = "lognormal",
-           data = model_df_por)
-
-sim <- simulateResiduals(ln_por_juv_st_nested)
-testResiduals(sim) # passsed
-testZeroInflation(sim)
-
-gau_por_juv_st_nested <- glmmTMB(mean_por ~ st_mean_por_lag1 + (1|Shelf/Reef/Site),
-              family = "gaussian",
-           data = model_df_por)
-
-sim <- simulateResiduals(gau_por_juv_st_nested)
-testResiduals(sim) # passed but not great
-testZeroInflation(sim)
-
-gamma_por_juv_st_nested <- glmmTMB(mean_por ~ st_mean_por_lag1+ (1|Shelf/Reef/Site),
-              family = Gamma(link = "log"),
-           data = model_df_por)
-
-sim <- simulateResiduals(gamma_por_juv_st_nested)
-testResiduals(sim) # passsed
-testZeroInflation(sim)
+# sim <- simulateResiduals(gamma_por_juv_st_int)
+# testResiduals(sim) # passed
 
 ```
 
 ```{r}
-model.sel(gau_por_juv_st_fixed, gau_por_juv_st_int, gau_por_juv_st_nested, ln_por_juv_st_fixed, ln_por_juv_st_int, ln_por_juv_st_nested, gamma_por_juv_st_fixed, gamma_por_juv_st_int, gamma_por_juv_st_nested)
+model.sel(gau_por_juv_st_fixed, gau_por_juv_st_int, ln_por_juv_st_fixed, ln_por_juv_st_int, gamma_por_juv_st_fixed, gamma_por_juv_st_int, gamma_por_juv_st_fixed2, ln_por_juv_st_fixed2)
 
 ```
 
 ```{r}
-gamma_por_juv_st_fixed
+gamma_por_juv_st_fixed2
 
-summary(gamma_por_juv_st_fixed)
+summary(gamma_por_juv_st_fixed2)
 ```
 
 ```{r}
