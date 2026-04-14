@@ -1123,36 +1123,34 @@ Acro <- combined_averages |>
 ```
 
 ```{r}
-gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
+gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco+(1 | Reef/Site), 
          family = Gamma(link = "log"), data = Acro)
 # sim <- simulateResiduals(gamma_avg_Acroporidae_fixed)
 # testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
 
 ln_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
         family = "lognormal", data = Acro)
 # sim <- simulateResiduals(ln_avg_Acroporidae_fixed)
 # testResiduals(sim) #passes
-# testZeroInflation(sim)
 
-gau_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
+
+gau_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco + (1 | Reef/Site), 
         family = "gaussian", data = Acro)
 # sim <- simulateResiduals(gau_avg_Acroporidae_fixed)
 # testResiduals(sim) #fails
-# testZeroInflation(sim) #passes
 
 #interaction with Shelf
 gamma_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Site), 
          family = Gamma(link = "log"), data = Acro)
 # sim <- simulateResiduals(gamma_avg_Acroporidae_int)
 # testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
+
 
 ln_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Site), 
         family = "lognormal", data = Acro)
 # sim <- simulateResiduals(ln_avg_Acroporidae_int)
 # testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
+
 
 gaus_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Site), 
         family = "gaussian", data = Acro)
@@ -1160,19 +1158,19 @@ gaus_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Sit
 # testResiduals(sim) #terrible, truly.
 # testZeroInflation(sim)
 
-gamma_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
+gamma_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco + Shelf+ (1 | Reef/Site), 
          family = Gamma(link = "log"), data = Acro)
 # sim <- simulateResiduals(gamma_avg_Acroporidae_fixed2)
 # testResiduals(sim) #passes
 # testZeroInflation(sim) #passes
 
-ln_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
+ln_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +Shelf +(1 | Reef/Site), 
         family = "lognormal", data = Acro)
 # sim <- simulateResiduals(ln_avg_Acroporidae_fixed2)
 # testResiduals(sim) #passes
 # testZeroInflation(sim)
 
-gau_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site), 
+gau_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +Shelf + (1 | Reef/Site), 
         family = "gaussian", data = Acro)
 # sim <- simulateResiduals(gau_avg_Acroporidae_fixed2)
 # testResiduals(sim) #fails
@@ -1182,11 +1180,10 @@ gau_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site),
 Log normal models worked best for all of these
 ```{r}
 model.sel(gamma_avg_Acroporidae_fixed, ln_avg_Acroporidae_fixed, 
-          #gamma_avg_Acroporidae_nested, ln_avg_Acroporidae_nested,
-          gamma_avg_Acroporidae_int, ln_avg_Acroporidae_int,
-          gamma_avg_Acroporidae_fixed2, ln_avg_Acroporidae_fixed2)
+          gamma_avg_Acroporidae_fixed2, ln_avg_Acroporidae_fixed2,
+          gamma_avg_Acroporidae_int, ln_avg_Acroporidae_int)
 
-summary(gamma_avg_Acroporidae_fixed)
+summary(gamma_avg_Acroporidae_int)
 ```
 
 
@@ -1202,7 +1199,7 @@ ln_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site),
 # sim <- simulateResiduals(ln_avg_poci_fixed)
 # testResiduals(sim) #passes
 
-ln_avg_poci_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site),
+ln_avg_poci_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci +Shelf +(1 | Reef/Site),
         family = "lognormal", data = Poci)
 # # sim <- simulateResiduals(ln_avg_poci_fixed2)
 # # testResiduals(sim) #passes
@@ -1212,12 +1209,17 @@ gaus_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site),
 # sim <- simulateResiduals(gaus_avg_poci_fixed)
 # testResiduals(sim) #outlier test significant
 
+gaus_avg_poci_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci + Shelf + (1 | Reef/Site), 
+        family = "gaussian", data = Poci)
+# sim <- simulateResiduals(gaus_avg_poci_fixed)
+# testResiduals(sim) #passes
+
 gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site),
         family = Gamma(link = "log"), data = Poci)
 # sim <- simulateResiduals(gamma_avg_Pocilloporidae_fixed)
 # testResiduals(sim) #passes
 
-gamma_avg_Pocilloporidae_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site),
+gamma_avg_Pocilloporidae_fixed2 <- glmmTMB(poci_mean_st ~ mean_poci + Shelf+ (1 | Reef/Site),
         family = Gamma(link = "log"), data = Poci)
 # # sim <- simulateResiduals(gamma_avg_Pocilloporidae_fixed2)
 # # testResiduals(sim) #passes
@@ -1240,14 +1242,14 @@ gamma_avg_Pocilloporidae_int <- glmmTMB(poci_mean_st ~ mean_poci * Shelf +(1 | R
 
 ```{r}
 model.sel(gamma_avg_Pocilloporidae_fixed, ln_avg_poci_fixed,
-          ln_avg_poci_fixed2,
-          gamma_avg_Pocilloporidae_fixed2,
+          ln_avg_poci_fixed2, gamma_avg_Pocilloporidae_fixed2, gaus_avg_poci_fixed2,
           gamma_avg_Pocilloporidae_int, gau_avg_Pocilloporidae_int, ln_avg_Pocilloporidae_int)
 ```
-Without year performs slightly better
+Without shelf performs slightly better
+
 ```{r}
-summary(gamma_avg_Pocilloporidae_fixed)
-summary(gamma_avg_Pocilloporidae_fixed2)
+summary(ln_avg_poci_fixed)
+summary(ln_avg_poci_fixed2)
 ```
 
 ## 4.3. Poritidae
@@ -1259,31 +1261,36 @@ Por <- combined_averages |>
 
 gamma_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site),
         family = Gamma(link = "log"), data = Por)
-# sim15.1 <- simulateResiduals(gamma_avg_Poritid_fixed) #passed
-# testResiduals(sim15.1)
-#testZeroInflation(sim15.1)
+# sim <- simulateResiduals(gamma_avg_Poritid_fixed) #passed
+# testResiduals(sim)
+
 
 ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site), 
         family = "lognormal", data = Por)
-# sim15.2 <- simulateResiduals(ln_avg_Poritid_fixed) # very good
-# testResiduals(sim15.2)
-# testZeroInflation(sim15.2)
+# sim <- simulateResiduals(ln_avg_Poritid_fixed) # very good
+# testResiduals(sim)
+
 
 gaus_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site), 
         family = "gaussian", data = Por)
-# sim15.3 <- simulateResiduals(gaus_avg_Poritid_fixed)
-# testResiduals(sim15.3) # definitely not this one
-# testZeroInflation(sim15.3)
+# sim <- simulateResiduals(gaus_avg_Poritid_fixed)
+# testResiduals(sim) # definitely not this one
 
-gamma_avg_Poritid_fixed2 <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site),
+gamma_avg_Poritid_fixed2 <- glmmTMB(por_mean_st ~ mean_por + Shelf + (1 | Reef/Site),
         family = Gamma(link = "log"), data = Por)
 # sim <- simulateResiduals(gamma_avg_Poritid_fixed2)
 # testResiduals(sim) #passes
 
-ln_avg_Poritid_fixed2 <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site), 
+ln_avg_Poritid_fixed2 <- glmmTMB(por_mean_st ~ mean_por + Shelf +(1 | Reef/Site), 
         family = "lognormal", data = Por)
 # sim <- simulateResiduals(ln_avg_Poritid_fixed2)
 # testResiduals(sim) #passes
+
+gaus_avg_Poritid_fixed2 <- glmmTMB(por_mean_st ~ mean_por + Shelf+ (1 | Reef/Site), 
+        family = "gaussian", data = Por)
+# sim <- simulateResiduals(gaus_avg_Poritid_fixed2)
+# testResiduals(sim) # definitely not this one
+
 
 gamma_avg_Poritid_int <- glmmTMB(por_mean_st ~ mean_por*Shelf + (1 | Reef/Site),
         family = Gamma(link = "log"), data = Por)
@@ -1292,8 +1299,14 @@ gamma_avg_Poritid_int <- glmmTMB(por_mean_st ~ mean_por*Shelf + (1 | Reef/Site),
 
 ln_avg_Poritid_int <- glmmTMB(por_mean_st ~ mean_por * Shelf + (1 | Reef/Site), 
         family = "lognormal", data = Por)
-sim <- simulateResiduals(ln_avg_Poritid_int)
-testResiduals(sim) #passes
+# sim <- simulateResiduals(ln_avg_Poritid_int)
+# testResiduals(sim) #passes
+
+gaus_avg_Poritid_int <- glmmTMB(por_mean_st ~ mean_por * Shelf + (1 | Reef/Site), 
+        family = "gaussian", data = Por)
+# sim <- simulateResiduals(gaus_avg_Poritid_int)
+# testResiduals(sim) # definitely not this one
+
 ```
 
 
@@ -1303,7 +1316,7 @@ model.sel(gamma_avg_Poritid_fixed, ln_avg_Poritid_fixed, ln_avg_Poritid_fixed2, 
 
 
 ```{r}
-summary(ln_avg_Poritid_fixed2)
+summary(ln_avg_Poritid_fixed)
 ```
 
 All of the models had significant intercepts, but the estimate for mean_por was not significant in any of the models.
