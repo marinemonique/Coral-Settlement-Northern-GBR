@@ -1492,7 +1492,7 @@ belt_A_sqrt <- ggplot(scores, aes(x = NMDS1, y = NMDS2,
      theme_bw(base_size = 14) +
      theme(
   panel.grid = element_blank(),
-  legend.position = "bottom", # anchor legend by bottom-centre
+  legend.position = "none", # anchor legend by bottom-centre
   legend.background = element_rect(fill = "white", colour = NA),
   legend.direction = "horizontal",
   text = element_text(size = 9),
@@ -1512,8 +1512,8 @@ belt_A_sqrt <- ggplot(scores, aes(x = NMDS1, y = NMDS2,
          vjust = -0.75, # lift slightly above bottom
          size = 3)+
   facet_wrap(~Year)+
-  scale_x_continuous(limits = c(-1.15, 1.65))+
-  scale_y_continuous(limits = c(-1.25, 0.75))
+  scale_x_continuous(limits = c(-1.15, 1.6))+
+  scale_y_continuous(limits = c(-1.1, 0.85))
 
 belt_A_sqrt
 ```
@@ -1576,8 +1576,8 @@ belt_vectors_sqrt <- ggplot() +
         y = "NMDS2",
          colour = "Shelf"
     ) +
-  scale_x_continuous(limits = c(-1.15, 1.65))+
-  scale_y_continuous(limits = c(-1.25, 0.75))
+  scale_x_continuous(limits = c(-1.15, 1.6))+
+  scale_y_continuous(limits = c(-1.1, 0.85))
 
 
 belt_vectors_sqrt
@@ -1769,7 +1769,7 @@ Benthic_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,
      theme_bw(base_size = 14) +
      theme(
   panel.grid = element_blank(),
-   legend.position = "bottom",  
+   legend.position = "none",  
   legend.background = element_rect(fill = "white", colour = NA),
   legend.direction = "horizontal",
   text = element_text(size = 9),
@@ -1788,7 +1788,7 @@ Benthic_A <- ggplot(scores, aes(x = NMDS1, y = NMDS2,
          hjust = 1.05, # push slightly inward
          vjust = -0.5, # lift slightly above bottom
          size = 3)+
-  scale_x_continuous(limits = c(-1.3, 0.95))+
+  scale_x_continuous(limits = c(-1.3, 1.05))+
   scale_y_continuous(limits = c(-1.1, 1.1))+
   facet_wrap(~Year)
 Benthic_A
@@ -1823,7 +1823,6 @@ vec_scores <- vec_scores |>
 Benthic_envfit <- vec_scores |> 
   rownames_to_column(var = "label_category")
 
-#Other, Zoantharian, Poritidae...
 ```
 
 ```{r}
@@ -1857,7 +1856,7 @@ Benthic_B <- ggplot()+
          colour = "Shelf",
         shape = "Year"
      ) +
-  scale_x_continuous(limits = c(-1.3, 0.95))+
+  scale_x_continuous(limits = c(-1.3, 1.05))+
   scale_y_continuous(limits = c(-1.1, 1.1))
 Benthic_B
 ```
@@ -1869,7 +1868,7 @@ spacer <- plot_spacer()
 
 # Bottom row: spacer | plot | spacer
 bottom_centered <- spacer + Benthic_B + spacer +
-  plot_layout(ncol = 3, widths = c(0.85, 2.1, 1))  # adjust middle width
+  plot_layout(ncol = 3, widths = c(0.85, 2.2, 0.95))  # adjust middle width
 
 # Combine with top plot
 final_plot <- Benthic_A / bottom_centered +
@@ -2452,16 +2451,74 @@ Brood stock is estimated from PITs, and Recruits estimated from settlement tiles
 *Not sure this is worth making figures for, given that all models did not find a significant effect of brood stock*
 
 ```{r}
-st_join <- Coral_settlement_nGBR |> 
-  group_by(Year, Shelf, Reef, Site) |> 
-  summarise(
-    acro_mean_st = mean(Acroporidae),
-    poci_mean_st = mean(Pocilloporidae),
-    por_mean_st = mean(Poritid),
-    acro_sd_st = sd(Acroporidae),
-    poci_sd_st = sd(Pocilloporidae),
-    por_sd_st = sd(Poritid)
+# Benthic Data
+PIT <- PIT <- read_csv("PIT_final.csv") %>%
+  mutate(across(8:94, ~replace_na(.x, 0))) %>%
+  mutate(across(8:94, as.numeric))
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ),
+    Reef = case_when(
+      Site %in% c("Day 1", "Day 2", "Day 3") ~ "Day",
+      Site %in% c("Hicks 1", "Hicks 2", "Hicks 3") ~ "Hicks",
+      Site %in% c("Mac 1", "Mac 2", "Mac 3") ~ "MacGillivray",
+      Site %in% c("TN_Back", "TN_coral", "TN_Crest") ~ "Turtle N",
+      Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
+      Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
+      TRUE ~ NA_character_
+    )  )
+
+
+PIT<- PIT |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site))
+
+
+PIT <- PIT %>%
+  mutate(
+    Acroporidae = rowSums(dplyr::select(., `Acropora - branching`:`Montipora`), na.rm = TRUE), #grouping Acroporidae
+    Pocilloporidae = rowSums(dplyr::select(., Pocillopora:Stylophora), na.rm = TRUE), #grouping Pocilloporidae genera
+    Poritidae = rowSums(dplyr::select(., `Porites - branching`:Goniopora), na.rm = TRUE), #grouping Poritidae genera
+    `Other Hard coral` = rowSums(dplyr::select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE), # Grouping other hard corals
+    `Soft coral` = rowSums(dplyr::select(., Lobophytum:`Soft-other`), na.rm = TRUE), #soft coral categories
+    `Brown MA` = rowSums(dplyr::select(., Sargassum:Lobophora), na.rm = TRUE), #brown macroalgae categories
+    `Red MA` = rowSums(dplyr::select(., Asparagopsis:Jania), na.rm = TRUE), #red macroalgae
+    `Green MA`= rowSums(dplyr::select(., Halimeda:Valonia), na.rm = TRUE), #green macroalgae
+    `Sand and Rubble` = rowSums(dplyr::select(., Sand:Rubble), na.rm = TRUE), #sand, rubble, and combo
+    Turf = rowSums(dplyr::select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE), #Turfing substrata (dead corals + EAM)
+    Other = rowSums(dplyr::select(., Sponge:Clam), na.rm = TRUE), #other invertes
+    Zoantharian = rowSums(dplyr::select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
   )
+
+PIT <- PIT |> 
+  dplyr::select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
+
+# PIT <- PIT |> 
+#   mutate(
+#     sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE) 
+#   )
+
+#summary(PIT$sum) #check that the number of points = 50 per transect
+
+PIT <- PIT |> 
+  mutate(
+    across(Acroporidae:Halophila, ~ .x * 2) #multiply by two to get out of 100%
+  )
+
 
 join_pit <- PIT |> 
   group_by(Year, Shelf, Reef, Site) |> 
@@ -2475,6 +2532,18 @@ join_pit <- PIT |>
     PIT = n()
   )
 
+st_join <- Coral_settlement_nGBR |> 
+  group_by(Year, Shelf, Reef, Site) |> 
+  summarise(
+    acro_mean_st = mean(Acroporidae),
+    poci_mean_st = mean(Pocilloporidae),
+    por_mean_st = mean(Poritid),
+    acro_sd_st = sd(Acroporidae),
+    poci_sd_st = sd(Pocilloporidae),
+    por_sd_st = sd(Poritid)
+  )
+
+
 combined_averages <- left_join(join_pit, st_join)
 ```
 
@@ -2483,28 +2552,39 @@ combined_averages <- left_join(join_pit, st_join)
 ```{r}
 Acro <- combined_averages |> 
   filter(acro_mean_st > 0)
+gamma_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Site), 
+         family = Gamma(link = "log"), data = Acro)
 gamma_avg_Acroporidae_fixed <- glmmTMB(acro_mean_st ~ mean_aco +(1 | Reef/Site) + (1 | Year), 
          family = Gamma(link = "log"), data = Acro)
+# rng <- range(Acro$mean_aco, na.rm = TRUE)
+# 
+# pred <- ggpredict(
+#   gamma_avg_Acroporidae_int,
+#   terms = c(sprintf("mean_aco [%f:%f]", rng[1], rng[2]), "Shelf")
+# )
 
 pred <- ggpredict(
-  gamma_avg_Acroporidae_fixed,
-  terms = c("mean_aco")
+  gamma_avg_Acroporidae_int,
+  terms = c("mean_aco", "Shelf")
 )
 
 #produces a pred with 9 values of acroporidae cover, and represents the population-level prediction (random effects set to zero) is usually what you want for interpretation and plotting the relationship.
 
-acro_benthic_st <- ggplot(pred, aes(x = x, y = predicted, 
-                                    #colour = group
-                                    )) +
+acro_benthic_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
   geom_line(size = 1.2) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, 
-                  #fill = group
-                  ),
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
               alpha = 0.2, colour = NA) +
-  labs(x= expression("Observed cover (%)"),
+ labs(x= expression("Observed cover (%)"),
        y = expression("Predicted recruits ( " * tile^{-1} * ")"),
-       title = expression(atop("Acroporidae", "gamma (log-link)" ))) +
-  theme_classic()
+       title = expression(atop("Acroporidae", "gamma (log-link) average % cover x shelf" )),
+       colour = "Shelf",
+       fill = "Shelf") +
+  facet_wrap(~group, scale = "free_y")+
+  theme_classic()+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
+  
 
 acro_benthic_st
 ```
@@ -2515,12 +2595,11 @@ acro_benthic_st
 Poci <- combined_averages |> 
   filter(poci_mean_st > 0)
 
-
-gamma_avg_Pocilloporidae_fixed <- glmmTMB(poci_mean_st ~ mean_poci + (1 | Reef/Site) + (1 | Year),
-        family = Gamma(link = "log"), data = Poci)
+ln_avg_poci_fixed <- glmmTMB(poci_mean_st ~ mean_poci +(1 | Reef/Site), 
+        family = "lognormal", data = Poci)
 
 pred <- ggpredict(
-  gamma_avg_Pocilloporidae_fixed,
+  ln_avg_poci_fixed,
   terms = c("mean_poci")
 )
 
@@ -2536,7 +2615,7 @@ poci_benthic_st <- ggplot(pred, aes(x = x, y = predicted,
               alpha = 0.2, colour = NA) +
   labs(x= expression("Observed cover (%)"),
        y = expression("Predicted recruits ( " * tile^{-1} * ")"),
-       title = expression(atop("Pocilloporidae", "gamma (log-link)"))) +
+       title = expression(atop("Pocilloporidae", "Log-normal"))) +
   theme_classic()
 
 poci_benthic_st
@@ -2547,7 +2626,7 @@ poci_benthic_st
 ```{r}
 Por <- combined_averages |> 
   filter(por_mean_st > 0)
-ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site) + (1 | Year), 
+ln_avg_Poritid_fixed <- glmmTMB(por_mean_st ~ mean_por + (1 | Reef/Site), 
         family = "lognormal", data = Por)
 
 pred <- ggpredict(
@@ -2582,12 +2661,10 @@ ggarrange(acro_benthic_st, poci_benthic_st, por_benthic_st,
           )
 
 ggsave(filename = "figures/benthic_and_recruitment.PDF",
-       width = 180,
+       width = 189,
        height = 220,
        unit = "mm")
 ```
-
-
 
 
 # 4. Larval supply and Juveniles
@@ -2628,6 +2705,7 @@ gropd_df2 <- gropd_df2 |>
 model_df_acro <- gropd_df2 %>%
   filter(!is.na(mean_acro))
 
+
 ln_acro_juv_st_int <- glmmTMB(mean_acro ~ scale(st_mean_acro_lag1, scale = FALSE) * Shelf + (1|Reef/Site),
               family = "lognormal",
            data = model_df_acro)
@@ -2636,10 +2714,16 @@ summary(model_df_acro$st_mean_acro_lag1)
 emmeans(ln_acro_juv_st_int, ~Shelf, type = "response") #note for victor, pls help
 regrid
 
+
 pred <- ggpredict(
   ln_acro_juv_st_int,
   terms = c("st_mean_acro_lag1 [all]", "Shelf")
 )
+# pred <- ggpredict(
+#   ln_acro_juv_st_int,
+#   terms = c("st_mean_acro_lag1 [all]", "Shelf"),
+#   type = "link"
+# )
 
 acro_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
   geom_line(size = 1.2) +
@@ -2656,6 +2740,57 @@ acro_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
 
 acro_juv_st
 ```
+
+```{r}
+pred <- ggpredict(
+  ln_acro_juv_st_int,
+  terms = c("st_mean_acro_lag1 [all]", "Shelf")
+)
+
+inner_df <- pred %>% filter(group == "Inner")
+mid_df   <- pred %>% filter(group == "Mid")
+outer_df <- pred %>% filter(group == "Outer")
+
+plot_fun <- function(df, xlim_vals = NULL, title_text = NULL) {
+  p <- ggplot(df, aes(x = x, y = predicted, colour = group)) +
+    geom_line(size = 1.2) +
+    geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+                alpha = 0.2, colour = NA) +
+    theme_classic() +
+    labs(title = title_text) +
+    scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F")) +
+    scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F")) +
+    theme(legend.position = "none")  # avoid repeated legends
+  
+  if (!is.null(xlim_vals)) {
+    p <- p + coord_cartesian(xlim = xlim_vals)
+  }
+  
+  return(p)
+}
+
+model_df_acro |> filter(Shelf == "Outer") |> summarise(min = min(st_mean_acro), max = max(st_mean_acro))
+model_df_acro |> filter(Shelf == "Mid") |> summarise(min = min(st_mean_acro), max = max(st_mean_acro))
+
+p_inner <- plot_fun(inner_df, title_text = "Inner shelf")
+
+p_mid   <- plot_fun(mid_df, xlim_vals = c(0, 100), title_text = "Mid shelf")
+
+p_outer <- plot_fun(outer_df, xlim_vals = c(0, 20), ylim_vals = c(0, 100), title_text = "Outer shelf")
+
+final_plot <- (p_inner | p_mid | p_outer) +
+  plot_annotation(
+    title = "Acroporidae: Log-normal recruits × Shelf",
+    theme = theme(plot.title = element_text(hjust = 0.5))
+  )
+
+final_plot & 
+  labs(
+    x = expression("Recruits (" * tile^{-1} * ") (t)"),
+    y = expression(atop("Predicted juvenile colonies ", "(10"~m^{-2}*") (t + 1)"))
+  )
+```
+
 
 *Try to work out what to do with those whack outer shelf values*
 ### 4.1.2. Pocilloporidae

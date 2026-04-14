@@ -12,7 +12,6 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(lme4)
 library(lmerTest)
 library(car)
 library(emmeans)
@@ -189,10 +188,10 @@ PIT <- PIT %>%
 PIT <- PIT |> 
   dplyr::select(Year, Shelf, Reef, Site, Transect, Acroporidae:Zoantharian,CCA, Cyanobacteria, Halophila)
 
-PIT <- PIT |> 
-  mutate(
-    sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE) 
-  )
+# PIT <- PIT |> 
+#   mutate(
+#     sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE) 
+#   )
 
 #summary(PIT$sum) #check that the number of points = 50 per transect
 
@@ -1183,7 +1182,23 @@ model.sel(gamma_avg_Acroporidae_fixed, ln_avg_Acroporidae_fixed,
           gamma_avg_Acroporidae_fixed2, ln_avg_Acroporidae_fixed2,
           gamma_avg_Acroporidae_int, ln_avg_Acroporidae_int)
 
+
+gamma_avg_Acroporidae_int <- glmmTMB(acro_mean_st ~ mean_aco*Shelf +(1 | Reef/Site), 
+         family = Gamma(link = "log"), data = Acro)
+emtrends(gamma_avg_Acroporidae_int, ~ Shelf, var = "mean_aco")
 summary(gamma_avg_Acroporidae_int)
+```
+```{r}
+tr <- emtrends(gamma_avg_Acroporidae_int, ~ Shelf, var = "mean_aco")
+
+summary(tr) %>%
+  mutate(
+    percent_change = (exp(mean_aco.trend) - 1) * 100,
+    percent_LCL = (exp(asymp.LCL) - 1) * 100,
+    percent_UCL = (exp(asymp.UCL) - 1) * 100
+  )
+
+pairs(emtrends(gamma_avg_Acroporidae_int, ~ Shelf, var = "mean_aco"))
 ```
 
 
@@ -1330,7 +1345,6 @@ These models will need to be lagged.
 ```{r}
 combine_belt_st <- left_join(join_belt, Join_Coral)
 
-
 # Only including years in which both data is included (once lagging has happened)
 combine_belt_st <- combine_belt_st |> 
   mutate(Year_start = as.numeric(substr(Year, 1, 4)))
@@ -1443,6 +1457,9 @@ model.sel(gau_acro_juv_st_int,
 ln_acro_juv_st_int
 
 summary(ln_acro_juv_st_int)
+emtrends(ln_acro_juv_st_int, ~ Shelf, var = "st_mean_acro_lag1")
+
+pairs(emtrends(ln_acro_juv_st_int, ~ Shelf, var = "st_mean_acro_lag1"))
 ```
 
 ## 5.2. Pocilloporidae
@@ -1461,7 +1478,6 @@ ln_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + Shelf + (1|Reef/
 
 # sim <- simulateResiduals(ln_poci_juv_st_fixed)
 # testResiduals(sim) #passes
-# testZeroInflation(sim)
 
 
 gau_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1+Shelf + (1|Reef/Site),
@@ -1470,7 +1486,6 @@ gau_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1+Shelf + (1|Reef/S
 
 # sim <- simulateResiduals(gau_poci_juv_st_fixed)
 # testResiduals(sim) #passes but doesn't look great
-# testZeroInflation(sim)
 
 gamma_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1+ Shelf + (1|Reef/Site),
               family = Gamma(link = "log"),
@@ -1478,7 +1493,6 @@ gamma_poci_juv_st_fixed <- glmmTMB(mean_poci ~ st_mean_poci_lag1+ Shelf + (1|Ree
 
 # sim <- simulateResiduals(gau_poci_juv_st_fixed)
 # testResiduals(sim) #passes
-# testZeroInflation(sim)
 
 #Interaction with Shelf
 ln_poci_juv_st_int <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
@@ -1486,7 +1500,6 @@ ln_poci_juv_st_int <- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Si
            data = model_df_poci)
 # sim <- simulateResiduals(ln_poci_juv_st_int)
 # testResiduals(sim) # passed
-# testZeroInflation(sim)
 
 gau_poci_juv_st_int<- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
               family = "gaussian",
@@ -1494,7 +1507,7 @@ gau_poci_juv_st_int<- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Si
 
 # sim <- simulateResiduals(gau_poci_juv_st_int)
 # testResiduals(sim) # passed but doesn't look great
-# testZeroInflation(sim)
+
 
 gamma_poci_juv_st_int<- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/Site),
               family = Gamma(link = "log"),
@@ -1502,7 +1515,6 @@ gamma_poci_juv_st_int<- glmmTMB(mean_poci ~ st_mean_poci_lag1 * Shelf + (1|Reef/
 
 # sim <- simulateResiduals(gamma_poci_juv_st_int)
 # testResiduals(sim) # passed
-# testZeroInflation(sim)
 
 
 ln_poci_juv_st <- glmmTMB(mean_poci ~ st_mean_poci_lag1  + (1|Reef/Site),
@@ -1510,7 +1522,6 @@ ln_poci_juv_st <- glmmTMB(mean_poci ~ st_mean_poci_lag1  + (1|Reef/Site),
            data = model_df_poci)
 # sim <- simulateResiduals(ln_poci_juv_st)
 # testResiduals(sim) # passed
-# testZeroInflation(sim)
 
 gau_poci_juv_st <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + (1|Reef/Site),
               family = "gaussian",
@@ -1518,7 +1529,7 @@ gau_poci_juv_st <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + (1|Reef/Site),
 
 # sim <- simulateResiduals(gau_poci_juv_st)
 # testResiduals(sim) # passed but doesn't look great
-# testZeroInflation(sim)
+
 
 gamma_poci_juv_st <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + (1|Reef/Site),
               family = Gamma(link = "log"),
@@ -1526,14 +1537,14 @@ gamma_poci_juv_st <- glmmTMB(mean_poci ~ st_mean_poci_lag1 + (1|Reef/Site),
 
 # sim <- simulateResiduals(gamma_poci_juv_st)
 # testResiduals(sim) # significant deviation
-# testZeroInflation(sim)
+
 ```
 
 
 ```{r}
 model.sel(gau_poci_juv_st_fixed, gau_poci_juv_st_int, 
-          #gau_poci_juv_st_nested, gamma_poci_juv_st_nested,ln_poci_juv_st_nested,
-gamma_poci_juv_st_fixed, gamma_poci_juv_st_int,  ln_poci_juv_st_fixed, ln_poci_juv_st_int,
+gamma_poci_juv_st_fixed, gamma_poci_juv_st_int,  
+ln_poci_juv_st_fixed, ln_poci_juv_st_int,
 ln_poci_juv_st, gau_poci_juv_st)
 ```
 
