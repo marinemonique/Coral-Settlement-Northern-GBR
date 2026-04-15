@@ -1176,7 +1176,6 @@ gau_avg_Acroporidae_fixed2 <- glmmTMB(acro_mean_st ~ mean_aco +Shelf + (1 | Reef
 # testZeroInflation(sim) #passes
 ```
 
-Log normal models worked best for all of these
 ```{r}
 model.sel(gamma_avg_Acroporidae_fixed, ln_avg_Acroporidae_fixed, 
           gamma_avg_Acroporidae_fixed2, ln_avg_Acroporidae_fixed2,
@@ -1199,6 +1198,7 @@ summary(tr) %>%
   )
 
 pairs(emtrends(gamma_avg_Acroporidae_int, ~ Shelf, var = "mean_aco"))
+summary(gamma_avg_Acroporidae_int)
 ```
 
 
@@ -1653,10 +1653,10 @@ library(openxlsx)
 library(dplyr)
 tidy_acro <- tidy(ln_acro_juv_st_int, effects = "fixed", conf.int = TRUE)
 tidy_poci <- tidy(ln_poci_juv_st_fixed, effects = "fixed", conf.int = TRUE)
-tidy_por <- tidy(gamma_por_juv_st_fixed, effects = "fixed", conf.int = TRUE)
+tidy_por <- tidy(gamma_por_juv_st_fixed2, effects = "fixed", conf.int = TRUE)
 glance_acro <- glance(ln_acro_juv_st_int)
 glance_poci <- glance(ln_poci_juv_st_fixed)
-glance_por  <- glance(gamma_por_juv_st_fixed)
+glance_por  <- glance(gamma_por_juv_st_fixed2)
 wb <- createWorkbook()
 
 addWorksheet(wb, "Acropora")
@@ -1997,5 +1997,64 @@ summary(gamma_avg_Porites_fixed)
 ```
 ```{r}
 summary(gamma_avg_Porites_int)
+```
+
+# 7. Exporting data
+
+```{r}
+library(broom.mixed)
+library(openxlsx)
+library(dplyr)
+write_block <- function(wb, sheet, data, start_row, gap = 3) {
+  writeData(wb, sheet, data, startRow = start_row)
+  return(start_row + nrow(data) + gap)
+}
+tidy_acro <- tidy(ln_acro_juv_st_int, effects = "fixed", conf.int = TRUE)
+tidy_acro2 <- pairs(emtrends(ln_acro_juv_st_int, ~ Shelf, var = "st_mean_acro_lag1"))
+tidy_poci <- tidy(ln_poci_juv_st_fixed, effects = "fixed", conf.int = TRUE)
+tidy_por <- tidy(gamma_por_juv_st_fixed2, effects = "fixed", conf.int = TRUE)
+glance_acro <- glance(ln_acro_juv_st_int)
+glance_poci <- glance(ln_poci_juv_st_fixed)
+glance_por  <- glance(gamma_por_juv_st_fixed2)
+tidy_acro_cover <- tidy(gamma_avg_Acroporidae_int, effects = "fixed", conf.int = TRUE)
+tidy_acro_cover2 <- pairs(emtrends(gamma_avg_Acroporidae_int, ~ Shelf, var = "mean_aco"))
+tidy_poci_cover <- tidy(ln_avg_poci_fixed, effects = "fixed", conf.int = TRUE)
+tidy_por_cover <- tidy(ln_avg_Poritid_fixed, effects = "fixed", conf.int = TRUE)
+glance_acro_cover <- glance(gamma_avg_Acroporidae_int)
+glance_poci_cover <- glance(ln_avg_poci_fixed)
+glance_por_cover <- glance(ln_avg_Poritid_fixed)
+
+wb <- createWorkbook()
+
+addWorksheet(wb, "Acropora juv_st")
+row <- 1
+row <- write_block(wb, "Acropora juv_st", tidy_acro, row)
+row <- write_block(wb, "Acropora juv_st", glance_acro, row)
+row <- write_block(wb, "Acropora juv_st", tidy_acro2, row)
+ 
+ addWorksheet(wb, "Pocillopora juv_st")
+writeData(wb, "Pocillopora juv_st", tidy_poci)
+writeData(wb, "Pocillopora juv_st", glance_poci, startRow = nrow(tidy_poci) + 3)
+ 
+addWorksheet(wb, "Porites juv_st")
+writeData(wb, "Porites juv_st", tidy_por)
+writeData(wb, "Porites juv_st", glance_por, startRow = nrow(tidy_por) + 3)
+
+addWorksheet(wb, "Acropora bs st")
+row <- 1
+row <- write_block(wb, "Acropora bs st", tidy_acro_cover, row)
+row <- write_block(wb, "Acropora bs st", glance_acro_cover, row)
+row <- write_block(wb, "Acropora bs st", tidy_acro_cover2, row)
+ 
+ addWorksheet(wb, "Pocillopora bs st")
+writeData(wb, "Pocillopora bs st", tidy_poci_cover)
+writeData(wb, "Pocillopora bs st", glance_poci_cover, startRow = nrow(tidy_poci) + 3)
+ 
+addWorksheet(wb, "Porites bs st")
+writeData(wb, "Porites bs st", tidy_por_cover)
+writeData(wb, "Porites bs st", glance_por_cover, startRow = nrow(tidy_por) + 3)
+ 
+saveWorkbook(wb, "output/coral_model_summaries.xlsx", overwrite = TRUE)
+
 ```
 
