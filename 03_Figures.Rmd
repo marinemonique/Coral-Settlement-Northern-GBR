@@ -887,16 +887,37 @@ scores <- scores |>
 # Creating Vectors for driving the patterns
 Recruits_envfit <- envfit(
   nmds,
-  recruits_sqrt #,
+  recruits_sqrt,
+  permutations = 999#,
   # permutations = h #restrict permutations to year, change if using PERMANOVA from PRIMER
 ) 
 
+# #Saving the vectors as a data frame
+# Recruits_envfit <- as.data.frame(scores(Recruits_envfit, display = "vectors"))
+# 
+# Recruits_envfit <- Recruits_envfit |> 
+#   rownames_to_column(var = "label_family")
+
+# Extract p-values
+pvals <- Recruits_envfit$vectors$pvals
+
+# Extract r-squared values
+r2 <- Recruits_envfit$vectors$r
+# Arrow coordinates
+vec_scores <- as.data.frame(scores(Recruits_envfit, display = "vectors"))
+
+# Add r2 and p-values
+vec_scores$r2 <- Recruits_envfit$vectors$r
+vec_scores$pval <- Recruits_envfit$vectors$pvals
+
+vec_scores
 #Saving the vectors as a data frame
-Recruits_envfit <- as.data.frame(scores(Recruits_envfit, display = "vectors"))
 
-Recruits_envfit <- Recruits_envfit |> 
-  rownames_to_column(var = "label_family")
+vec_scores <- vec_scores |> 
+  filter(pval < 0.05, r2 > 0.25) # filter to only show vectors that are significant drivers.
 
+Recruits_envfit <- vec_scores |> 
+  rownames_to_column(var = "label_category")
 ```
 ```{r}
 library(MASS)  # for mvrnorm
@@ -1239,14 +1260,14 @@ juv_por_plot
 ```{r}
 # ggarrange(A, juv_total_plot, B, juv_acro_plot, C,juv_poci_plot, D, juv_por_plot, ncol = 2, nrow = 4, common.legend = TRUE, legend = "bottom", labels = c("A", "B", "C", "D", "E", "F", "G", "H") )
 
-# Total_st_juv <- ggarrange(A.2, juv_total_plot, ncol = 1, labels = c("A", "B"), common.legend = TRUE)
+Total_st_juv <- ggarrange(A, juv_total_plot, ncol = 1, labels = c("A", "B"), common.legend = TRUE)
 # Total_st_juv
 # 
-# ggsave(Total_st_juv,
-#        filename = "Total_ST_juv.PDF",
-#        height = 200,
-#        width = 189,
-#        unit = "mm")
+ggsave(Total_st_juv,
+       filename = "Total_ST_juv.PDF",
+       height = 200,
+       width = 189,
+       unit = "mm")
 # 
 # ggsave(Total_st_juv,
 #        filename = "Total_ST_juv.PDF",
@@ -2423,6 +2444,17 @@ HC_adult_plot <-  ggplot()+
         text = element_text(size = 12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 HC_adult_plot
+```
+
+```{r}
+Total_st_juv_cc <- ggarrange(A, juv_total_plot, HC_adult_plot, ncol = 1, labels = c("A", "B", "C"), common.legend = TRUE)
+# Total_st_juv
+# 
+ggsave(Total_st_juv_cc,
+       filename = "Total_ST_juv.PDF",
+       height = 200,
+       width = 189,
+       unit = "mm")
 ```
 
 ```{r}
