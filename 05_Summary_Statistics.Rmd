@@ -1219,6 +1219,109 @@ Belt_10m |>
 
 # 3. Benthic Cover
 ```{r}
+# Benthic Data
+PIT <- PIT <- read_csv("PIT_final.csv") %>%
+  mutate(across(8:94, ~replace_na(.x, 0))) %>%
+  mutate(across(8:94, as.numeric))
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ),
+    Reef = case_when(
+      Site %in% c("Day 1", "Day 2", "Day 3") ~ "Day",
+      Site %in% c("Hicks 1", "Hicks 2", "Hicks 3") ~ "Hicks",
+      Site %in% c("Mac 1", "Mac 2", "Mac 3") ~ "MacGillivray",
+      Site %in% c("TN_Back", "TN_coral", "TN_Crest") ~ "Turtle N",
+      Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
+      Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
+      TRUE ~ NA_character_
+    )
+  )
+
+
+PIT<- PIT |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site))
+
+PIT_detailed <- PIT |> 
+  dplyr::select(1:93)
+
+PIT <- PIT %>%
+  mutate(
+    Acroporidae = rowSums(dplyr::select(., `Acropora - branching`:`Montipora`), na.rm = TRUE),
+    
+    Pocilloporidae = rowSums(dplyr::select(., Pocillopora:Stylophora), na.rm = TRUE),
+    
+    Poritidae = rowSums(dplyr::select(., `Porites - branching`:Goniopora), na.rm = TRUE),
+    
+    `Other Hard coral` = rowSums(dplyr::select(., `Favia (plocoid)`:`other submassive`), na.rm = TRUE),
+    
+    `Soft coral` = rowSums(dplyr::select(., Lobophytum:`Soft-other`), na.rm = TRUE),
+    `Brown MA` = rowSums(dplyr::select(., Sargassum:Lobophora), na.rm = TRUE),
+    `Red MA` = rowSums(dplyr::select(., Asparagopsis:Jania), na.rm = TRUE),
+    `Green MA`= rowSums(dplyr::select(., Halimeda:Valonia), na.rm = TRUE),
+    `Sand and Rubble` = rowSums(dplyr::select(., Sand:Rubble), na.rm = TRUE),
+    Turf = rowSums(dplyr::select(., `Pavement/EAM`:`Dead massive`), na.rm = TRUE),
+    Other = rowSums(dplyr::select(., Sponge:Clam), na.rm = TRUE),
+    Zoantharian = rowSums(dplyr::select(., `Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
+  )
+
+PIT <- PIT |> 
+  dplyr::select(Year, Shelf, Reef, Site, Transect, Acroporidae:Other,CCA, Cyanobacteria, Halophila)
+
+PIT <- PIT |> 
+  mutate(
+    sum = rowSums(across(Acroporidae:Halophila), na.rm = TRUE)
+  )
+
+summary(PIT$sum)
+
+PIT <- PIT |> 
+  mutate(
+    across(Acroporidae:Halophila, ~ .x * 2)
+  )
+```
+
+```{r}
+PIT <- PIT |> mutate(
+    Total_HC_Cover = Acroporidae+ Pocilloporidae + Poritidae + `Other Hard coral`
+  )
+PIT <- PIT |> select(Year:Halophila, Total_HC_Cover)
+Summary_PIT <- PIT |> pivot_longer(cols = Acroporidae:Total_HC_Cover, names_to = "Group", values_to = "Percent_Cover") |> 
+  group_by(Group) |> 
+  summarise(mean_percent = mean(Percent_Cover),
+            se_percent = sd(Percent_Cover)/n()^0.5,
+            sum_percent = sum(Percent_Cover)/2,
+            min_percent = min(Percent_Cover),
+            max_percent = max(Percent_Cover)) 
+
+241*50
+
+summary_PIT_year_reef <- PIT |> pivot_longer(cols = Acroporidae:Total_HC_Cover, names_to = "Group", values_to = "Percent_Cover") |> 
+  group_by(Year, Reef,Group) |> 
+  summarise(mean_percent = mean(Percent_Cover),
+            se_percent = sd(Percent_Cover)/n()^0.5,
+            sum_percent = sum(Percent_Cover)/2,
+            min_percent = min(Percent_Cover),
+            max_percent = max(Percent_Cover)) 
+
+```
+
+
+```{r}
 PIT |> 
   group_by(Shelf) |> 
   summarise(
