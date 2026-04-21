@@ -2282,6 +2282,16 @@ acro_adult_plot <-  ggplot()+
 acro_adult_plot
 ```
 
+```{r}
+acro_st_juv_cc <- ggarrange(B, juv_acro_plot, acro_adult_plot, ncol = 1, labels = c("A", "B", "C"), common.legend = TRUE)
+# Total_st_juv
+# 
+ggsave(acro_st_juv_cc,
+       filename = "acrp_ST_juv.PDF",
+       height = 200,
+       width = 189,
+       unit = "mm")
+```
 
 ###3.2.2. Pocilloporidae
 
@@ -2334,6 +2344,16 @@ poci_adult_plot <-  ggplot()+
 poci_adult_plot
 ```
 
+```{r}
+Poci_st_juv_cc <- ggarrange(C, juv_poci_plot, poci_adult_plot, ncol = 1, labels = c("A", "B", "C"), common.legend = TRUE)
+# Total_st_juv
+# 
+ggsave(Poci_st_juv_cc,
+       filename = "Poci_ST_juv.PDF",
+       height = 200,
+       width = 189,
+       unit = "mm")
+```
 
 ###3.2.3. Poritidae
 ```{r}
@@ -2390,6 +2410,18 @@ por_adult_plot <-  ggplot()+
 por_adult_plot
 
 ```
+
+```{r}
+Por_st_juv_cc <- ggarrange(D, juv_por_plot, por_adult_plot, ncol = 1, labels = c("A", "B", "C"), common.legend = TRUE)
+# Total_st_juv
+# 
+ggsave(Por_st_juv_cc,
+       filename = "Por_ST_juv.PDF",
+       height = 200,
+       width = 189,
+       unit = "mm")
+```
+
 
 
 ###3.2.4. Total hard coral cover
