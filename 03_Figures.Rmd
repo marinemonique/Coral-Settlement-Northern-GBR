@@ -2973,4 +2973,200 @@ Benthic_Figure <- ggarrange(
 # complete_composition
 ```
 
+# 6. Brood stock and juveniles
+
+```{r}
+# Benthic Data
+PIT <- read_csv("PIT_final.csv") %>%
+  mutate(across(8:94, ~replace_na(.x, 0))) %>%
+  mutate(across(8:94, as.numeric))
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ),
+    Reef = case_when(
+      Site %in% c("Day 1", "Day 2", "Day 3") ~ "Day",
+      Site %in% c("Hicks 1", "Hicks 2", "Hicks 3") ~ "Hicks",
+      Site %in% c("Mac 1", "Mac 2", "Mac 3") ~ "MacGillivray",
+      Site %in% c("TN_Back", "TN_coral", "TN_Crest") ~ "Turtle N",
+      Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
+      Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
+      TRUE ~ NA_character_
+    )  )
+
+
+PIT<- PIT |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site))
+
+PIT <- PIT |> 
+  mutate(
+    Acroporidae_PIT = rowSums(across(`Acropora - branching`:Montipora), na.rm = TRUE),
+    Pocilloporidae_PIT = rowSums(across(Pocillopora:Stylophora), na.rm = TRUE),
+    Poritidae_PIT = rowSums(across(`Porites - branching`:Goniopora), na.rm = TRUE),
+    `Other Hard coral` = rowSums(across(`Favia (plocoid)`:`other submassive`), na.rm = TRUE),
+    `Soft coral` = rowSums(across(Lobophytum:`Soft-other`), na.rm = TRUE),
+    `Brown MA` = rowSums(across(Sargassum:Lobophora), na.rm = TRUE),
+    `Red MA` = rowSums(across(Asparagopsis:Jania), na.rm = TRUE),
+    `Green MA` = rowSums(across(Halimeda:Valonia), na.rm = TRUE),
+    `Sand and Rubble` = rowSums(across(Sand:Rubble), na.rm = TRUE),
+    Turf = rowSums(across(`Pavement/EAM`:`Dead massive`), na.rm = TRUE),
+    Other = rowSums(across(Sponge:Clam), na.rm = TRUE),
+    Zoantharian = rowSums(across(`Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
+  )
+
+PIT <- PIT |> 
+  mutate(
+    across(Acroporidae_PIT:Poritidae_PIT, ~ .x * 2) #multiply by two to get out of 100%
+  )
+
+PIT_adult <- PIT |> select(Year, Shelf, Reef, Site, Transect, Acroporidae_PIT, Pocilloporidae_PIT, Poritidae_PIT)
+
+```
+
+```{r}
+Belt_family <- Belt_10m |> 
+  dplyr::select(Year, Shelf, Reef, Site, Transect, Acroporidae, Pocilloporidae, Poritidae)
+
+# belt_family_long <- Belt_family |>  pivot_longer(cols = Acroporidae:Poritidae, names_to = "Family", values_to = "juvenile_density")
+# 
+# belt_detailed_long <- belt_detailed_long |> 
+#   group_by(Year, Shelf, Reef, Site, genus) |> 
+#   summarise(
+#     mean_juv = mean(juvenile_density),
+#     sd_juv = sd(juvenile_density)
+#   )
+```
+
+```{r}
+combined_juv_cover <- left_join(PIT_adult, Belt_family)
+
+combined_juv_cover <- combined_juv_cover |> 
+  mutate(
+    Shelf = factor(Shelf, levels = c("Inner", "Mid", "Outer"))
+  )
+```
+
+Despite not being interested in across the shelf differences, as shelf has only three levels there are two few levels for a stable random effect
+
+
+From this I would say we can only really do Acropora, Porites, and Pocillopora analysis because they have medians not equal to 0
+
+## 6.1. Acropora
+
+```{r}
+nbin_avg_Acro_int <- glmmTMB(Acroporidae ~ Acroporidae_PIT * Shelf + (1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+
+pred <- ggpredict(
+  nbin_avg_Acro_int,
+  terms = c("Acroporidae_PIT", "Shelf")
+)
+
+#produces a pred with 9 values of acroporidae cover, and represents the population-level prediction (random effects set to zero) is usually what you want for interpretation and plotting the relationship.
+
+acro_benthic_juv <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, colour = NA) +
+ labs(x= expression("Observed cover (%)"),
+       y = expression("Predicted juvenile colonies (10 "~m^{-2}*")"),
+       title = expression(atop("Acroporidae", "nbin % cover x shelf" )),
+       colour = "Shelf",
+       fill = "Shelf") +
+  facet_wrap(~group)+
+  theme_classic()+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
+acro_benthic_juv
+```
+
+
+## 6.2. Pocillopora
+
+```{r}
+nbin_avg_Poci_fixed2 <- glmmTMB(Pocilloporidae ~ Pocilloporidae_PIT + Shelf + (1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+
+pred <- ggpredict(
+  nbin_avg_Poci_fixed2,
+  terms = c("Pocilloporidae_PIT", "Shelf")
+)
+
+
+#produces a pred with 9 values of acroporidae cover, and represents the population-level prediction (random effects set to zero) is usually what you want for interpretation and plotting the relationship.
+
+poci_benthic_juv <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, colour = NA) +
+ labs(x= expression("Observed cover (%)"),
+       y = expression("Predicted juvenile colonies (10 "~m^{-2}*")"),
+       title = expression(atop("Pocilloporidae", "nbin % cover x shelf" )),
+       colour = "Shelf",
+       fill = "Shelf") +
+  facet_wrap(~group)+
+  theme_classic()+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
+poci_benthic_juv
+
+```
+
+
+## 6.3. Poritidae
+
+```{r}
+nbin_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Site), 
+         family = "nbinom2", data = combined_juv_cover)
+
+pred <- ggpredict(
+  nbin_avg_Por_int,
+  terms = c("Poritidae_PIT", "Shelf")
+)
+
+#produces a pred with 9 values of acroporidae cover, and represents the population-level prediction (random effects set to zero) is usually what you want for interpretation and plotting the relationship.
+
+por_benthic_juv <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, colour = NA) +
+ labs(x= expression("Observed cover (%)"),
+       y = expression("Predicted juvenile colonies (10 "~m^{-2}*")"),
+       title = expression(atop("Poritidae", "nbin % cover x shelf" )),
+       colour = "Shelf",
+       fill = "Shelf") +
+  facet_wrap(~group)+
+  theme_classic()+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+
+  scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+
+por_benthic_juv
+```
+
+
+```{r}
+benthic_juv<- ggarrange(acro_benthic_juv, poci_benthic_juv, por_benthic_juv, ncol = 1,
+          common.legend = TRUE,
+          labels = c("A", "B", "C"))
+
+ggsave(filename = "benthic_juvenile.PDF",
+  plot = benthic_juv,
+       height = 240, width = 189, unit = "mm")
+```
 

@@ -1827,17 +1827,64 @@ model.sel(nbin_avg_Acro_fixed, nbin_avg_Acro_fixed2, nbin_avg_Acro_int, zi_pois_
 
 ```{r}
 summary(nbin_avg_Acro_int)
+emtrends(nbin_avg_Acro_int, ~ Shelf, var = "Acroporidae_PIT")
+pairs(emtrends(nbin_avg_Acro_int, ~ Shelf, var = "Acroporidae_PIT"))
 ```
 
 
 ## 6.2. Pocillopora
 
-Issue is that we have zeros for the averages here in both cover and juveniles. cover has one site/year where there was no Pocillopora, whereas there are two site/year that have 0 pocillopora juveniles.
+
 Will likely need to filter the 0 ones out to be able to run models but will just try
 ```{r}
-Poci_j_bs <- combined_juv_cover |>  filter(genus == "Pocillopora")
-Poci_j_bs <- combined_juv_cover |> filter(mean_juv > 0)
+nbin_avg_Poci_fixed <- glmmTMB(Pocilloporidae ~ Pocilloporidae_PIT +(1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Poci_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
 
+pois_avg_Poci_fixed <- glmmTMB(Pocilloporidae ~ Pocilloporidae_PIT +(1|Reef/Site/Transect), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Poci_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) # p = 0.392 
+
+
+nbin_avg_Poci_fixed2 <- glmmTMB(Pocilloporidae ~ Pocilloporidae_PIT + Shelf + (1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Poci_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes p =0.944
+
+pois_avg_Poci_fixed2 <- glmmTMB(Pocilloporidae ~ Pocilloporidae_PIT + Shelf + (1|Reef/Site/Transect), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Poci_fixed2)
+# testResiduals(sim) #KS not great
+# testZeroInflation(sim) #0.72
+
+nbin_avg_Poci_int <- glmmTMB(Pocilloporidae ~ Pocilloporidae_PIT * Shelf + (1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Poci_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p = 0.944
+
+pois_avg_Poci_int <- glmmTMB(Pocilloporidae ~ Pocilloporidae_PIT * Shelf + (1|Reef/Site/Transect), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Poci_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes p =0.768
+
+```
+
+```{r}
+model.sel(nbin_avg_Poci_fixed, nbin_avg_Poci_fixed2, nbin_avg_Poci_int, pois_avg_Poci_int, pois_avg_Poci_fixed, pois_avg_Poci_fixed2)
+```
+
+```{r}
+summary(nbin_avg_Poci_fixed2)
+```
+
+```{r eval = FALSE}
 gamma_avg_Pocillopora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
          family = Gamma(link = "log"), data = Poci_j_bs)
 # sim <- simulateResiduals(gamma_avg_Pocillopora_fixed)
@@ -1895,30 +1942,115 @@ gau_avg_Pocillopora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site),
 # sim <- simulateResiduals(gau_avg_Pocillopora_fixed2)
 # testResiduals(sim) #KS and outlier significant
 
+
+
+#I don't love the amount of variance in the conditional model
 ```
 
-```{r}
-model.sel(gamma_avg_Pocillopora_fixed, gamma_avg_Pocillopora_fixed2, gamma_avg_Pocillopora_int,
-          ln_avg_Pocillopora_fixed, ln_avg_Pocillopora_fixed2, ln_avg_Pocillopora_int #,
-          #gau_avg_Porites_fixed, gau_avg_Porites_fixed2, gaus_avg_Porites_int
-          )
-```
-
-```{r}
-summary(gamma_avg_Pocillopora_fixed2)
-```
-
-I don't love the amount of varaince in the conditional model
 
 
 ## 6.3. Porites
-Lots of site/year without Porites cover, but only 2 without porites juveniles. One of the ones without coral cover also did not have juveniles (21/22 TS crest). The other did have some coral cover...
 ```{r}
-Por_j_bs <- combined_juv_cover |>  filter(genus == "Porites")
-Por_j_bs <- Por_j_bs |> filter(mean_juv > 0)
+nbin_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+pois_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Reef/Site/Transect), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_fixed)
+# testResiduals(sim) #significant KS deviation
+# testZeroInflation(sim) # p = 0.08
+
+
+nbin_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes p =0.408
+
+pois_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Reef/Site/Transect), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_fixed2)
+# testResiduals(sim) #KS deviation significant 
+# testZeroInflation(sim) #0.064
+
+nbin_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p = 0.488
+
+pois_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Reef/Site/Transect), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_int)
+# testResiduals(sim) #KS not great
+# testZeroInflation(sim) #passes p =0.08
+
 ```
 
 ```{r}
+model.sel(nbin_avg_Por_fixed, nbin_avg_Por_fixed2, nbin_avg_Por_int)
+```
+
+```{r}
+summary(nbin_avg_Por_int)
+
+```
+
+Remove transect and reef because they aren't justified
+```{r}
+nbin_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Site), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes p = 0.256
+
+pois_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Site), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_fixed)
+# testResiduals(sim) #significant KS deviation
+# testZeroInflation(sim) # p = 0.032
+
+
+nbin_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Site), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes p =0.52
+
+pois_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Site), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_fixed2)
+# testResiduals(sim) #KS deviation significant
+# testZeroInflation(sim) #0.056
+
+nbin_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Site), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p = 0.392
+
+pois_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Site), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_int)
+# testResiduals(sim) #KS not great
+# testZeroInflation(sim) #passes p =0.08
+
+```
+
+```{r}
+model.sel(nbin_avg_Por_fixed, nbin_avg_Por_fixed2, nbin_avg_Por_int)
+```
+```{r}
+summary(nbin_avg_Por_int)
+emtrends(nbin_avg_Por_int, ~ Shelf, var = "Poritidae_PIT")
+pairs(emtrends(nbin_avg_Por_int, ~ Shelf, var = "Poritidae_PIT"))
+```
+
+
+```{r eval = FALSE}
 gamma_avg_Porites_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
          family = Gamma(link = "log"), data = Por_j_bs)
 sim <- simulateResiduals(gamma_avg_Porites_fixed)
