@@ -1714,56 +1714,50 @@ PIT<- PIT |>
     Reef = factor(Reef),
     Site = factor(Site))
 
-PIT_detailed <- PIT %>%
+PIT <- PIT |> 
   mutate(
-    Acropora = rowSums(pick(`Acropora - branching`:`Acropora - tables`), na.rm = TRUE),
-    Porites  = rowSums(pick(`Porites - branching`:`Porites - massive`), na.rm = TRUE)
-  ) %>%
-  dplyr::select(Year, Shelf, Reef, Site, Transect, Acropora, Isopora, Montipora, Pocillopora, 
-                Seriatopora, Stylophora, Porites, Goniopora) %>%
-  mutate(across(Acropora:Goniopora, ~ .x * 2))
-
-join_PIT_detailed <- PIT_detailed |> pivot_longer(cols = Acropora:Goniopora, names_to = "genus", values_to = "Percent_cover")
-join_PIT_detailed <- join_PIT_detailed |> 
-  group_by(Year, Shelf, Reef, Site, genus) |> 
-  summarise(
-    mean_cover = mean(Percent_cover),
-    sd_cover = sd(Percent_cover)
+    Acroporidae_PIT = rowSums(across(`Acropora - branching`:Montipora), na.rm = TRUE),
+    Pocilloporidae_PIT = rowSums(across(Pocillopora:Stylophora), na.rm = TRUE),
+    Poritidae_PIT = rowSums(across(`Porites - branching`:Goniopora), na.rm = TRUE),
+    `Other Hard coral` = rowSums(across(`Favia (plocoid)`:`other submassive`), na.rm = TRUE),
+    `Soft coral` = rowSums(across(Lobophytum:`Soft-other`), na.rm = TRUE),
+    `Brown MA` = rowSums(across(Sargassum:Lobophora), na.rm = TRUE),
+    `Red MA` = rowSums(across(Asparagopsis:Jania), na.rm = TRUE),
+    `Green MA` = rowSums(across(Halimeda:Valonia), na.rm = TRUE),
+    `Sand and Rubble` = rowSums(across(Sand:Rubble), na.rm = TRUE),
+    Turf = rowSums(across(`Pavement/EAM`:`Dead massive`), na.rm = TRUE),
+    Other = rowSums(across(Sponge:Clam), na.rm = TRUE),
+    Zoantharian = rowSums(across(`Zoantharian - Red`:`Zoantharian - Green`), na.rm = TRUE)
   )
+
+PIT <- PIT |> 
+  mutate(
+    across(Acroporidae_PIT:Poritidae_PIT, ~ .x * 2) #multiply by two to get out of 100%
+  )
+
+PIT_adult <- PIT |> select(Year, Shelf, Reef, Site, Transect, Acroporidae_PIT, Pocilloporidae_PIT, Poritidae_PIT)
 
 ```
 
 ```{r}
-Belt_detailed <- Belt_10m |> 
-  dplyr::select(Year, Shelf, Reef, Site, Transect, Acropora, Isopora, Montipora, Pocillopora, 
-                Seriatopora, Stylophora, Porites)
+Belt_family <- Belt_10m |> 
+  dplyr::select(Year, Shelf, Reef, Site, Transect, Acroporidae, Pocilloporidae, Poritidae)
 
-belt_detailed_long <- Belt_detailed |>  pivot_longer(cols = Acropora:Porites, names_to = "genus", values_to = "juvenile_density")
-
-belt_detailed_long <- belt_detailed_long |> 
-  group_by(Year, Shelf, Reef, Site, genus) |> 
-  summarise(
-    mean_juv = mean(juvenile_density),
-    sd_juv = sd(juvenile_density)
-  )
+# belt_family_long <- Belt_family |>  pivot_longer(cols = Acroporidae:Poritidae, names_to = "Family", values_to = "juvenile_density")
+# 
+# belt_detailed_long <- belt_detailed_long |> 
+#   group_by(Year, Shelf, Reef, Site, genus) |> 
+#   summarise(
+#     mean_juv = mean(juvenile_density),
+#     sd_juv = sd(juvenile_density)
+#   )
 ```
 
 ```{r}
-combined_juv_cover <- left_join(join_PIT_detailed, belt_detailed_long)
+combined_juv_cover <- left_join(PIT_adult, Belt_family)
 ```
 
 Despite not being interested in across the shelf differences, as shelf has only three levels there are two few levels for a stable random effect
-```{r}
-combined_juv_cover |> group_by(genus) |> 
-  summarise(
-    min_cover = min(mean_cover),
-    max_cover = max(mean_cover),
-    median_cover = median(mean_cover),
-    min_juv = min(mean_juv),
-    max_juv = max(mean_juv),
-    median_juv = median(mean_juv)
-  )
-```
 
 
 From this I would say we can only really do Acropora, Porites, and Pocillopora analysis because they have medians not equal to 0
@@ -1771,72 +1765,68 @@ From this I would say we can only really do Acropora, Porites, and Pocillopora a
 ## 6.1. Acropora
 
 ```{r}
-Acro_j_bs <- combined_juv_cover |>  filter(genus == "Acropora")
+# Acro_juv_cover <- combined_juv_cover |> filter(Acroporidae > 0)
 
-gamma_avg_Acropora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
-         family = Gamma(link = "log"), data = Acro_j_bs)
-# sim <- simulateResiduals(gamma_avg_Acropora_fixed)
+nbin_avg_Acro_fixed <- glmmTMB(Acroporidae ~ Acroporidae_PIT +(1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Acro_fixed)
 # testResiduals(sim) #passes
 # testZeroInflation(sim) #passes
 
-ln_avg_Acropora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
-        family = "lognormal", data = Acro_j_bs)
-# sim <- simulateResiduals(ln_avg_Acropora_fixed)
-# testResiduals(sim) #passes
-# testZeroInflation(sim)
-
-gau_avg_Acropora_fixed <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site) + (1 | Year), 
-        family = "gaussian", data = Acro_j_bs)
-# sim <- simulateResiduals(gau_avg_Acropora_fixed)
-# testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
-
-#interaction with Shelf
-gamma_avg_Acropora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
-         family = Gamma(link = "log"), data = Acro_j_bs)
-# sim <- simulateResiduals(gamma_avg_Acropora_int)
-# testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
-
-ln_avg_Acropora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
-        family = "lognormal", data = Acro_j_bs)
-# sim <- simulateResiduals(ln_avg_Acropora_int)
-# testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
-
-gaus_avg_Acropora_int <- glmmTMB(mean_juv ~ mean_cover*Shelf +(1 | Reef/Site), 
-        family = "gaussian", data = Acro_j_bs)
-# sim <- simulateResiduals(gaus_avg_Acropora_int)
-# testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
-
-gamma_avg_Acropora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
-         family = Gamma(link = "log"), data = Acro_j_bs)
-# sim <- simulateResiduals(gamma_avg_Acropora_fixed2)
-# testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
-
-ln_avg_Acropora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
-        family = "lognormal", data = Acro_j_bs)
-# sim <- simulateResiduals(ln_avg_Acropora_fixed2)
-# testResiduals(sim) #passes
-# testZeroInflation(sim) #passes
-
-gau_avg_Acropora_fixed2 <- glmmTMB(mean_juv ~ mean_cover +(1 | Reef/Site), 
-        family = "gaussian", data = Acro_j_bs)
-sim <- simulateResiduals(gau_avg_Acropora_fixed2)
+pois_avg_Acro_fixed <- glmmTMB(Acroporidae ~ Acroporidae_PIT +(1|Reef/Site/Transect), 
+         family = "poisson", data = combined_juv_cover)
+sim <- simulateResiduals(pois_avg_Acro_fixed)
 testResiduals(sim) #passes
-testZeroInflation(sim) #passes
+testZeroInflation(sim) # p = 0.024 so should fit zero inflated model
+
+
+zi_pois_avg_Acro_fixed <- glmmTMB(Acroporidae ~ Acroporidae_PIT +(1|Reef/Site/Transect), 
+                                  ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Acro_fixed)
+# testResiduals(sim) #significant deviation
+# testZeroInflation(sim) # p = 0.104
+
+nbin_avg_Acro_fixed2 <- glmmTMB(Acroporidae ~ Acroporidae_PIT + Shelf + (1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Acro_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+pois_avg_Acro_fixed2 <- glmmTMB(Acroporidae ~ Acroporidae_PIT + Shelf + (1|Reef/Site/Transect), 
+         family = "poisson", data = combined_juv_cover)
+sim <- simulateResiduals(pois_avg_Acro_fixed2)
+testResiduals(sim) #disperion not great
+testZeroInflation(sim) #0.08
+
+zi_pois_avg_Acro_fixed2 <- glmmTMB(Acroporidae ~ Acroporidae_PIT + Shelf + (1|Reef/Site/Transect), 
+                                   ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Acro_fixed2)
+# testResiduals(sim) #passes
+
+
+
+nbin_avg_Acro_int <- glmmTMB(Acroporidae ~ Acroporidae_PIT * Shelf + (1|Reef/Site/Transect), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Acro_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p = 0.336
+
+pois_avg_Acro_int <- glmmTMB(Acroporidae ~ Acroporidae_PIT * Shelf + (1|Reef/Site/Transect), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Acro_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
 ```
 
 ```{r}
-model.sel(gamma_avg_Acropora_fixed, gamma_avg_Acropora_fixed2, gamma_avg_Acropora_int,
-          ln_avg_Acropora_fixed, ln_avg_Acropora_fixed2, ln_avg_Acropora_int,
-          gau_avg_Acropora_fixed, gau_avg_Acropora_fixed2, gaus_avg_Acropora_int)
+model.sel(nbin_avg_Acro_fixed, nbin_avg_Acro_fixed2, nbin_avg_Acro_int, zi_pois_avg_Acro_fixed2, pois_avg_Acro_int)
 ```
 
 ```{r}
-summary(ln_avg_Acropora_fixed2)
+summary(nbin_avg_Acro_int)
 ```
 
 
