@@ -1963,6 +1963,12 @@ pois_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Reef/Site/Transect),
 # testResiduals(sim) #significant KS deviation
 # testZeroInflation(sim) # p = 0.08
 
+zi_pois_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Reef/Site/Transect), 
+                                 ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Por_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) # p = 0.08
 
 nbin_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Reef/Site/Transect), 
          family = "nbinom2", data = combined_juv_cover)
@@ -1974,6 +1980,14 @@ pois_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Reef/Site/
          family = "poisson", data = combined_juv_cover)
 # sim <- simulateResiduals(pois_avg_Por_fixed2)
 # testResiduals(sim) #KS deviation significant 
+# testZeroInflation(sim) #0.064
+
+
+zi_pois_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Reef/Site/Transect),
+                                  ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Por_fixed2)
+# testResiduals(sim) #KS deviation close to significant
 # testZeroInflation(sim) #0.064
 
 nbin_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Reef/Site/Transect), 
@@ -1988,10 +2002,17 @@ pois_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Reef/Site/Tra
 # testResiduals(sim) #KS not great
 # testZeroInflation(sim) #passes p =0.08
 
+zi_pois_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Reef/Site/Transect),
+                               ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Por_int)
+# testResiduals(sim) #KS not great
+# testZeroInflation(sim) #passes p =0.08
 ```
 
 ```{r}
-model.sel(nbin_avg_Por_fixed, nbin_avg_Por_fixed2, nbin_avg_Por_int)
+model.sel(nbin_avg_Por_fixed, nbin_avg_Por_fixed2, nbin_avg_Por_int,
+          zi_pois_avg_Por_fixed, zi_pois_avg_Por_int)
 ```
 
 ```{r}
@@ -1999,7 +2020,142 @@ summary(nbin_avg_Por_int)
 
 ```
 
+```{r}
+nbin_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Reef/Site), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+pois_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Reef/Site), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_fixed)
+# testResiduals(sim) #significant KS deviation
+# testZeroInflation(sim) # p = 0.08
+
+zi_pois_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Reef/Site), 
+                                 ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Por_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) # p = 0.08
+
+nbin_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Reef/Site), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes p =0.408
+
+pois_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Reef/Site), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_fixed2)
+# testResiduals(sim) #KS deviation significant 
+# testZeroInflation(sim) #0.064
+
+
+zi_pois_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Reef/Site),
+                                  ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Por_fixed2)
+# testResiduals(sim) #KS deviation close to significant
+# testZeroInflation(sim) #0.064
+
+nbin_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Reef/Site), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p = 0.488
+
+pois_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Reef/Site), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_int)
+# testResiduals(sim) #KS not great
+# testZeroInflation(sim) #passes p =0.08
+
+zi_pois_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Reef/Site),
+                               ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Por_int)
+# testResiduals(sim) #KS not great
+# testZeroInflation(sim) #passes p =0.08
+```
+
+```{r}
+model.sel(nbin_avg_Por_fixed, nbin_avg_Por_fixed2, nbin_avg_Por_int,
+          zi_pois_avg_Por_fixed, zi_pois_avg_Por_int)
+```
+```{r}
+summary(nbin_avg_Por_int)
+
+```
+
+
 Remove transect and reef because they aren't justified
+
+```{r}
+nbin_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Site), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes
+
+pois_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Site), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_fixed)
+# testResiduals(sim) #significant KS deviation
+# testZeroInflation(sim) # p = 0.08
+
+zi_pois_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Site), 
+                                 ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Por_fixed)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) # p = 0.08
+
+nbin_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Site), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_fixed2)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #passes p =0.408
+
+pois_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Site), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_fixed2)
+# testResiduals(sim) #KS deviation significant 
+# testZeroInflation(sim) #0.064
+
+
+zi_pois_avg_Por_fixed2 <- glmmTMB(Poritidae ~ Poritidae_PIT + Shelf + (1|Site),
+                                  ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Por_fixed2)
+# testResiduals(sim) #KS deviation close to significant
+# testZeroInflation(sim) #0.064
+
+nbin_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Site), 
+         family = "nbinom2", data = combined_juv_cover)
+# sim <- simulateResiduals(nbin_avg_Por_int)
+# testResiduals(sim) #passes
+# testZeroInflation(sim) #p = 0.488
+
+pois_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Site), 
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(pois_avg_Por_int)
+# testResiduals(sim) #KS not great
+# testZeroInflation(sim) #passes p =0.08
+
+zi_pois_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Site),
+                               ziformula = ~1,
+         family = "poisson", data = combined_juv_cover)
+# sim <- simulateResiduals(zi_pois_avg_Por_int)
+# testResiduals(sim) #KS not great
+# testZeroInflation(sim) #passes p =0.08
+```
+
+```{r}
+model.sel(nbin_avg_Por_fixed, nbin_avg_Por_fixed2, nbin_avg_Por_int,
+          zi_pois_avg_Por_fixed, zi_pois_avg_Por_int)
+```
 ```{r}
 nbin_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Site), 
          family = "nbinom2", data = combined_juv_cover)
