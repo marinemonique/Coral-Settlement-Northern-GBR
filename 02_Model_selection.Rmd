@@ -1882,6 +1882,7 @@ model.sel(nbin_avg_Poci_fixed, nbin_avg_Poci_fixed2, nbin_avg_Poci_int, pois_avg
 
 ```{r}
 summary(nbin_avg_Poci_fixed2)
+emtrends(nbin_avg_Poci_fixed2, var = "Pocilloporidae_PIT")
 ```
 
 ```{r eval = FALSE}
