@@ -2889,12 +2889,65 @@ acro_juv_st <- ggplot(pred, aes(x = x, y = predicted, colour = group)) +
        colour = "Shelf",
        title = expression(atop("Acroporidae", "Log-normal average Acroporidae recruits x Shelf")),
        fill = "Shelf") +
-  facet_wrap(~group, scale = "free_y")+
-  theme_classic()+scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+  facet_wrap(~group)+
+  theme_classic()+scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+ scale_x_continuous(limits = c(0, 100))+ scale_y_continuous(limits = c(0, 100))
   
 
 acro_juv_st
 ```
+
+```{r}
+pred_inner <- pred |> filter(group == "Inner")
+inner_acro <- ggplot(pred_inner, aes(x = x, y = predicted, colour = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, colour = NA) +
+  labs(x= expression("Recruits (" * tile^{-1} * ") (t)"),
+       y = expression(atop("Predicted juvenile colonies ",  "(10"~m^{-2}*") (t + 1)")),
+       colour = "Shelf",
+       title = expression(atop("Acroporidae", "Log-normal average Acroporidae recruits x Shelf")),
+       fill = "Shelf") +
+  facet_wrap(~group)+
+  theme_classic()+scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+  
+inner_acro
+
+pred_mid <- pred |> filter(group == "Mid")
+mid_acro <- ggplot(pred_mid, aes(x = x, y = predicted, colour = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, colour = NA) +
+  labs(x= expression("Recruits (" * tile^{-1} * ") (t)"),
+       y = expression(atop("Predicted juvenile colonies ",  "(10"~m^{-2}*") (t + 1)")),
+       colour = "Shelf",
+       #title = expression(atop("Acroporidae", "Log-normal average Acroporidae recruits x Shelf")),
+       fill = "Shelf") +
+  facet_wrap(~group)+
+  theme_classic()+scale_colour_manual(values = c("#9e379f", "#C97B5F"))+scale_fill_manual(values = c("#9e379f", "#C97B5F"))
+  
+mid_acro
+
+pred_outer <- pred |> filter(group == "Outer")
+outer_acro <- ggplot(pred_outer, aes(x = x, y = predicted, colour = group)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, colour = NA) +
+  labs(x= expression("Recruits (" * tile^{-1} * ") (t)"),
+       y = expression(atop("Predicted juvenile colonies ",  "(10"~m^{-2}*") (t + 1)")),
+       colour = "Shelf",
+       #title = expression(atop("Acroporidae", "Log-normal average Acroporidae recruits x Shelf")),
+       fill = "Shelf") +
+  facet_wrap(~group)+
+  theme_classic()+scale_colour_manual(values = c( "#C97B5F"))+scale_fill_manual(values = c( "#C97B5F"))+ 
+  scale_x_continuous(limits = c(0, 75))+ scale_y_continuous(limits = c(0, 100))
+  
+outer_acro
+```
+
+```{r}
+library(patchwork)
+```
+
 
 ```{r}
 pred <- ggpredict(
@@ -2931,7 +2984,7 @@ p_inner <- plot_fun(inner_df, title_text = "Inner shelf")
 
 p_mid   <- plot_fun(mid_df, xlim_vals = c(0, 100), title_text = "Mid shelf")
 
-p_outer <- plot_fun(outer_df, xlim_vals = c(0, 20), ylim_vals = c(0, 100), title_text = "Outer shelf")
+p_outer <- plot_fun(outer_df, xlim_vals = c(0, 20),  title_text = "Outer shelf")
 
 final_plot <- (p_inner | p_mid | p_outer) +
   plot_annotation(
