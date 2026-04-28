@@ -684,8 +684,8 @@ ggsave(A, filename = "Presentation_fig/Total_recruits.PNG",
         )
 
 ggsave(B, filename = "Presentation_fig/Acro_recruits.PNG",
-         width = 180,
-         height = 120,
+         width = 250,
+         height = 100,
          units = "mm"
         )
 
