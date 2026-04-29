@@ -2867,7 +2867,6 @@ ln_acro_juv_st_int <- glmmTMB(mean_acro ~ scale(st_mean_acro_lag1, scale = FALSE
 summary(ln_acro_juv_st_int)
 summary(model_df_acro$st_mean_acro_lag1)
 emmeans(ln_acro_juv_st_int, ~Shelf, type = "response") #note for victor, pls help
-regrid
 
 
 pred <- ggpredict(
@@ -2904,11 +2903,14 @@ inner_acro <- ggplot(pred_inner, aes(x = x, y = predicted, colour = group)) +
               alpha = 0.2, colour = NA) +
   labs(x= expression("Recruits (" * tile^{-1} * ") (t)"),
        y = expression(atop("Predicted juvenile colonies ",  "(10"~m^{-2}*") (t + 1)")),
-       colour = "Shelf",
-       title = expression(atop("Acroporidae", "Log-normal average Acroporidae recruits x Shelf")),
-       fill = "Shelf") +
+       #colour = "Shelf",
+       title = expression(atop("Acroporidae", "Log-normal average Acroporidae recruits x Shelf")) #,
+       #fill = "Shelf"
+       ) +
   facet_wrap(~group)+
-  theme_classic()+scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
+  theme_classic()+
+  theme(legend.position = "none")+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))+scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
   
 inner_acro
 
@@ -2917,13 +2919,17 @@ mid_acro <- ggplot(pred_mid, aes(x = x, y = predicted, colour = group)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
               alpha = 0.2, colour = NA) +
-  labs(x= expression("Recruits (" * tile^{-1} * ") (t)"),
-       y = expression(atop("Predicted juvenile colonies ",  "(10"~m^{-2}*") (t + 1)")),
-       colour = "Shelf",
+  labs(x= expression("Recruits (" * tile^{-1} * ") (t)") #,
+       #y = expression(atop("Predicted juvenile colonies ",  "(10"~m^{-2}*") (t + 1)")) #,
+       #colour = "Shelf",
        #title = expression(atop("Acroporidae", "Log-normal average Acroporidae recruits x Shelf")),
-       fill = "Shelf") +
+       #fill = "Shelf"
+       ) +
   facet_wrap(~group)+
-  theme_classic()+scale_colour_manual(values = c("#9e379f", "#C97B5F"))+scale_fill_manual(values = c("#9e379f", "#C97B5F"))
+  theme_classic()+
+  theme(axis.title.y = element_blank(),
+        legend.position = "none")+
+  scale_colour_manual(values = c("#9e379f", "#C97B5F"))+scale_fill_manual(values = c("#9e379f", "#C97B5F"))+scale_x_continuous(limits = c(0, 112))+ scale_y_continuous(limits = c(0, 30))
   
 mid_acro
 
@@ -2932,13 +2938,17 @@ outer_acro <- ggplot(pred_outer, aes(x = x, y = predicted, colour = group)) +
   geom_line(size = 1.2) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
               alpha = 0.2, colour = NA) +
-  labs(x= expression("Recruits (" * tile^{-1} * ") (t)"),
-       y = expression(atop("Predicted juvenile colonies ",  "(10"~m^{-2}*") (t + 1)")),
-       colour = "Shelf",
+  labs(x= expression("Recruits (" * tile^{-1} * ") (t)") #,
+       #y = expression(atop("Predicted juvenile colonies ",  "(10"~m^{-2}*") (t + 1)")) #,
+       #colour = "Shelf",
        #title = expression(atop("Acroporidae", "Log-normal average Acroporidae recruits x Shelf")),
-       fill = "Shelf") +
+       #fill = "Shelf"
+       ) +
   facet_wrap(~group)+
-  theme_classic()+scale_colour_manual(values = c( "#C97B5F"))+scale_fill_manual(values = c( "#C97B5F"))+ 
+  theme_classic()+
+  theme(axis.title.y = element_blank(),
+        legend.position = "none")+
+  scale_colour_manual(values = c( "#C97B5F"))+scale_fill_manual(values = c( "#C97B5F"))+ 
   scale_x_continuous(limits = c(0, 75))+ scale_y_continuous(limits = c(0, 100))
   
 outer_acro
@@ -2946,6 +2956,10 @@ outer_acro
 
 ```{r}
 library(patchwork)
+
+Acroporidae_recruits_tile <- inner_acro + mid_acro + outer_acro
+
+Acroporidae_recruits_tile
 ```
 
 
@@ -3069,7 +3083,7 @@ por_juv_st
 ```
 
 ```{r eval=FALSE}
-Juv_st_relationship <- ggarrange(acro_juv_st, poci_juv_st, por_juv_st, ncol =1, nrow =3, common.legend = TRUE,
+Juv_st_relationship <- ggarrange(Acroporidae_recruits_tile, poci_juv_st, por_juv_st, ncol =1, nrow =3, legend = "none",
           labels = c("A", "B", "C"))
 
 ggsave(Juv_st_relationship,
