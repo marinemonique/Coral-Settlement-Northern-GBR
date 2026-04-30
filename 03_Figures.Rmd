@@ -2963,56 +2963,6 @@ Acroporidae_recruits_tile
 ```
 
 
-```{r}
-pred <- ggpredict(
-  ln_acro_juv_st_int,
-  terms = c("st_mean_acro_lag1 [all]", "Shelf")
-)
-
-inner_df <- pred %>% filter(group == "Inner")
-mid_df   <- pred %>% filter(group == "Mid")
-outer_df <- pred %>% filter(group == "Outer")
-
-plot_fun <- function(df, xlim_vals = NULL, title_text = NULL) {
-  p <- ggplot(df, aes(x = x, y = predicted, colour = group)) +
-    geom_line(size = 1.2) +
-    geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group),
-                alpha = 0.2, colour = NA) +
-    theme_classic() +
-    labs(title = title_text) +
-    scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F")) +
-    scale_fill_manual(values = c("#A8C85A", "#9e379f", "#C97B5F")) +
-    theme(legend.position = "none")  # avoid repeated legends
-  
-  if (!is.null(xlim_vals)) {
-    p <- p + coord_cartesian(xlim = xlim_vals)
-  }
-  
-  return(p)
-}
-
-model_df_acro |> filter(Shelf == "Outer") |> summarise(min = min(st_mean_acro), max = max(st_mean_acro))
-model_df_acro |> filter(Shelf == "Mid") |> summarise(min = min(st_mean_acro), max = max(st_mean_acro))
-
-p_inner <- plot_fun(inner_df, title_text = "Inner shelf")
-
-p_mid   <- plot_fun(mid_df, xlim_vals = c(0, 100), title_text = "Mid shelf")
-
-p_outer <- plot_fun(outer_df, xlim_vals = c(0, 20),  title_text = "Outer shelf")
-
-final_plot <- (p_inner | p_mid | p_outer) +
-  plot_annotation(
-    title = "Acroporidae: Log-normal recruits × Shelf",
-    theme = theme(plot.title = element_text(hjust = 0.5))
-  )
-
-final_plot & 
-  labs(
-    x = expression("Recruits (" * tile^{-1} * ") (t)"),
-    y = expression(atop("Predicted juvenile colonies ", "(10"~m^{-2}*") (t + 1)"))
-  )
-```
-
 
 *Try to work out what to do with those whack outer shelf values*
 ### 4.1.2. Pocilloporidae
@@ -3024,6 +2974,10 @@ model_df_poci <- gropd_df2 %>%
 ln_poci_juv_st_fixed <- glmmTMB(mean_poci ~ scale(st_mean_poci_lag1, scale = FALSE) + Shelf + (1|Reef/Site),
               family = "lognormal",
            data = model_df_poci)
+
+summary(ln_poci_juv_st_fixed)
+summary(model_df_poci$st_mean_poci_lag1)
+emmeans(ln_poci_juv_st_fixed, ~Shelf, type = "response")
 
 pred <- ggpredict(
   ln_poci_juv_st_fixed,
@@ -3059,6 +3013,10 @@ model_df_por <- model_df_por |>
 gamma_por_juv_st_fixed <- glmmTMB(mean_por ~ scale(st_mean_por_lag1, scale = FALSE) + Shelf + (1|Reef/Site),
               family = Gamma(link = "log"),
            data = model_df_por)
+
+summary(gamma_por_juv_st_fixed)
+summary(model_df_por$st_mean_por_lag1)
+emmeans(gamma_por_juv_st_fixed, ~Shelf, type = "response")
 
 pred <- ggpredict(
   gamma_por_juv_st_fixed,
