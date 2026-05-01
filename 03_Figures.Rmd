@@ -1189,7 +1189,7 @@ juv_acro_plot
 Poc <- Belt_10m |> 
   dplyr::select(Year, Shelf, Reef, Site, Pocilloporidae)
 
-nbin <- glmmTMB(Pocilloporidae ~ Year+Shelf+(1 | Reef/Site), #doing fixed model because that performs the best
+nbin2 <- glmmTMB(Pocilloporidae ~ Year*Shelf+(1 | Reef/Site), #doing fixed model because that performs the best
         family = "nbinom2", data = Poc)
 
 
@@ -1199,7 +1199,7 @@ poci_juv_site <- Belt_10m |>
     mean_site = mean(Pocilloporidae),
     se_site = sd(Pocilloporidae)/(n()^0.5))
   
-poci_juv_emm <-  nbin |> 
+poci_juv_emm <-  nbin2 |> 
   emmeans(~Shelf | Year, type = "response") |> 
   as.data.frame()
 
