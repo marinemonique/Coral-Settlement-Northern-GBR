@@ -1062,11 +1062,11 @@ final_plot_st <- p1 / bottom_centered +
 
 final_plot_st
 
-ggsave(final_plot_st,
-       file = "figures/Recruits_NMDS.PDF",
-       height = 220,
-       width = 189,
-       unit = "mm")
+# ggsave(final_plot_st,
+#        file = "figures/Recruits_NMDS.PDF",
+#        height = 220,
+#        width = 189,
+#        unit = "mm")
 
 ```
 
