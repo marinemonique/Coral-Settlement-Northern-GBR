@@ -379,8 +379,9 @@ A.2 <- ggplot()+
     colour = "#606060", shape = 1)+
   geom_pointrange(data = total_model_emm,aes(x=Year,
              y=response, 
-             color=Shelf,ymin = asymp.LCL, ymax = asymp.UCL),
-                  position = position_dodge(width = 0.85))+
+             color=Shelf, ymin = asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.85),
+             width = 1)+
   scale_y_log10()+ #TBD whether to include
   theme_classic()+
   labs(y = expression("Predicted recruits (" * tile^{-1} * ")"),
@@ -397,6 +398,37 @@ A.2 <- ggplot()+
         text = element_text(size =12))+
   scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 A.2
+
+A.3 <- ggplot()+
+    geom_jitter(data = total_mean_site, aes(x=Year, y = mean_site, group = Shelf), 
+                position = position_jitterdodge(jitter.width = 0.35, dodge.width = 0.85),
+    size = 1.5,
+    alpha = 0.75,
+    colour = "#606060", shape = 1)+
+  geom_pointrange(data = total_model_emm,aes(x=Year,
+             y=response, 
+             color=Shelf,ymin = asymp.LCL, ymax = asymp.UCL),
+                  position = position_dodge(width = 0.85))+
+  #scale_y_log10()+ #TBD whether to include
+  #scale_y_continuous(trans = "log1p")+
+  scale_y_continuous(
+    trans = log1p_trans(),
+    breaks = c(0, 10, 50, 100, 200, 300)
+  )+
+  theme_classic()+
+  labs(y = expression("Predicted recruits (" * tile^{-1} * ")"),
+       title = "Total")+
+  scale_x_discrete(
+    "Deployment",
+    labels = c("2021-22" = "21/22",
+               "2022-23" = "22/23",
+               "2023-24" = "23/24",
+               "2024-25" = "24/25",
+               "2026" = "25/26")
+    )+
+  theme(legend = element_blank(),
+        text = element_text(size =12))+
+  scale_colour_manual(values = c("#A8C85A", "#9e379f", "#C97B5F"))
 ```
 
 ### 1.1.1 Acroporidae
@@ -682,6 +714,12 @@ ggsave(A, filename = "Presentation_fig/Total_recruits.PNG",
          height = 120,
          units = "mm"
         )
+ggsave(A.3, filename = "Presentation_fig/Total_recruits_bleaching.PNG",
+         width = 180,
+         height = 60,
+         units = "mm"
+        )
+
 
 ggsave(B, filename = "Presentation_fig/Acro_recruits.PNG",
          width = 250,
