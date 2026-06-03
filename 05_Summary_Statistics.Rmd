@@ -1670,7 +1670,79 @@ Summary_table_coral
 ```
 
 
-## 3.2.Spatiotemporal
+# 4. Discussion
 
+## 4.1. does Acropoidae and Isopora cover decline in 2024/25
+
+```{r}
+PIT <- PIT <- read_csv("PIT_final.csv") %>%
+  mutate(across(8:94, ~replace_na(.x, 0)))
+
+PIT <- PIT %>% 
+  filter(Year %in% c("2021-22", "2022-23", "2023-24", "2024-25", "2025-26"))
+
+PIT <- PIT |> 
+  mutate(
+    Site = case_when(
+      Site %in% c("Vicky-HS", "Vickys") ~ "Vicky-HS",
+      Site %in% c("Turtle Beach", "TurtleB-CooksP") ~ "TurtleB-CooksP",
+      Site %in% c("Lag2-Trimodal", "Lagoon") ~ "Lag2-Trimodal",
+      Site == "Turtle South - Front (Sargassum)" ~ "TS_Crest",
+      Site == "Turtle South - Coral" ~ "TS_Back",
+      Site == "Turtle North - front" ~ "TN_Crest",
+      TRUE ~ Site
+    ),
+    Reef = case_when(
+      Site %in% c("Day 1", "Day 2", "Day 3") ~ "Day",
+      Site %in% c("Hicks 1", "Hicks 2", "Hicks 3") ~ "Hicks",
+      Site %in% c("Mac 1", "Mac 2", "Mac 3") ~ "MacGillivray",
+      Site %in% c("TN_Back", "TN_coral", "TN_Crest") ~ "Turtle N",
+      Site %in% c("TS_Back", "TS_Channel", "TS_Crest") ~ "Turtle S",
+      Site %in% c("TurtleB-CooksP", "Lag2-Trimodal", "Vicky-HS") ~ "Lizard",
+      TRUE ~ NA_character_
+    )  )
+
+
+
+PIT<- PIT |> 
+  mutate(
+    Shelf = factor(Shelf),
+    Reef = factor(Reef),
+    Site = factor(Site))
+PIT_acro_iso <- PIT |> select(Year, Shelf, Reef, Site, Transect, `Acropora - branching`, `Acropora - corymbose`, `Acropora - digitate`, `Acropora - tables`, Isopora)
+
+PIT_acro_iso |> mutate(Acropora = `Acropora - branching`+`Acropora - corymbose`+`Acropora - digitate`+`Acropora - tables`) |> 
+  group_by(Year, Shelf) |> 
+  summarise(
+    mean_iso = mean(Isopora),
+    se_iso = sd(Isopora)/n()^0.5,
+    mean_acro = mean(Acropora),
+    se_acro = sd(Acropora)/n()^0.5
+  ) |> 
+  ggplot(aes(x=Year, y = mean_acro, colour = Shelf))+
+  geom_point()
+
+PIT_acro_iso |> mutate(Acropora = `Acropora - branching`+`Acropora - corymbose`+`Acropora - digitate`+`Acropora - tables`) |> 
+  group_by(Year, Shelf) |> 
+  summarise(
+    mean_iso = mean(Isopora),
+    se_iso = sd(Isopora)/n()^0.5,
+    mean_acro = mean(Acropora),
+    se_acro = sd(Acropora)/n()^0.5
+  ) |> 
+  ggplot(aes(x=Year, y = mean_iso, colour = Shelf))+
+  geom_point()
+```
+
+## 4.2. Relative abundance of each family on shelf position
+```{r}
+Coral_settlement_nGBR |> 
+  group_by(Shelf) |> 
+  summarise(
+    Acro = sum(Acroporidae)/sum(total)*100,
+    Poci = sum(Pocilloporidae)/sum(total)*100,
+    Por = sum(Poritid)/sum(total)*100
+  ) 
+```
 
 

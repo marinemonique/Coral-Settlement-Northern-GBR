@@ -1666,6 +1666,13 @@ model.sel(gau_por_juv_st_fixed, gau_por_juv_st_int, ln_por_juv_st_fixed, ln_por_
 gamma_por_juv_st_fixed2
 
 summary(gamma_por_juv_st_fixed2)
+
+emm_shelf <- emmeans(gamma_por_juv_st_fixed2, ~Shelf, type = "response")
+
+pairs(emm_shelf)
+
+emm_shelf
+confint(pairs(emm_shelf))
 ```
 
 ```{r}
@@ -2178,6 +2185,7 @@ zi_pois_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Site),
 model.sel(nbin_avg_Por_fixed, nbin_avg_Por_fixed2, nbin_avg_Por_int,
           zi_pois_avg_Por_fixed, zi_pois_avg_Por_int)
 ```
+
 ```{r}
 nbin_avg_Por_fixed <- glmmTMB(Poritidae ~ Poritidae_PIT +(1|Site), 
          family = "nbinom2", data = combined_juv_cover)
@@ -2218,6 +2226,7 @@ pois_avg_Por_int <- glmmTMB(Poritidae ~ Poritidae_PIT * Shelf + (1|Site),
 
 ```
 
+
 ```{r}
 model.sel(nbin_avg_Por_fixed, nbin_avg_Por_fixed2, nbin_avg_Por_int)
 ```
@@ -2226,6 +2235,7 @@ summary(nbin_avg_Por_int)
 emtrends(nbin_avg_Por_int, ~ Shelf, var = "Poritidae_PIT")
 pairs(emtrends(nbin_avg_Por_int, ~ Shelf, var = "Poritidae_PIT"))
 ```
+
 
 
 ```{r eval = FALSE}
