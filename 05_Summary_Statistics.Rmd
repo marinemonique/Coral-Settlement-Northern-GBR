@@ -1741,7 +1741,8 @@ Coral_settlement_nGBR |>
   summarise(
     Acro = sum(Acroporidae)/sum(total)*100,
     Poci = sum(Pocilloporidae)/sum(total)*100,
-    Por = sum(Poritid)/sum(total)*100
+    Por = sum(Poritid)/sum(total)*100,
+    Other = sum(Other)/sum(total)*100
   ) 
 ```
 
